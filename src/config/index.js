@@ -142,7 +142,9 @@ class ConfigurationManager extends EventEmitter {
    */
   _mergeConfigs(...configs) {
     return configs.reduce((merged, config) => {
-      if (!config) return merged;
+      if (!config) {
+        return merged;
+      }
 
       for (const [key, value] of Object.entries(config)) {
         if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -201,7 +203,7 @@ class ConfigurationManager extends EventEmitter {
 
     try {
       const newConfig = await this.loadConfig();
-      
+
       // Check if configuration actually changed
       if (JSON.stringify(previousConfig) !== JSON.stringify(newConfig)) {
         logger.info('Configuration reloaded successfully');
@@ -221,10 +223,7 @@ class ConfigurationManager extends EventEmitter {
    */
   async updateConfig(updates) {
     if (!this.currentConfig) {
-      throw new BalmSharedMCPError(
-        'No configuration loaded',
-        'CONFIG_NOT_LOADED'
-      );
+      throw new BalmSharedMCPError('No configuration loaded', 'CONFIG_NOT_LOADED');
     }
 
     const previousConfig = { ...this.currentConfig };
@@ -232,17 +231,17 @@ class ConfigurationManager extends EventEmitter {
 
     try {
       const validatedConfig = await this._validateConfig(updatedConfig);
-      
+
       // Create backup before update
       if (validatedConfig.backup.enabled) {
         this._createBackup(this.currentConfig);
       }
 
       this.currentConfig = validatedConfig;
-      
+
       logger.info('Configuration updated at runtime', { updates });
       this.emit('config:updated', validatedConfig, previousConfig);
-      
+
       return validatedConfig;
     } catch (error) {
       logger.error('Failed to update configuration:', error);
@@ -275,10 +274,7 @@ class ConfigurationManager extends EventEmitter {
    */
   async restoreFromBackup(index = 0) {
     if (index >= this.backups.length) {
-      throw new BalmSharedMCPError(
-        `Backup index ${index} not found`,
-        'BACKUP_NOT_FOUND'
-      );
+      throw new BalmSharedMCPError(`Backup index ${index} not found`, 'BACKUP_NOT_FOUND');
     }
 
     const backup = this.backups[index];
@@ -287,10 +283,10 @@ class ConfigurationManager extends EventEmitter {
     try {
       const validatedConfig = await this._validateConfig(backup.config);
       this.currentConfig = validatedConfig;
-      
+
       logger.info(`Configuration restored from backup (${backup.timestamp})`);
       this.emit('config:restored', validatedConfig, previousConfig);
-      
+
       return validatedConfig;
     } catch (error) {
       logger.error('Failed to restore configuration from backup:', error);
@@ -416,7 +412,7 @@ class RuntimeConfigManager extends ConfigurationManager {
 
     if (index !== -1) {
       subscriptions.splice(index, 1);
-      
+
       // Clean up empty subscription arrays
       if (subscriptions.length === 0) {
         this.subscribers.delete(key);
@@ -474,13 +470,12 @@ class RuntimeConfigManager extends ConfigurationManager {
       }, {});
 
       const sources = [...new Set(this.configChangeQueue.map(item => item.source))];
-      
+
       // Clear the queue
       this.configChangeQueue = [];
 
       // Process the merged changes
       await this._processConfigChange(mergedChanges, sources.join(', '));
-
     } catch (error) {
       logger.error('Error processing config change queue:', error);
     } finally {
@@ -496,13 +491,12 @@ class RuntimeConfigManager extends ConfigurationManager {
 
     try {
       const updatedConfig = await this.updateConfig(changes);
-      
+
       // Notify subscribers
       await this._notifySubscribers(updatedConfig, previousConfig, source);
 
       logger.info(`Configuration applied from ${source}`, { changes });
       return updatedConfig;
-
     } catch (error) {
       logger.error(`Failed to apply config changes from ${source}:`, error);
       throw error;
@@ -523,9 +517,13 @@ class RuntimeConfigManager extends ConfigurationManager {
             continue;
           }
 
-          const notification = this._createNotification(subscription.callback, newConfig, previousConfig, source);
+          const notification = this._createNotification(
+            subscription.callback,
+            newConfig,
+            previousConfig,
+            source
+          );
           notifications.push(notification);
-
         } catch (error) {
           logger.error(`Error preparing notification for ${key}:`, error);
         }
@@ -540,13 +538,13 @@ class RuntimeConfigManager extends ConfigurationManager {
    * Create a notification promise
    */
   _createNotification(callback, newConfig, previousConfig, source) {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       try {
         const result = callback(newConfig, previousConfig, source);
-        
+
         // Handle async callbacks
         if (result && typeof result.then === 'function') {
-          result.then(resolve).catch((error) => {
+          result.then(resolve).catch(error => {
             logger.error('Error in async config callback:', error);
             resolve();
           });
@@ -611,19 +609,25 @@ class RuntimeConfigManager extends ConfigurationManager {
       return JSON.stringify(newValue) !== JSON.stringify(previousValue);
     };
 
-    return this.subscribe(`path:${path}`, (newConfig, previousConfig, source) => {
-      const newValue = this._getValueByPath(newConfig, path);
-      const previousValue = this._getValueByPath(previousConfig, path);
-      callback(newValue, previousValue, source);
-    }, { ...options, filter });
+    return this.subscribe(
+      `path:${path}`,
+      (newConfig, previousConfig, source) => {
+        const newValue = this._getValueByPath(newConfig, path);
+        const previousValue = this._getValueByPath(previousConfig, path);
+        callback(newValue, previousValue, source);
+      },
+      { ...options, filter }
+    );
   }
 
   /**
    * Get value by path helper
    */
   _getValueByPath(obj, path) {
-    if (!obj) return undefined;
-    
+    if (!obj) {
+      return undefined;
+    }
+
     const keys = path.split('.');
     let value = obj;
 
@@ -643,7 +647,10 @@ class RuntimeConfigManager extends ConfigurationManager {
    */
   getRuntimeStats() {
     return {
-      subscriberCount: Array.from(this.subscribers.values()).reduce((total, subs) => total + subs.length, 0),
+      subscriberCount: Array.from(this.subscribers.values()).reduce(
+        (total, subs) => total + subs.length,
+        0
+      ),
       queuedChanges: this.configChangeQueue.length,
       isProcessingQueue: this.isProcessingQueue,
       backupCount: this.backups.length,
@@ -658,7 +665,7 @@ class RuntimeConfigManager extends ConfigurationManager {
   destroy() {
     // Clear subscribers
     this.subscribers.clear();
-    
+
     // Clear queue
     this.configChangeQueue = [];
     this.isProcessingQueue = false;

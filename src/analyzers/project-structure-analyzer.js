@@ -19,16 +19,8 @@ export class ProjectStructureAnalyzer {
       'app/index.html',
       'app/scripts/main.js'
     ];
-    this.requiredBalmJSDirectories = [
-      'app',
-      'app/scripts',
-      'app/styles'
-    ];
-    this.sharedProjectIndicators = [
-      'yiban-shared',
-      '@yiban/shared',
-      'includeJsResource'
-    ];
+    this.requiredBalmJSDirectories = ['app', 'app/scripts', 'app/styles'];
+    this.sharedProjectIndicators = ['yiban-shared', '@yiban/shared', 'includeJsResource'];
   }
 
   /**
@@ -63,7 +55,7 @@ export class ProjectStructureAnalyzer {
 
       // Analyze directory structure
       analysis.structure = await this._analyzeDirectoryStructure(projectPath);
-      
+
       // Load and analyze package.json
       const packageJsonPath = path.join(projectPath, 'package.json');
       if (this.fileHandler.exists(packageJsonPath)) {
@@ -71,9 +63,12 @@ export class ProjectStructureAnalyzer {
           const packageContent = await this.fileHandler.readFile(packageJsonPath);
           analysis.packageInfo = JSON.parse(packageContent);
           analysis.projectType = this._detectProjectType(analysis.packageInfo);
-          
+
           // Check for balm-shared integration
-          const integration = await this._checkBalmSharedIntegration(projectPath, analysis.packageInfo);
+          const integration = await this._checkBalmSharedIntegration(
+            projectPath,
+            analysis.packageInfo
+          );
           analysis.hasBalmShared = integration.hasDependency || integration.hasAlias;
         } catch (error) {
           analysis.issues.push('Invalid package.json format');
@@ -183,7 +178,7 @@ export class ProjectStructureAnalyzer {
       try {
         const packageContent = await this.fileHandler.readFile(packageJsonPath);
         const packageJson = JSON.parse(packageContent);
-        
+
         if (!this.hasBalmJSDependencies(packageJson)) {
           validation.issues.push({
             type: 'warning',
@@ -230,7 +225,7 @@ export class ProjectStructureAnalyzer {
       try {
         const packageContent = await this.fileHandler.readFile(packageJsonPath);
         const packageJson = JSON.parse(packageContent);
-        
+
         if (this.hasBalmSharedReferences(packageJson)) {
           check.isIntegrated = true;
         }
@@ -249,7 +244,7 @@ export class ProjectStructureAnalyzer {
     if (this.fileHandler.exists(balmConfigPath)) {
       try {
         const balmConfigContent = await this.fileHandler.readFile(balmConfigPath);
-        
+
         if (this.hasBalmSharedConfig(balmConfigContent)) {
           check.isIntegrated = true;
         }
@@ -290,10 +285,8 @@ export class ProjectStructureAnalyzer {
       ...packageJson.devDependencies
     };
 
-    return Object.keys(dependencies).some(dep => 
-      dep.includes('balm') || 
-      dep.includes('@balm') ||
-      dep === 'gulp'
+    return Object.keys(dependencies).some(
+      dep => dep.includes('balm') || dep.includes('@balm') || dep === 'gulp'
     );
   }
 
@@ -307,9 +300,10 @@ export class ProjectStructureAnalyzer {
       ...packageJson.peerDependencies
     };
 
-    return this.sharedProjectIndicators.some(indicator =>
-      Object.keys(allDeps).some(dep => dep.includes(indicator)) ||
-      JSON.stringify(packageJson).includes(indicator)
+    return this.sharedProjectIndicators.some(
+      indicator =>
+        Object.keys(allDeps).some(dep => dep.includes(indicator)) ||
+        JSON.stringify(packageJson).includes(indicator)
     );
   }
 
@@ -317,9 +311,7 @@ export class ProjectStructureAnalyzer {
    * Check if balm.config.js has shared-project configuration
    */
   hasBalmSharedConfig(configContent) {
-    return this.sharedProjectIndicators.some(indicator =>
-      configContent.includes(indicator)
-    );
+    return this.sharedProjectIndicators.some(indicator => configContent.includes(indicator));
   }
 
   /**
@@ -371,14 +363,36 @@ export class ProjectStructureAnalyzer {
 
       for (const item of items) {
         const itemName = item.toLowerCase();
-        if (itemName === 'package.json') structure.hasPackageJson = true;
-        if (itemName === 'src' && this.fileHandler.isDirectory(path.join(projectPath, item))) structure.hasSrc = true;
-        if (itemName === 'pages' && this.fileHandler.isDirectory(path.join(projectPath, item))) structure.hasPages = true;
-        if (itemName === 'components' && this.fileHandler.isDirectory(path.join(projectPath, item))) structure.hasComponents = true;
-        if (itemName === 'utils' && this.fileHandler.isDirectory(path.join(projectPath, item))) structure.hasUtils = true;
-        if (itemName === 'apis' && this.fileHandler.isDirectory(path.join(projectPath, item))) structure.hasApis = true;
-        if (itemName.includes('test') && this.fileHandler.isDirectory(path.join(projectPath, item))) structure.hasTests = true;
-        if (itemName === 'readme.md') structure.hasReadme = true;
+        if (itemName === 'package.json') {
+          structure.hasPackageJson = true;
+        }
+        if (itemName === 'src' && this.fileHandler.isDirectory(path.join(projectPath, item))) {
+          structure.hasSrc = true;
+        }
+        if (itemName === 'pages' && this.fileHandler.isDirectory(path.join(projectPath, item))) {
+          structure.hasPages = true;
+        }
+        if (
+          itemName === 'components' &&
+          this.fileHandler.isDirectory(path.join(projectPath, item))
+        ) {
+          structure.hasComponents = true;
+        }
+        if (itemName === 'utils' && this.fileHandler.isDirectory(path.join(projectPath, item))) {
+          structure.hasUtils = true;
+        }
+        if (itemName === 'apis' && this.fileHandler.isDirectory(path.join(projectPath, item))) {
+          structure.hasApis = true;
+        }
+        if (
+          itemName.includes('test') &&
+          this.fileHandler.isDirectory(path.join(projectPath, item))
+        ) {
+          structure.hasTests = true;
+        }
+        if (itemName === 'readme.md') {
+          structure.hasReadme = true;
+        }
       }
 
       return structure;
@@ -543,7 +557,10 @@ export class ProjectStructureAnalyzer {
     Object.keys(allDeps).forEach(depName => {
       deps[depName] = {
         version: allDeps[depName],
-        type: packageJson.dependencies && packageJson.dependencies[depName] ? 'production' : 'development'
+        type:
+          packageJson.dependencies && packageJson.dependencies[depName]
+            ? 'production'
+            : 'development'
       };
     });
 
@@ -617,7 +634,7 @@ export class ProjectStructureAnalyzer {
       if (this.fileHandler.exists(packageJsonPath)) {
         const packageContent = await this.fileHandler.readFile(packageJsonPath);
         const packageJson = JSON.parse(packageContent);
-        
+
         if (this.hasYibanSharedReferences(packageJson)) {
           integration.isIntegrated = true;
           integration.methods.push('package.json dependencies');
@@ -636,13 +653,18 @@ export class ProjectStructureAnalyzer {
 
       // Check yiban-shared directory
       const yibanSharedPath = path.join(projectPath, 'yiban-shared');
-      if (this.fileHandler.exists(yibanSharedPath) && this.fileHandler.isDirectory(yibanSharedPath)) {
+      if (
+        this.fileHandler.exists(yibanSharedPath) &&
+        this.fileHandler.isDirectory(yibanSharedPath)
+      ) {
         integration.isIntegrated = true;
         integration.methods.push('yiban-shared directory');
       }
 
       if (!integration.isIntegrated) {
-        integration.recommendations.push('Consider integrating yiban-shared for better development experience');
+        integration.recommendations.push(
+          'Consider integrating yiban-shared for better development experience'
+        );
       }
 
       return integration;

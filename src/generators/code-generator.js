@@ -496,25 +496,31 @@ export const {{camelCase name}}Config = {
    */
   initializeHelpers() {
     // String transformation helpers
-    this.templateHelpers.set('camelCase', (str) => {
-      return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+    this.templateHelpers.set('camelCase', str => {
+      return str.replace(/-([a-z])/g, g => g[1].toUpperCase());
     });
 
-    this.templateHelpers.set('pascalCase', (str) => {
+    this.templateHelpers.set('pascalCase', str => {
       const camelCase = this.templateHelpers.get('camelCase')(str);
       return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
     });
 
-    this.templateHelpers.set('kebabCase', (str) => {
-      return str.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '');
+    this.templateHelpers.set('kebabCase', str => {
+      return str
+        .replace(/([A-Z])/g, '-$1')
+        .toLowerCase()
+        .replace(/^-/, '');
     });
 
-    this.templateHelpers.set('snakeCase', (str) => {
-      return str.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '');
+    this.templateHelpers.set('snakeCase', str => {
+      return str
+        .replace(/([A-Z])/g, '_$1')
+        .toLowerCase()
+        .replace(/^_/, '');
     });
 
     // JSON helper
-    this.templateHelpers.set('json', (obj) => {
+    this.templateHelpers.set('json', obj => {
       return JSON.stringify(obj, null, 2);
     });
 
@@ -670,25 +676,27 @@ export const {{camelCase name}}Config = {
         return '';
       }
 
-      return array.map((item, index) => {
-        // Process the content with direct variable replacement to avoid context conflicts
-        let processedContent = content;
+      return array
+        .map((item, index) => {
+          // Process the content with direct variable replacement to avoid context conflicts
+          let processedContent = content;
 
-        // Handle iteration-specific variables first
-        processedContent = processedContent.replace(/\{\{@index\}\}/g, index);
-        processedContent = processedContent.replace(/\{\{@key\}\}/g, item.key || index);
-        processedContent = processedContent.replace(/\{\{@first\}\}/g, index === 0);
-        processedContent = processedContent.replace(/\{\{@last\}\}/g, index === array.length - 1);
+          // Handle iteration-specific variables first
+          processedContent = processedContent.replace(/\{\{@index\}\}/g, index);
+          processedContent = processedContent.replace(/\{\{@key\}\}/g, item.key || index);
+          processedContent = processedContent.replace(/\{\{@first\}\}/g, index === 0);
+          processedContent = processedContent.replace(/\{\{@last\}\}/g, index === array.length - 1);
 
-        // Replace item properties directly in the content
-        Object.keys(item).forEach(key => {
-          const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
-          processedContent = processedContent.replace(regex, item[key]);
-        });
+          // Replace item properties directly in the content
+          Object.keys(item).forEach(key => {
+            const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+            processedContent = processedContent.replace(regex, item[key]);
+          });
 
-        // Process remaining template with original context
-        return this.processTemplate(processedContent, context);
-      }).join('');
+          // Process remaining template with original context
+          return this.processTemplate(processedContent, context);
+        })
+        .join('');
     });
   }
 
@@ -802,16 +810,16 @@ export const {{camelCase name}}Config = {
    * Generate a complete CRUD module
    */
   async generateCrudModule(options) {
-    const { 
-      module, 
-      model, 
-      fields = [], 
+    const {
+      module,
+      model,
+      fields = [],
       projectPath,
       title,
       endpoint,
       requiresAuth = true,
       permissions = [],
-      ...otherOptions 
+      ...otherOptions
     } = options;
 
     logger.info(`Generating CRUD module: ${module} for model: ${model}`);
@@ -924,7 +932,6 @@ export const {{camelCase name}}Config = {
           totalFiles: generatedFiles.length
         }
       };
-
     } catch (error) {
       logger.error(`Failed to generate CRUD module: ${module}`, { error: error.message });
 
@@ -991,7 +998,6 @@ export const {{camelCase name}}Config = {
           }
         ]
       };
-
     } catch (error) {
       logger.error(`Failed to generate model config: ${name}`, { error: error.message });
 
@@ -1059,7 +1065,11 @@ export const {{camelCase name}}Config = {
       // Determine template name and output path
       const templateName = type === 'list' ? 'vue-list-page' : 'vue-detail-page';
       const componentFileName = `${this.templateHelpers.get('kebabCase')(name)}-${type}.vue`;
-      const componentDir = path.join(projectPath, 'src/scripts/pages', this.templateHelpers.get('kebabCase')(name));
+      const componentDir = path.join(
+        projectPath,
+        'src/scripts/pages',
+        this.templateHelpers.get('kebabCase')(name)
+      );
       const componentPath = path.join(componentDir, componentFileName);
 
       // Validate template context
@@ -1089,7 +1099,6 @@ export const {{camelCase name}}Config = {
           }
         ]
       };
-
     } catch (error) {
       logger.error(`Failed to generate ${type} page component: ${name}`, { error: error.message });
 
@@ -1141,7 +1150,11 @@ export const {{camelCase name}}Config = {
       results.push(detailResult);
 
       // Create index file for the module
-      const moduleDir = path.join(projectPath, 'src/scripts/pages', this.templateHelpers.get('kebabCase')(name));
+      const moduleDir = path.join(
+        projectPath,
+        'src/scripts/pages',
+        this.templateHelpers.get('kebabCase')(name)
+      );
       const indexPath = path.join(moduleDir, 'index.js');
 
       const indexContent = this.generateModuleIndex(name, ['list', 'detail']);
@@ -1164,7 +1177,6 @@ export const {{camelCase name}}Config = {
           }
         ]
       };
-
     } catch (error) {
       logger.error(`Failed to generate page module: ${name}`, { error: error.message });
       throw error;
@@ -1178,13 +1190,16 @@ export const {{camelCase name}}Config = {
     const kebabName = this.templateHelpers.get('kebabCase')(moduleName);
     const pascalName = this.templateHelpers.get('pascalCase')(moduleName);
 
-    const imports = componentTypes.map(type =>
-      `import ${pascalName}${this.templateHelpers.get('pascalCase')(type)} from './${kebabName}-${type}.vue';`
-    ).join('\n');
+    const imports = componentTypes
+      .map(
+        type =>
+          `import ${pascalName}${this.templateHelpers.get('pascalCase')(type)} from './${kebabName}-${type}.vue';`
+      )
+      .join('\n');
 
-    const exports = componentTypes.map(type =>
-      `  ${pascalName}${this.templateHelpers.get('pascalCase')(type)}`
-    ).join(',\n');
+    const exports = componentTypes
+      .map(type => `  ${pascalName}${this.templateHelpers.get('pascalCase')(type)}`)
+      .join(',\n');
 
     return `/**
  * ${pascalName} Module
@@ -1225,7 +1240,6 @@ ${exports}
       }
 
       logger.info(`Updated project structure for module: ${moduleName}`);
-
     } catch (error) {
       logger.warn(`Failed to update project structure: ${error.message}`);
       // Don't throw error here as component generation was successful
@@ -1248,17 +1262,14 @@ ${exports}
 
       // Add import statement
       const importStatement = `export * from './${kebabName}';`;
-      const updatedContent = content + '\n' + importStatement;
+      const updatedContent = `${content}\n${importStatement}`;
 
       await this.fileSystemHandler.writeFile(indexPath, updatedContent);
       logger.debug(`Updated pages index: ${indexPath}`);
-
     } catch (error) {
       logger.warn(`Failed to update pages index: ${error.message}`);
     }
   }
-
-
 
   /**
    * Generate route configuration for a module
@@ -1337,7 +1348,6 @@ ${exports}
           }
         ]
       };
-
     } catch (error) {
       logger.error(`Failed to generate route config: ${name}`, { error: error.message });
 
@@ -1416,7 +1426,6 @@ ${exports}
           }
         ]
       };
-
     } catch (error) {
       logger.error(`Failed to generate mock data: ${name}`, { error: error.message });
 
@@ -1457,13 +1466,9 @@ ${exports}
       }
 
       // Update pages index (already handled in generatePageModule)
-      await this.updatePagesIndex(
-        path.join(projectPath, 'src/scripts/pages/index.js'),
-        moduleName
-      );
+      await this.updatePagesIndex(path.join(projectPath, 'src/scripts/pages/index.js'), moduleName);
 
       logger.info(`Updated project structure for module: ${moduleName}`);
-
     } catch (error) {
       logger.warn(`Failed to update project structure: ${error.message}`);
       // Don't throw error here as module generation was successful
@@ -1497,11 +1502,10 @@ ${exports}
 
       // Add import statement
       const importStatement = `export { default as ${this.templateHelpers.get('camelCase')(moduleName)} } from './${kebabName}.js';`;
-      const updatedContent = content + '\n' + importStatement;
+      const updatedContent = `${content}\n${importStatement}`;
 
       await this.fileSystemHandler.writeFile(apiIndexPath, updatedContent);
       logger.debug(`Updated API index: ${apiIndexPath}`);
-
     } catch (error) {
       logger.warn(`Failed to update API index: ${error.message}`);
     }
@@ -1535,18 +1539,15 @@ ${exports}
 
       // Add import statement
       const importStatement = `import { ${camelName}Routes } from './${kebabName}.js';`;
-      
+
       // Add to routes array
       let updatedContent = content;
-      
+
       // Add import at the top
       if (content.includes('import')) {
-        updatedContent = content.replace(
-          /(import.*\n)/,
-          `$1${importStatement}\n`
-        );
+        updatedContent = content.replace(/(import.*\n)/, `$1${importStatement}\n`);
       } else {
-        updatedContent = importStatement + '\n\n' + content;
+        updatedContent = `${importStatement}\n\n${content}`;
       }
 
       // Add to routes array
@@ -1561,7 +1562,6 @@ ${exports}
 
       await this.fileSystemHandler.writeFile(routesIndexPath, updatedContent);
       logger.debug(`Updated routes index: ${routesIndexPath}`);
-
     } catch (error) {
       logger.warn(`Failed to update routes index: ${error.message}`);
     }
@@ -1595,17 +1595,14 @@ ${exports}
 
       // Add import statement
       const importStatement = `import { get${pascalName}Apis } from './apis/${kebabName}.js';`;
-      
+
       let updatedContent = content;
-      
+
       // Add import at the top
       if (content.includes('import')) {
-        updatedContent = content.replace(
-          /(import.*\n)/,
-          `$1${importStatement}\n`
-        );
+        updatedContent = content.replace(/(import.*\n)/, `$1${importStatement}\n`);
       } else {
-        updatedContent = importStatement + '\n\n' + content;
+        updatedContent = `${importStatement}\n\n${content}`;
       }
 
       // Add to setupMockServer function
@@ -1620,7 +1617,6 @@ ${exports}
 
       await this.fileSystemHandler.writeFile(mockIndexPath, updatedContent);
       logger.debug(`Updated mock index: ${mockIndexPath}`);
-
     } catch (error) {
       logger.warn(`Failed to update mock index: ${error.message}`);
     }
@@ -1667,23 +1663,23 @@ ${exports}
 
       // Prepare template context
       const operationsStr = JSON.stringify(operations);
-      
+
       let customActionsConfig = '';
       if (Object.keys(customActions).length > 0) {
         const customActionsStr = Object.entries(customActions)
           .map(([key, value]) => `    ${key}: '${value}'`)
           .join(',\n');
-        
+
         customActionsConfig = `,\n  {\n    crud: {\n${customActionsStr}\n    }`;
-        
+
         if (responseHandler) {
           customActionsConfig += `,\n    responseHandler: ${responseHandler}`;
         }
-        
+
         if (errorHandler) {
           customActionsConfig += `,\n    errorHandler: ${errorHandler}`;
         }
-        
+
         customActionsConfig += '\n  }';
       }
 
@@ -1732,7 +1728,6 @@ ${exports}
           }
         ]
       };
-
     } catch (error) {
       logger.error(`Failed to generate API configuration: ${name}`, { error: error.message });
 
@@ -1770,7 +1765,9 @@ ${exports}
         // Parse existing imports and exports
         const importMatches = content.match(/import\s+(\w+)\s+from\s+['"]\.\/([^'"]+)['"]/g) || [];
         imports = importMatches.map(match => {
-          const [, importName, fileName] = match.match(/import\s+(\w+)\s+from\s+['"]\.\/([^'"]+)['"]/);
+          const [, importName, fileName] = match.match(
+            /import\s+(\w+)\s+from\s+['"]\.\/([^'"]+)['"]/
+          );
           return { importName, fileName };
         });
 
@@ -1802,7 +1799,6 @@ ${exports}
         await this.fileSystemHandler.writeFile(indexPath, newContent);
         logger.debug(`Updated API category index: ${indexPath}`);
       }
-
     } catch (error) {
       logger.warn(`Failed to update API category index: ${error.message}`);
     }
@@ -1855,7 +1851,7 @@ export default {
         let insertIndex = 0;
 
         for (let i = 0; i < lines.length; i++) {
-          if (lines[i].startsWith('import ') && lines[i].includes('from \'./')) {
+          if (lines[i].startsWith('import ') && lines[i].includes("from './")) {
             insertIndex = i + 1;
           } else if (lines[i].trim() === '' && insertIndex > 0) {
             break;
@@ -1870,20 +1866,14 @@ export default {
 
         if (apisArrayMatch) {
           const currentApis = apisArrayMatch[1].trim();
-          const newApis = currentApis
-            ? `${currentApis}, ...${importName}`
-            : `...${importName}`;
+          const newApis = currentApis ? `${currentApis}, ...${importName}` : `...${importName}`;
 
-          const finalContent = updatedContent.replace(
-            /apis:\s*\[(.*?)\]/s,
-            `apis: [${newApis}]`
-          );
+          const finalContent = updatedContent.replace(/apis:\s*\[(.*?)\]/s, `apis: [${newApis}]`);
 
           await this.fileSystemHandler.writeFile(mainIndexPath, finalContent);
           logger.debug(`Updated main API index: ${mainIndexPath}`);
         }
       }
-
     } catch (error) {
       logger.warn(`Failed to update main API index: ${error.message}`);
     }
@@ -1955,7 +1945,6 @@ export default {
           }
         ]
       };
-
     } catch (error) {
       logger.error(`Failed to generate route with permissions: ${name}`, { error: error.message });
 
@@ -2069,7 +2058,6 @@ export default {{camelCase name}}Navigation;
           }
         ]
       };
-
     } catch (error) {
       logger.error(`Failed to generate navigation config: ${name}`, { error: error.message });
 
@@ -2158,7 +2146,6 @@ export default {{camelCase name}}Navigation;
           totalFiles: generatedFiles.length
         }
       };
-
     } catch (error) {
       logger.error(`Failed to generate routing module: ${name}`, { error: error.message });
 
@@ -2247,7 +2234,6 @@ export default routes;
       }
 
       logger.info(`Created/updated main routes index: ${indexPath}`);
-
     } catch (error) {
       logger.error(`Failed to create main routes index: ${error.message}`);
       throw new BalmSharedMCPError(
@@ -2257,5 +2243,4 @@ export default routes;
       );
     }
   }
-
 }

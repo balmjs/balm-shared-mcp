@@ -27,7 +27,7 @@ export class ProjectManager {
         type: 'frontend'
       },
       'backend-project': {
-        name: 'Backend Project', 
+        name: 'Backend Project',
         description: 'Vue.js backend project with authentication, menu, and CRUD functionality',
         path: path.join(this.templatesPath, 'backend-project'),
         type: 'backend'
@@ -79,7 +79,7 @@ export class ProjectManager {
   getTemplatePath(type) {
     const templates = this.getAvailableTemplates();
     const templateKey = `${type}-project`;
-    
+
     if (!templates[templateKey]) {
       throw new BalmSharedMCPError(
         ErrorCodes.TEMPLATE_NOT_FOUND,
@@ -88,7 +88,7 @@ export class ProjectManager {
     }
 
     const templatePath = templates[templateKey].path;
-    
+
     if (!this.fileSystemHandler.exists(templatePath)) {
       throw new BalmSharedMCPError(
         ErrorCodes.TEMPLATE_NOT_FOUND,
@@ -104,7 +104,7 @@ export class ProjectManager {
    */
   prepareTemplateVariables(options) {
     const { name, type, apiEndpoint, sharedProjectPath, author, description } = options;
-    
+
     return {
       projectName: name,
       projectType: type,
@@ -125,7 +125,7 @@ export class ProjectManager {
   async copyTemplate(templatePath, targetPath, variables) {
     try {
       logger.info(`Copying template from ${templatePath} to ${targetPath}`);
-      
+
       await this.fileSystemHandler.copyDirectory(templatePath, targetPath, variables, {
         processTemplates: true
       });
@@ -149,7 +149,7 @@ export class ProjectManager {
       const { name, description, author } = options;
 
       const updates = {
-        name: name,
+        name,
         description: description || `A Vue.js ${options.type} project`,
         author: author || 'Developer'
       };
@@ -171,18 +171,18 @@ export class ProjectManager {
   async configureSharedProjectIntegration(projectPath, options) {
     try {
       const { sharedProjectPath = '../yiban-shared' } = options;
-      
+
       // Update env.js to point to correct shared-project path
       const envPath = path.join(projectPath, 'config', 'env.js');
       if (this.fileSystemHandler.exists(envPath)) {
         const envContent = await this.fileSystemHandler.readFile(envPath);
-        
+
         // Replace the globalWorkspace path if needed
         const updatedContent = envContent.replace(
           /const globalWorkspace = path\.join\(localWorkspace, '\.\.'\);/,
           `const globalWorkspace = path.join(localWorkspace, '${sharedProjectPath}');`
         );
-        
+
         await this.fileSystemHandler.writeFile(envPath, updatedContent);
         logger.info(`Updated shared-project path in env.js: ${sharedProjectPath}`);
       }
@@ -192,7 +192,6 @@ export class ProjectManager {
       if (this.fileSystemHandler.exists(aliasPath)) {
         logger.info('shared-project alias configuration already exists in balm.alias.js');
       }
-
     } catch (error) {
       throw new BalmSharedMCPError(
         ErrorCodes.PROJECT_CREATION_FAILED,
@@ -207,37 +206,33 @@ export class ProjectManager {
    */
   async configureApiSettings(projectPath, options) {
     try {
-      const { 
-        apiEndpoint = '/api', 
+      const {
+        apiEndpoint = '/api',
         proxyTarget = 'http://your.project.dev',
-        proxyChangeOrigin = true 
+        proxyChangeOrigin = true
       } = options;
 
       const balmrcPath = path.join(projectPath, 'config', 'balmrc.js');
-      
+
       if (this.fileSystemHandler.exists(balmrcPath)) {
         const balmrcContent = await this.fileSystemHandler.readFile(balmrcPath);
-        
+
         // Update proxy configuration
-        let updatedContent = balmrcContent.replace(
-          /context: '\/api'/,
-          `context: '${apiEndpoint}'`
-        );
-        
+        let updatedContent = balmrcContent.replace(/context: '\/api'/, `context: '${apiEndpoint}'`);
+
         updatedContent = updatedContent.replace(
           /target: 'http:\/\/your\.project\.dev'/,
           `target: '${proxyTarget}'`
         );
-        
+
         updatedContent = updatedContent.replace(
           /changeOrigin: true/,
           `changeOrigin: ${proxyChangeOrigin}`
         );
-        
+
         await this.fileSystemHandler.writeFile(balmrcPath, updatedContent);
         logger.info(`Updated API configuration in balmrc.js: ${apiEndpoint} -> ${proxyTarget}`);
       }
-
     } catch (error) {
       throw new BalmSharedMCPError(
         ErrorCodes.PROJECT_CREATION_FAILED,
@@ -253,34 +248,33 @@ export class ProjectManager {
   async updatePackageDependencies(projectPath, options) {
     try {
       const { dependencies = {}, devDependencies = {}, scripts = {} } = options;
-      
+
       const packageJsonPath = path.join(projectPath, 'package.json');
-      
+
       if (this.fileSystemHandler.exists(packageJsonPath)) {
         const packageContent = await this.fileSystemHandler.readFile(packageJsonPath);
         const packageData = JSON.parse(packageContent);
-        
+
         // Merge dependencies
         if (Object.keys(dependencies).length > 0) {
           packageData.dependencies = { ...packageData.dependencies, ...dependencies };
         }
-        
+
         // Merge devDependencies
         if (Object.keys(devDependencies).length > 0) {
           packageData.devDependencies = { ...packageData.devDependencies, ...devDependencies };
         }
-        
+
         // Merge scripts
         if (Object.keys(scripts).length > 0) {
           packageData.scripts = { ...packageData.scripts, ...scripts };
         }
-        
+
         const updatedContent = JSON.stringify(packageData, null, 2);
         await this.fileSystemHandler.writeFile(packageJsonPath, updatedContent);
-        
-        logger.info(`Updated package.json dependencies and scripts`);
-      }
 
+        logger.info('Updated package.json dependencies and scripts');
+      }
     } catch (error) {
       throw new BalmSharedMCPError(
         ErrorCodes.PROJECT_CREATION_FAILED,
@@ -296,25 +290,25 @@ export class ProjectManager {
   async configureSharedProjectAlias(projectPath, options) {
     try {
       const { sharedProjectPath = '../yiban-shared', customAliases = {} } = options;
-      
+
       // Update balm.alias.js
       const aliasPath = path.join(projectPath, 'config', 'balm.alias.js');
       if (this.fileSystemHandler.exists(aliasPath)) {
         const aliasContent = await this.fileSystemHandler.readFile(aliasPath);
-        
+
         // Add custom aliases if provided
         if (Object.keys(customAliases).length > 0) {
           const aliasEntries = Object.entries(customAliases)
             .map(([key, value]) => `  '${key}': '${value}'`)
             .join(',\n');
-          
+
           const updatedContent = aliasContent.replace(
             /module\.exports = {/,
             `module.exports = {\n${aliasEntries},`
           );
-          
+
           await this.fileSystemHandler.writeFile(aliasPath, updatedContent);
-          logger.info(`Added custom aliases to balm.alias.js`);
+          logger.info('Added custom aliases to balm.alias.js');
         }
       }
 
@@ -322,19 +316,18 @@ export class ProjectManager {
       const balmrcPath = path.join(projectPath, 'config', 'balmrc.js');
       if (this.fileSystemHandler.exists(balmrcPath)) {
         const balmrcContent = await this.fileSystemHandler.readFile(balmrcPath);
-        
+
         // Verify includeJsResource is correctly configured
         if (!balmrcContent.includes('includeJsResource')) {
           const updatedContent = balmrcContent.replace(
             /alias$/m,
-            `alias,\n    includeJsResource: [globalResolve('yiban-shared/src/scripts')]`
+            "alias,\n    includeJsResource: [globalResolve('yiban-shared/src/scripts')]"
           );
-          
+
           await this.fileSystemHandler.writeFile(balmrcPath, updatedContent);
-          logger.info(`Added includeJsResource configuration to balmrc.js`);
+          logger.info('Added includeJsResource configuration to balmrc.js');
         }
       }
-
     } catch (error) {
       throw new BalmSharedMCPError(
         ErrorCodes.PROJECT_CREATION_FAILED,
@@ -367,8 +360,7 @@ export class ProjectManager {
       // Configure shared-project alias
       await this.configureSharedProjectAlias(projectPath, options);
 
-      logger.info(`Project configuration generated successfully`);
-
+      logger.info('Project configuration generated successfully');
     } catch (error) {
       throw new BalmSharedMCPError(
         ErrorCodes.PROJECT_CREATION_FAILED,
@@ -420,7 +412,6 @@ export class ProjectManager {
 
       logger.info(`Project creation completed: ${name}`, result);
       return result;
-
     } catch (error) {
       if (error instanceof BalmSharedMCPError) {
         throw error;
@@ -448,11 +439,7 @@ export class ProjectManager {
       'Mock server with MirageJS'
     ];
 
-    const frontendFeatures = [
-      ...commonFeatures,
-      'Basic routing structure',
-      'Component examples'
-    ];
+    const frontendFeatures = [...commonFeatures, 'Basic routing structure', 'Component examples'];
 
     const backendFeatures = [
       ...commonFeatures,
@@ -511,12 +498,12 @@ export class ProjectManager {
         try {
           const packageContent = await this.fileSystemHandler.readFile(packageJsonPath);
           const packageData = JSON.parse(packageContent);
-          
+
           analysis.dependencies = {
             dependencies: packageData.dependencies || {},
             devDependencies: packageData.devDependencies || {}
           };
-          
+
           analysis.structure.hasPackageJson = true;
           analysis.structure.projectName = packageData.name;
           analysis.structure.version = packageData.version;
@@ -543,7 +530,8 @@ export class ProjectManager {
       this.generateRecommendations(analysis);
 
       // Determine if project is valid
-      analysis.isValid = analysis.issues.length === 0 || 
+      analysis.isValid =
+        analysis.issues.length === 0 ||
         analysis.issues.every(issue => !issue.includes('Missing package.json'));
 
       logger.info(`Project analysis completed for: ${projectPath}`, {
@@ -554,7 +542,6 @@ export class ProjectManager {
       });
 
       return analysis;
-
     } catch (error) {
       if (error instanceof BalmSharedMCPError) {
         throw error;
@@ -571,32 +558,43 @@ export class ProjectManager {
    * Analyze project directory structure
    */
   async analyzeProjectStructure(projectPath, analysis) {
-    const structure = analysis.structure;
+    const { structure } = analysis;
 
     // Check for common directories
     const commonDirs = ['src', 'config', 'public', 'dist', 'build', 'node_modules'];
     for (const dir of commonDirs) {
       const dirPath = path.join(projectPath, dir);
-      structure[`has${dir.charAt(0).toUpperCase() + dir.slice(1)}`] = this.fileSystemHandler.exists(dirPath);
+      structure[`has${dir.charAt(0).toUpperCase() + dir.slice(1)}`] =
+        this.fileSystemHandler.exists(dirPath);
     }
 
     // Check for Vue.js specific files
     structure.hasVueConfig = this.fileSystemHandler.exists(path.join(projectPath, 'vue.config.js'));
-    structure.hasViteConfig = this.fileSystemHandler.exists(path.join(projectPath, 'vite.config.js'));
+    structure.hasViteConfig = this.fileSystemHandler.exists(
+      path.join(projectPath, 'vite.config.js')
+    );
 
     // Check for build configuration
-    structure.hasBalmConfig = this.fileSystemHandler.exists(path.join(projectPath, 'config', 'balmrc.js'));
-    structure.hasWebpackConfig = this.fileSystemHandler.exists(path.join(projectPath, 'webpack.config.js'));
+    structure.hasBalmConfig = this.fileSystemHandler.exists(
+      path.join(projectPath, 'config', 'balmrc.js')
+    );
+    structure.hasWebpackConfig = this.fileSystemHandler.exists(
+      path.join(projectPath, 'webpack.config.js')
+    );
 
     // Check for testing setup
-    structure.hasJestConfig = this.fileSystemHandler.exists(path.join(projectPath, 'jest.config.js'));
-    structure.hasTestDir = this.fileSystemHandler.exists(path.join(projectPath, 'test')) ||
-                          this.fileSystemHandler.exists(path.join(projectPath, 'tests')) ||
-                          this.fileSystemHandler.exists(path.join(projectPath, '__tests__'));
+    structure.hasJestConfig = this.fileSystemHandler.exists(
+      path.join(projectPath, 'jest.config.js')
+    );
+    structure.hasTestDir =
+      this.fileSystemHandler.exists(path.join(projectPath, 'test')) ||
+      this.fileSystemHandler.exists(path.join(projectPath, 'tests')) ||
+      this.fileSystemHandler.exists(path.join(projectPath, '__tests__'));
 
     // Check for linting
-    structure.hasEslintConfig = this.fileSystemHandler.exists(path.join(projectPath, '.eslintrc.js')) ||
-                               this.fileSystemHandler.exists(path.join(projectPath, '.eslintrc.json'));
+    structure.hasEslintConfig =
+      this.fileSystemHandler.exists(path.join(projectPath, '.eslintrc.js')) ||
+      this.fileSystemHandler.exists(path.join(projectPath, '.eslintrc.json'));
 
     // Check for TypeScript
     structure.hasTsConfig = this.fileSystemHandler.exists(path.join(projectPath, 'tsconfig.json'));
@@ -607,14 +605,17 @@ export class ProjectManager {
    */
   detectProjectType(analysis) {
     const { dependencies, structure } = analysis;
-    const allDeps = { ...(dependencies.dependencies || {}), ...(dependencies.devDependencies || {}) };
+    const allDeps = {
+      ...(dependencies.dependencies || {}),
+      ...(dependencies.devDependencies || {})
+    };
 
     // Check for Vue.js
     const hasVue = 'vue' in allDeps || 'vue-router' in allDeps;
-    
+
     // Check for backend-specific dependencies
-    const hasBackendDeps = 'balm-ui-pro' in allDeps || 
-                          structure.hasSrc && this.hasBackendStructure(structure);
+    const hasBackendDeps =
+      'balm-ui-pro' in allDeps || (structure.hasSrc && this.hasBackendStructure(structure));
 
     if (hasVue && hasBackendDeps) {
       analysis.projectType = 'backend';
@@ -643,21 +644,23 @@ export class ProjectManager {
    */
   async checkSharedProjectIntegration(projectPath, analysis) {
     const { dependencies } = analysis;
-    
+
     // Check if shared-project is in dependencies
-    const hasSharedProjectDep = (dependencies.dependencies && 'yiban-shared' in dependencies.dependencies) ||
-                             (dependencies.devDependencies && 'yiban-shared' in dependencies.devDependencies);
+    const hasSharedProjectDep =
+      (dependencies.dependencies && 'yiban-shared' in dependencies.dependencies) ||
+      (dependencies.devDependencies && 'yiban-shared' in dependencies.devDependencies);
 
     // Check for shared-project alias configuration
     const aliasPath = path.join(projectPath, 'config', 'balm.alias.js');
     let hasSharedProjectAlias = false;
-    
+
     if (this.fileSystemHandler.exists(aliasPath)) {
       try {
         const aliasContent = await this.fileSystemHandler.readFile(aliasPath);
-        hasSharedProjectAlias = aliasContent.includes('yiban-shared') || 
-                              aliasContent.includes('shared-project') ||
-                              aliasContent.includes('../yiban-shared');
+        hasSharedProjectAlias =
+          aliasContent.includes('yiban-shared') ||
+          aliasContent.includes('shared-project') ||
+          aliasContent.includes('../yiban-shared');
       } catch (error) {
         analysis.issues.push('Unable to read balm.alias.js configuration');
       }
@@ -685,8 +688,9 @@ export class ProjectManager {
       }
     }
 
-    analysis.hasSharedProject = hasSharedProjectDep || hasSharedProjectAlias || hasSharedProjectImports;
-    
+    analysis.hasSharedProject =
+      hasSharedProjectDep || hasSharedProjectAlias || hasSharedProjectImports;
+
     analysis.configuration.sharedProjectIntegration = {
       hasDependency: hasSharedProjectDep,
       hasAlias: hasSharedProjectAlias,
@@ -731,7 +735,7 @@ export class ProjectManager {
    * Generate recommendations based on analysis
    */
   generateRecommendations(analysis) {
-    const recommendations = analysis.recommendations;
+    const { recommendations } = analysis;
 
     // Package.json recommendations
     if (!analysis.structure.hasPackageJson) {

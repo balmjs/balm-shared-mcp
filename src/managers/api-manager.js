@@ -19,28 +19,28 @@ export class ApiManager {
    */
   async generateApiConfig(options) {
     const { model, endpoint, operations, projectPath, customActions } = options;
-    
+
     this.validateApiOptions(options);
-    
+
     try {
       const apiDir = path.join(projectPath, 'src/scripts/apis');
       const apiFileName = `${model.toLowerCase()}.js`;
       const apiFilePath = path.join(apiDir, apiFileName);
-      
+
       // Create directory if it doesn't exist
       const dirExists = await this.fileSystemHandler.exists(apiDir);
       if (!dirExists) {
         await this.fileSystemHandler.createDirectory(apiDir);
       }
-      
+
       // Generate API template
       const template = this._generateApiTemplate(options);
-      
+
       // Write API file
       await this.fileSystemHandler.writeFile(apiFilePath, template);
-      
+
       this.logger.info(`Generated API configuration: ${apiFilePath}`);
-      
+
       return {
         success: true,
         model,
@@ -63,25 +63,25 @@ export class ApiManager {
     try {
       const indexPath = path.join(projectPath, 'src/scripts/apis/index.js');
       const modelKey = modelName.toLowerCase();
-      
+
       let content = '';
       const indexExists = await this.fileSystemHandler.exists(indexPath);
-      
+
       if (indexExists) {
         content = await this.fileSystemHandler.readFile(indexPath);
       }
-      
+
       const parsed = this._parseExistingIndex(content);
-      
+
       // Add new import if not already present
       if (!parsed.imports.includes(modelKey)) {
         parsed.imports.push(modelKey);
         parsed.exports.push(modelKey);
       }
-      
+
       const newContent = this._generateIndexContent(parsed.imports, parsed.exports);
       await this.fileSystemHandler.writeFile(indexPath, newContent);
-      
+
       this.logger.info(`Updated APIs index: ${indexPath}`);
     } catch (error) {
       this.logger.error(`Failed to update APIs index: ${error.message}`);
@@ -94,26 +94,26 @@ export class ApiManager {
    */
   async generateMockData(options) {
     const { model, fields, projectPath } = options;
-    
+
     try {
       const mockDir = path.join(projectPath, 'mock-server/modules');
       const mockFileName = `${model.toLowerCase()}.js`;
       const mockFilePath = path.join(mockDir, mockFileName);
-      
+
       // Create directory if it doesn't exist
       const dirExists = await this.fileSystemHandler.exists(mockDir);
       if (!dirExists) {
         await this.fileSystemHandler.createDirectory(mockDir);
       }
-      
+
       // Generate mock template
       const template = this._generateMockTemplate(options);
-      
+
       // Write mock file
       await this.fileSystemHandler.writeFile(mockFilePath, template);
-      
+
       this.logger.info(`Generated mock data: ${mockFilePath}`);
-      
+
       return {
         success: true,
         model,
@@ -133,42 +133,36 @@ export class ApiManager {
    */
   validateApiOptions(options) {
     const { model, endpoint, operations, projectPath } = options;
-    
+
     if (!model) {
-      throw new BalmSharedMCPError(
-        ErrorCodes.INVALID_GENERATOR_CONFIG,
-        'Model name is required'
-      );
+      throw new BalmSharedMCPError(ErrorCodes.INVALID_GENERATOR_CONFIG, 'Model name is required');
     }
-    
+
     if (!/^[A-Z][a-zA-Z0-9]*$/.test(model)) {
       throw new BalmSharedMCPError(
         ErrorCodes.INVALID_GENERATOR_CONFIG,
         'Model name must be in PascalCase format'
       );
     }
-    
+
     if (!endpoint) {
-      throw new BalmSharedMCPError(
-        ErrorCodes.INVALID_GENERATOR_CONFIG,
-        'Endpoint is required'
-      );
+      throw new BalmSharedMCPError(ErrorCodes.INVALID_GENERATOR_CONFIG, 'Endpoint is required');
     }
-    
+
     if (!endpoint.startsWith('/')) {
       throw new BalmSharedMCPError(
         ErrorCodes.INVALID_GENERATOR_CONFIG,
         'Endpoint must start with /'
       );
     }
-    
+
     if (!operations || !Array.isArray(operations)) {
       throw new BalmSharedMCPError(
         ErrorCodes.INVALID_GENERATOR_CONFIG,
         'Operations array is required'
       );
     }
-    
+
     const validOperations = ['create', 'read', 'update', 'delete'];
     const invalidOps = operations.filter(op => !validOperations.includes(op));
     if (invalidOps.length > 0) {
@@ -177,12 +171,9 @@ export class ApiManager {
         `Invalid operations: ${invalidOps.join(', ')}`
       );
     }
-    
+
     if (!projectPath) {
-      throw new BalmSharedMCPError(
-        ErrorCodes.INVALID_GENERATOR_CONFIG,
-        'Project path is required'
-      );
+      throw new BalmSharedMCPError(ErrorCodes.INVALID_GENERATOR_CONFIG, 'Project path is required');
     }
   }
 
@@ -191,28 +182,32 @@ export class ApiManager {
    */
   _generateApiTemplate(options) {
     const { model, endpoint, operations, customActions = {} } = options;
-    
+
     let template = `export default [\n  '${model}',\n  '${endpoint}',\n  [`;
-    
+
     operations.forEach((op, index) => {
       template += `'${op}'`;
-      if (index < operations.length - 1) template += ', ';
+      if (index < operations.length - 1) {
+        template += ', ';
+      }
     });
-    
+
     template += ']';
-    
+
     if (Object.keys(customActions).length > 0) {
       template += ',\n  {\n    crud: {\n';
       Object.entries(customActions).forEach(([action, config], index) => {
         template += `      ${action}: '${config}'`;
-        if (index < Object.entries(customActions).length - 1) template += ',';
+        if (index < Object.entries(customActions).length - 1) {
+          template += ',';
+        }
         template += '\n';
       });
       template += '    }\n  }';
     }
-    
+
     template += '\n];\n';
-    
+
     return template;
   }
 
@@ -221,18 +216,20 @@ export class ApiManager {
    */
   _generateMockTemplate(options) {
     const { model, fields = [] } = options;
-    
+
     let template = `export default {\n  name: '${model}',\n  data: [\n    {\n`;
-    
+
     fields.forEach((field, index) => {
       const mockValue = this._getMockValue(field.type, field.name);
       template += `      ${field.name}: ${mockValue}`;
-      if (index < fields.length - 1) template += ',';
+      if (index < fields.length - 1) {
+        template += ',';
+      }
       template += '\n';
     });
-    
+
     template += '    }\n  ]\n};\n';
-    
+
     return template;
   }
 
@@ -264,11 +261,11 @@ export class ApiManager {
   _parseExistingIndex(content) {
     const imports = [];
     const exports = [];
-    
+
     if (!content) {
       return { imports, exports };
     }
-    
+
     try {
       // Extract imports
       const importMatches = content.match(/import\s+(\w+)\s+from\s+['"`]\.\/(\w+)\.js['"`]/g);
@@ -280,18 +277,21 @@ export class ApiManager {
           }
         });
       }
-      
+
       // Extract exports
       const exportMatch = content.match(/export\s+default\s+\{([^}]+)\}/);
       if (exportMatch) {
         const exportContent = exportMatch[1];
-        const exportNames = exportContent.split(',').map(name => name.trim()).filter(name => name);
+        const exportNames = exportContent
+          .split(',')
+          .map(name => name.trim())
+          .filter(name => name);
         exports.push(...exportNames);
       }
     } catch (error) {
       // If parsing fails, return empty arrays
     }
-    
+
     return { imports, exports };
   }
 
@@ -300,27 +300,29 @@ export class ApiManager {
    */
   _generateIndexContent(imports, exports) {
     let content = '';
-    
+
     // Generate imports
     imports.forEach(imp => {
       content += `import ${imp} from './${imp}.js';\n`;
     });
-    
+
     if (exports.length === 0) {
       content += '\nexport default {};\n';
     } else {
       content += '\nexport default {\n';
-      
+
       // Generate exports
       exports.forEach((exp, index) => {
         content += `  ${exp}`;
-        if (index < exports.length - 1) content += ',';
+        if (index < exports.length - 1) {
+          content += ',';
+        }
         content += '\n';
       });
-      
+
       content += '};\n';
     }
-    
+
     return content;
   }
 
@@ -399,7 +401,6 @@ export class ApiManager {
         components: results,
         generatedFiles: results.flatMap(r => r.generatedFiles)
       };
-
     } catch (error) {
       logger.error(`Failed to generate API module: ${name}`, { error: error.message });
       throw error;
@@ -484,13 +485,7 @@ export class ApiManager {
    * Update existing API configuration
    */
   async updateApiConfig(options) {
-    const {
-      name,
-      projectPath,
-      category = 'content',
-      updates = {},
-      ...otherOptions
-    } = options;
+    const { name, projectPath, category = 'content', updates = {}, ...otherOptions } = options;
 
     logger.info(`Updating API configuration: ${name}`);
 
@@ -511,7 +506,7 @@ export class ApiManager {
 
       // Read existing configuration
       const existingContent = await this.fileSystemHandler.readFile(apiFilePath);
-      
+
       // Parse and update configuration
       // This is a simplified approach - in a real implementation, you might want to use AST parsing
       let updatedContent = existingContent;
@@ -543,14 +538,13 @@ export class ApiManager {
         apiFilePath,
         updates
       };
-
     } catch (error) {
       logger.error(`Failed to update API configuration: ${name}`, { error: error.message });
-      
+
       if (error instanceof BalmSharedMCPError) {
         throw error;
       }
-      
+
       throw new BalmSharedMCPError(
         ErrorCodes.API_UPDATE_FAILED,
         `Failed to update API configuration: ${error.message}`,
@@ -586,18 +580,20 @@ export class ApiManager {
 
         if (isDirectory) {
           const categoryFiles = await this.fileSystemHandler.readDirectory(categoryPath);
-          
+
           for (const file of categoryFiles) {
             if (file.endsWith('.js') && file !== 'index.js') {
               const apiName = file.replace('.js', '');
               const apiPath = path.join(categoryPath, file);
-              
+
               try {
                 const content = await this.fileSystemHandler.readFile(apiPath);
                 const apiInfo = this.parseApiConfiguration(content, apiName, category);
                 apis.push(apiInfo);
               } catch (error) {
-                logger.warn(`Failed to parse API configuration: ${apiPath}`, { error: error.message });
+                logger.warn(`Failed to parse API configuration: ${apiPath}`, {
+                  error: error.message
+                });
               }
             }
           }
@@ -611,10 +607,9 @@ export class ApiManager {
         message: `Found ${apis.length} API configurations`,
         apis
       };
-
     } catch (error) {
-      logger.error(`Failed to list API configurations`, { error: error.message });
-      
+      logger.error('Failed to list API configurations', { error: error.message });
+
       throw new BalmSharedMCPError(
         ErrorCodes.API_LIST_FAILED,
         `Failed to list API configurations: ${error.message}`,
@@ -629,20 +624,20 @@ export class ApiManager {
   parseApiConfiguration(content, apiName, category) {
     try {
       // Simple regex-based parsing - in a real implementation, use AST parsing
-      
+
       // Extract all quoted strings from the content
       const quotedStrings = content.match(/'([^']+)'/g) || [];
-      
+
       let model = 'unknown';
       let endpoint = 'unknown';
       let operations = [];
-      
+
       // If we have at least 2 quoted strings, use them as model and endpoint
       if (quotedStrings.length >= 2) {
         model = quotedStrings[0].replace(/'/g, '');
         endpoint = quotedStrings[1].replace(/'/g, '');
       }
-      
+
       // Extract operations from the remaining quoted strings (skip first 2)
       if (quotedStrings.length > 2) {
         operations = quotedStrings.slice(2).map(op => op.replace(/'/g, ''));
@@ -657,7 +652,6 @@ export class ApiManager {
         hasCustomActions: content.includes('crud:'),
         filePath: `src/scripts/apis/${category}/${apiName}.js`
       };
-
     } catch (error) {
       return {
         name: apiName,
@@ -702,17 +696,19 @@ export class ApiManager {
       }
 
       if (!content.match(/\[.*?,.*?,.*?\]/s)) {
-        errors.push('Invalid API configuration format - should be [model, endpoint, operations, options?]');
+        errors.push(
+          'Invalid API configuration format - should be [model, endpoint, operations, options?]'
+        );
       }
 
       // Check if properly imported in category index
       const categoryIndexPath = path.join(apiDir, 'index.js');
       const categoryIndexExists = await this.fileSystemHandler.exists(categoryIndexPath);
-      
+
       if (categoryIndexExists) {
         const indexContent = await this.fileSystemHandler.readFile(categoryIndexPath);
         const importName = `${this.codeGenerator.templateHelpers.get('camelCase')(apiName)}Apis`;
-        
+
         if (!indexContent.includes(importName)) {
           warnings.push('API not imported in category index file');
         }
@@ -723,11 +719,11 @@ export class ApiManager {
       // Check if category is imported in main index
       const mainIndexPath = path.join(projectPath, 'src/scripts/apis/index.js');
       const mainIndexExists = await this.fileSystemHandler.exists(mainIndexPath);
-      
+
       if (mainIndexExists) {
         const mainContent = await this.fileSystemHandler.readFile(mainIndexPath);
         const categoryImport = `${this.codeGenerator.templateHelpers.get('camelCase')(category)}Apis`;
-        
+
         if (!mainContent.includes(categoryImport)) {
           warnings.push('Category not imported in main APIs index');
         }
@@ -745,10 +741,9 @@ export class ApiManager {
         warnings,
         apiFilePath
       };
-
     } catch (error) {
       logger.error(`Failed to validate API configuration: ${apiName}`, { error: error.message });
-      
+
       return {
         valid: false,
         errors: [`Validation failed: ${error.message}`],
@@ -765,13 +760,13 @@ export class ApiManager {
 
     try {
       const apiList = await this.listApiConfigurations(projectPath);
-      
+
       if (!apiList.success) {
         throw new Error('Failed to list API configurations');
       }
 
       const documentation = this.buildApiDocumentation(apiList.apis);
-      
+
       await this.fileSystemHandler.writeFile(outputPath, documentation);
 
       logger.info(`Generated API documentation: ${outputPath}`);
@@ -782,10 +777,9 @@ export class ApiManager {
         outputPath,
         apiCount: apiList.apis.length
       };
-
     } catch (error) {
-      logger.error(`Failed to generate API documentation`, { error: error.message });
-      
+      logger.error('Failed to generate API documentation', { error: error.message });
+
       throw new BalmSharedMCPError(
         ErrorCodes.DOCUMENTATION_GENERATION_FAILED,
         `Failed to generate API documentation: ${error.message}`,
@@ -818,22 +812,22 @@ This document describes all API configurations in the project.
 
     Object.keys(groupedApis).forEach(category => {
       documentation += `## ${category.charAt(0).toUpperCase() + category.slice(1)} APIs\n\n`;
-      
+
       groupedApis[category].forEach(api => {
         documentation += `### ${api.name}\n\n`;
         documentation += `- **Model**: ${api.model}\n`;
         documentation += `- **Endpoint**: ${api.endpoint}\n`;
         documentation += `- **Operations**: ${api.operations.join(', ')}\n`;
         documentation += `- **File**: ${api.filePath}\n`;
-        
+
         if (api.hasCustomActions) {
-          documentation += `- **Custom Actions**: Yes\n`;
+          documentation += '- **Custom Actions**: Yes\n';
         }
-        
+
         if (api.parseError) {
           documentation += `- **Parse Error**: ${api.parseError}\n`;
         }
-        
+
         documentation += '\n';
       });
     });

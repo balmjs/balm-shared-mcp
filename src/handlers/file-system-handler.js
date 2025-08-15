@@ -14,13 +14,16 @@ export class FileSystemHandler {
   constructor(options = {}) {
     this.encoding = options.encoding || 'utf-8';
     this.allowedExtensions = options.allowedExtensions || [
-      '.js', '.vue', '.json', '.md', '.scss', '.css', '.html', '.ts'
+      '.js',
+      '.vue',
+      '.json',
+      '.md',
+      '.scss',
+      '.css',
+      '.html',
+      '.ts'
     ];
-    this.restrictedPaths = options.restrictedPaths || [
-      'node_modules',
-      '.git',
-      '.env'
-    ];
+    this.restrictedPaths = options.restrictedPaths || ['node_modules', '.git', '.env'];
   }
 
   /**
@@ -28,15 +31,12 @@ export class FileSystemHandler {
    */
   validatePath(filePath) {
     if (!filePath || typeof filePath !== 'string') {
-      throw new BalmSharedMCPError(
-        ErrorCodes.INVALID_PATH,
-        'Invalid file path provided'
-      );
+      throw new BalmSharedMCPError(ErrorCodes.INVALID_PATH, 'Invalid file path provided');
     }
 
     // Resolve path to prevent directory traversal
     const resolvedPath = path.resolve(filePath);
-    
+
     // Check for restricted paths
     const normalizedPath = path.normalize(resolvedPath);
     for (const restricted of this.restrictedPaths) {
@@ -108,7 +108,7 @@ export class FileSystemHandler {
   async readFile(filePath) {
     try {
       const validatedPath = this.validatePath(filePath);
-      
+
       if (!this.exists(validatedPath)) {
         throw new BalmSharedMCPError(ErrorCodes.FILE_NOT_FOUND, `File not found: ${filePath}`);
       }
@@ -134,7 +134,7 @@ export class FileSystemHandler {
   async writeFile(filePath, content) {
     try {
       const validatedPath = this.validatePath(filePath);
-      
+
       if (!this.isAllowedExtension(validatedPath)) {
         throw new BalmSharedMCPError(
           ErrorCodes.INVALID_FILE_TYPE,
@@ -339,7 +339,7 @@ export class FileSystemHandler {
   async getStats(filePath) {
     try {
       const validatedPath = this.validatePath(filePath);
-      
+
       if (!this.exists(validatedPath)) {
         throw new BalmSharedMCPError(ErrorCodes.FILE_NOT_FOUND, `File not found: ${filePath}`);
       }
@@ -370,7 +370,7 @@ export class FileSystemHandler {
   processTemplate(templateContent, variables = {}) {
     try {
       let processedContent = templateContent;
-      
+
       // Replace template variables in format {{variableName}}
       for (const [key, value] of Object.entries(variables)) {
         const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
@@ -383,9 +383,9 @@ export class FileSystemHandler {
         processedContent = processedContent.replace(regex, value);
       }
 
-      logger.debug('Processed template', { 
+      logger.debug('Processed template', {
         variableCount: Object.keys(variables).length,
-        contentLength: processedContent.length 
+        contentLength: processedContent.length
       });
 
       return processedContent;
@@ -425,7 +425,7 @@ export class FileSystemHandler {
     try {
       const processedContent = await this.readTemplate(templatePath, variables);
       const validatedTargetPath = this.validatePath(targetPath);
-      
+
       if (!this.isAllowedExtension(validatedTargetPath)) {
         throw new BalmSharedMCPError(
           ErrorCodes.INVALID_FILE_TYPE,
@@ -454,7 +454,7 @@ export class FileSystemHandler {
     try {
       const validatedSourcePath = this.validatePath(sourcePath);
       const validatedTargetPath = this.validatePath(targetPath);
-      
+
       if (!this.exists(validatedSourcePath)) {
         throw new BalmSharedMCPError(
           ErrorCodes.DIRECTORY_NOT_FOUND,
@@ -554,10 +554,10 @@ export class FileSystemHandler {
 
       const updatedData = { ...existingData, ...updates };
       const jsonContent = JSON.stringify(updatedData, null, 2);
-      
+
       await this.writeFile(validatedPath, jsonContent);
       logger.debug(`JSON file updated: ${filePath}`);
-      
+
       return updatedData;
     } catch (error) {
       if (error instanceof BalmSharedMCPError) {
@@ -577,7 +577,7 @@ export class FileSystemHandler {
   async ensureModuleStructure(projectPath, moduleName) {
     try {
       const validatedProjectPath = this.validatePath(projectPath);
-      
+
       const directories = [
         path.join(validatedProjectPath, 'app', 'scripts', 'pages', moduleName),
         path.join(validatedProjectPath, 'app', 'scripts', 'apis'),

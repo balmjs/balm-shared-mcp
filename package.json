@@ -1,6 +1,6 @@
 {
   "name": "balm-shared-mcp",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": "Model Context Protocol server for balm-shared library integration",
   "main": "src/index.js",
   "type": "module",
@@ -70,7 +70,6 @@
   },
   "lint-staged": {
     "*.js": [
-      "eslint --fix",
       "prettier --write"
     ]
   }

@@ -178,31 +178,11 @@ export const ErrorMessages = {
  */
 export const ErrorSuggestions = {
   zh: {
-    TOOL_NOT_FOUND: [
-      '检查工具名称是否正确',
-      '确认工具已正确注册',
-      '查看可用工具列表'
-    ],
-    PROJECT_NOT_FOUND: [
-      '检查项目路径是否正确',
-      '确认项目目录存在',
-      '检查文件权限'
-    ],
-    FILE_NOT_FOUND: [
-      '检查文件路径是否正确',
-      '确认文件存在',
-      '检查文件权限'
-    ],
-    PERMISSION_DENIED: [
-      '检查文件/目录权限',
-      '使用管理员权限运行',
-      '更改文件所有者'
-    ],
-    TEMPLATE_NOT_FOUND: [
-      '检查模板名称是否正确',
-      '确认模板文件存在',
-      '检查模板路径配置'
-    ],
+    TOOL_NOT_FOUND: ['检查工具名称是否正确', '确认工具已正确注册', '查看可用工具列表'],
+    PROJECT_NOT_FOUND: ['检查项目路径是否正确', '确认项目目录存在', '检查文件权限'],
+    FILE_NOT_FOUND: ['检查文件路径是否正确', '确认文件存在', '检查文件权限'],
+    PERMISSION_DENIED: ['检查文件/目录权限', '使用管理员权限运行', '更改文件所有者'],
+    TEMPLATE_NOT_FOUND: ['检查模板名称是否正确', '确认模板文件存在', '检查模板路径配置'],
     INVALID_PROJECT_STRUCTURE: [
       '检查项目是否为有效的BalmJS项目',
       '确认package.json文件存在',
@@ -301,7 +281,7 @@ export class BalmSharedMCPError extends Error {
   getLocalizedMessage(locale = this.locale) {
     const messages = ErrorMessages[locale] || ErrorMessages.zh;
     const template = messages[this.code];
-    
+
     if (!template) {
       return this.message;
     }
@@ -365,11 +345,13 @@ export class BalmSharedMCPError extends Error {
       canRecover: this.canRecover(),
       recoveryStrategy: this.getRecoveryStrategy(),
       stack: this.stack,
-      originalError: this.originalError ? {
-        name: this.originalError.name,
-        message: this.originalError.message,
-        stack: this.originalError.stack
-      } : null
+      originalError: this.originalError
+        ? {
+            name: this.originalError.name,
+            message: this.originalError.message,
+            stack: this.originalError.stack
+          }
+        : null
     };
   }
 }
@@ -388,7 +370,7 @@ export function createLocalizedError(code, details = {}, options = {}) {
   const locale = options.locale || 'zh';
   const messages = ErrorMessages[locale] || ErrorMessages.zh;
   const template = messages[code] || code;
-  
+
   // Replace placeholders in the template
   const message = template.replace(/\{(\w+)\}/g, (match, key) => {
     return details[key] || match;
@@ -427,7 +409,7 @@ export function withErrorHandling(fn, context = {}) {
         ErrorCodes.TOOL_EXECUTION_FAILED,
         `Unexpected error in ${context.operation || 'operation'}`,
         { context },
-        { 
+        {
           severity: ErrorSeverity.HIGH,
           category: ErrorCategory.INTERNAL
         }
@@ -446,7 +428,7 @@ export function validateInput(input, schema, context = {}) {
       if (!(field in input) || input[field] === undefined || input[field] === null) {
         throw createLocalizedError(
           ErrorCodes.VALIDATION_FAILED,
-          { 
+          {
             details: `Required field '${field}' is missing`,
             field,
             context: context.operation || 'validation'
@@ -464,7 +446,7 @@ export function validateInput(input, schema, context = {}) {
     for (const [field, fieldSchema] of Object.entries(schema.properties)) {
       if (field in input) {
         const value = input[field];
-        
+
         // Type validation
         if (fieldSchema.type && typeof value !== fieldSchema.type) {
           throw createLocalizedError(
@@ -515,7 +497,7 @@ export class ErrorRecoveryManager {
 
   setupDefaultHandlers() {
     // Directory creation recovery
-    this.recoveryHandlers.set('create_directory', async (error) => {
+    this.recoveryHandlers.set('create_directory', async error => {
       const { path } = error.details;
       if (path) {
         const fs = await import('fs/promises');
@@ -526,21 +508,21 @@ export class ErrorRecoveryManager {
     });
 
     // Default template recovery
-    this.recoveryHandlers.set('use_default_template', async (error) => {
-      return { 
-        success: true, 
+    this.recoveryHandlers.set('use_default_template', async error => {
+      return {
+        success: true,
         message: 'Using default template instead',
         data: { useDefault: true }
       };
     });
 
     // Project creation suggestion
-    this.recoveryHandlers.set('suggest_create_project', async (error) => {
+    this.recoveryHandlers.set('suggest_create_project', async error => {
       const { path } = error.details;
       return {
         success: true,
         message: `Consider creating a new project at: ${path}`,
-        data: { 
+        data: {
           suggestion: 'create_project',
           path,
           templates: ['frontend-project', 'backend-project']
@@ -549,12 +531,12 @@ export class ErrorRecoveryManager {
     });
 
     // File creation suggestion
-    this.recoveryHandlers.set('suggest_create_file', async (error) => {
+    this.recoveryHandlers.set('suggest_create_file', async error => {
       const { path } = error.details;
       return {
         success: true,
         message: `Consider creating the missing file: ${path}`,
-        data: { 
+        data: {
           suggestion: 'create_file',
           path
         }
@@ -562,11 +544,11 @@ export class ErrorRecoveryManager {
     });
 
     // Project structure fix suggestion
-    this.recoveryHandlers.set('suggest_project_fix', async (error) => {
+    this.recoveryHandlers.set('suggest_project_fix', async error => {
       return {
         success: true,
         message: 'Consider running project structure validation and fix',
-        data: { 
+        data: {
           suggestion: 'fix_project_structure',
           details: error.details
         }
@@ -595,7 +577,7 @@ export class ErrorRecoveryManager {
 
     try {
       const result = await handler(error);
-      
+
       if (this.logger && result.success) {
         this.logger.info('Error recovery successful', {
           errorCode: error.code,

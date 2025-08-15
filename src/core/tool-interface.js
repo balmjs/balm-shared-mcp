@@ -22,7 +22,7 @@ export class ToolInterface {
       createdAt: new Date().toISOString(),
       version: '1.0.0'
     };
-    
+
     // Validate the tool definition
     this.validateToolDefinition();
   }
@@ -68,7 +68,7 @@ export class ToolInterface {
    */
   validateJsonSchema(schema) {
     const requiredFields = ['type', 'properties'];
-    
+
     for (const field of requiredFields) {
       if (!schema[field]) {
         throw new BalmSharedMCPError(
@@ -110,17 +110,16 @@ export class ToolInterface {
    */
   async execute(args, context = {}) {
     const requestId = context.requestId || 'unknown';
-    
+
     try {
       // Validate input parameters
       const validatedArgs = this.validateParameters(args, requestId);
-      
+
       // Execute the tool handler
       const result = await this.handler(validatedArgs, context);
-      
+
       // Format and validate response
       return this.formatResponse(result, requestId);
-      
     } catch (error) {
       logger.error(`Tool ${this.name} execution failed`, {
         requestId,
@@ -142,7 +141,7 @@ export class ToolInterface {
       throw new BalmSharedMCPError(
         ErrorCodes.VALIDATION_FAILED,
         `Parameter validation failed: ${error.message}`,
-        { 
+        {
           toolName: this.name,
           requestId,
           validationError: error.message,
@@ -162,11 +161,11 @@ export class ToolInterface {
 
     for (const [key, prop] of Object.entries(jsonSchema.properties)) {
       let zodType = this.createZodTypeFromProperty(prop);
-      
+
       if (!required.includes(key)) {
         zodType = zodType.optional();
       }
-      
+
       properties[key] = zodType;
     }
 
@@ -193,7 +192,7 @@ export class ToolInterface {
           stringType = stringType.regex(new RegExp(prop.pattern));
         }
         return stringType;
-        
+
       case 'number':
         let numberType = z.number();
         if (prop.minimum !== undefined) {
@@ -203,7 +202,7 @@ export class ToolInterface {
           numberType = numberType.max(prop.maximum);
         }
         return numberType;
-        
+
       case 'integer':
         let intType = z.number().int();
         if (prop.minimum !== undefined) {
@@ -213,10 +212,10 @@ export class ToolInterface {
           intType = intType.max(prop.maximum);
         }
         return intType;
-        
+
       case 'boolean':
         return z.boolean();
-        
+
       case 'array':
         if (prop.items) {
           const itemType = this.createZodTypeFromProperty(prop.items);
@@ -230,12 +229,12 @@ export class ToolInterface {
           return arrayType;
         }
         return z.array(z.any());
-        
+
       case 'object':
         if (prop.properties) {
           const objectProperties = {};
           const objectRequired = prop.required || [];
-          
+
           for (const [objKey, objProp] of Object.entries(prop.properties)) {
             let objType = this.createZodTypeFromProperty(objProp);
             if (!objectRequired.includes(objKey)) {
@@ -243,11 +242,11 @@ export class ToolInterface {
             }
             objectProperties[objKey] = objType;
           }
-          
+
           return z.object(objectProperties);
         }
         return z.object({}).passthrough();
-        
+
       default:
         return z.any();
     }

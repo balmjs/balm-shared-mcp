@@ -25,7 +25,7 @@ export class ResourceAnalyzer {
    */
   async buildResourceIndex() {
     logger.info('Building shared-project resource index...');
-    
+
     try {
       // Index components - continue on individual failures
       try {
@@ -33,35 +33,35 @@ export class ResourceAnalyzer {
       } catch (error) {
         logger.warn('Failed to index components:', error.message);
       }
-      
+
       // Index utilities
       try {
         await this._indexUtils();
       } catch (error) {
         logger.warn('Failed to index utilities:', error.message);
       }
-      
+
       // Index configurations
       try {
         await this._indexConfigurations();
       } catch (error) {
         logger.warn('Failed to index configurations:', error.message);
       }
-      
+
       // Index plugins
       try {
         await this._indexPlugins();
       } catch (error) {
         logger.warn('Failed to index plugins:', error.message);
       }
-      
+
       // Index examples
       try {
         await this._indexExamples();
       } catch (error) {
         logger.warn('Failed to index examples:', error.message);
       }
-      
+
       this.isIndexed = true;
       logger.info('Resource index built successfully');
     } catch (error) {
@@ -83,7 +83,7 @@ export class ResourceAnalyzer {
 
     for (const dir of componentDirs) {
       const fullPath = path.join(this.sharedLibraryPath, dir);
-      
+
       try {
         await this._scanComponentDirectory(fullPath, dir);
       } catch (error) {
@@ -98,10 +98,10 @@ export class ResourceAnalyzer {
   async _scanComponentDirectory(dirPath, category) {
     try {
       const entries = await fs.readdir(dirPath, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(dirPath, entry.name);
-        
+
         if (entry.isDirectory()) {
           // Recursively scan subdirectories
           await this._scanComponentDirectory(fullPath, `${category}/${entry.name}`);
@@ -125,7 +125,7 @@ export class ResourceAnalyzer {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
       const componentName = fileName.replace('.vue', '');
-      
+
       const componentInfo = {
         name: componentName,
         category,
@@ -137,7 +137,7 @@ export class ResourceAnalyzer {
         template: this._extractTemplate(content),
         documentation: ''
       };
-      
+
       this.componentsIndex.set(componentName, componentInfo);
       logger.debug(`Indexed component: ${componentName}`);
     } catch (error) {
@@ -151,19 +151,20 @@ export class ResourceAnalyzer {
   async _parseComponentDocumentation(filePath, category) {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      
+
       // Extract component documentation sections
       const sections = this._parseMarkdownSections(content);
-      
+
       // Associate documentation with components
       for (const [componentName, componentInfo] of this.componentsIndex) {
         if (componentInfo.category === category) {
           // Find matching documentation section
-          const docSection = sections.find(section => 
-            section.title.toLowerCase().includes(componentName.toLowerCase()) ||
-            section.content.includes(componentName)
+          const docSection = sections.find(
+            section =>
+              section.title.toLowerCase().includes(componentName.toLowerCase()) ||
+              section.content.includes(componentName)
           );
-          
+
           if (docSection) {
             componentInfo.documentation = docSection.content;
             componentInfo.examples = this._extractCodeExamples(docSection.content);
@@ -182,10 +183,10 @@ export class ResourceAnalyzer {
    */
   async _indexUtils() {
     const utilsPath = path.join(this.sharedLibraryPath, 'src/scripts/utils');
-    
+
     try {
       const entries = await fs.readdir(utilsPath, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         if (entry.name.endsWith('.js') && entry.name !== 'index.js') {
           const fullPath = path.join(utilsPath, entry.name);
@@ -206,7 +207,7 @@ export class ResourceAnalyzer {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
       const utilName = fileName.replace('.js', '');
-      
+
       const utilInfo = {
         name: utilName,
         filePath,
@@ -215,7 +216,7 @@ export class ResourceAnalyzer {
         imports: this._extractImports(content),
         documentation: ''
       };
-      
+
       this.utilsIndex.set(utilName, utilInfo);
       logger.debug(`Indexed utility: ${utilName}`);
     } catch (error) {
@@ -229,7 +230,7 @@ export class ResourceAnalyzer {
   async _parseUtilsDocumentation(filePath) {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      
+
       // Store general utilities documentation
       this.utilsIndex.set('_documentation', {
         name: 'utilities',
@@ -246,10 +247,10 @@ export class ResourceAnalyzer {
    */
   async _indexConfigurations() {
     const configPath = path.join(this.sharedLibraryPath, 'src/scripts/config');
-    
+
     try {
       const entries = await fs.readdir(configPath, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         if (entry.name.endsWith('.js')) {
           const fullPath = path.join(configPath, entry.name);
@@ -270,7 +271,7 @@ export class ResourceAnalyzer {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
       const configName = fileName.replace('.js', '');
-      
+
       const configInfo = {
         name: configName,
         filePath,
@@ -278,7 +279,7 @@ export class ResourceAnalyzer {
         constants: this._extractConstants(content),
         documentation: ''
       };
-      
+
       this.configIndex.set(configName, configInfo);
       logger.debug(`Indexed config: ${configName}`);
     } catch (error) {
@@ -292,7 +293,7 @@ export class ResourceAnalyzer {
   async _parseConfigDocumentation(filePath) {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      
+
       this.configIndex.set('_documentation', {
         name: 'configurations',
         documentation: content,
@@ -308,13 +309,13 @@ export class ResourceAnalyzer {
    */
   async _indexPlugins() {
     const pluginsPath = path.join(this.sharedLibraryPath, 'src/scripts/plugins');
-    
+
     try {
       const entries = await fs.readdir(pluginsPath, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(pluginsPath, entry.name);
-        
+
         if (entry.isDirectory()) {
           await this._scanPluginDirectory(fullPath, entry.name);
         } else if (entry.name === 'README.md') {
@@ -332,7 +333,7 @@ export class ResourceAnalyzer {
   async _scanPluginDirectory(dirPath, pluginName) {
     try {
       const entries = await fs.readdir(dirPath, { withFileTypes: true });
-      
+
       const pluginInfo = {
         name: pluginName,
         dirPath,
@@ -340,10 +341,10 @@ export class ResourceAnalyzer {
         documentation: '',
         examples: []
       };
-      
+
       for (const entry of entries) {
         const fullPath = path.join(dirPath, entry.name);
-        
+
         if (entry.name.endsWith('.js')) {
           const content = await fs.readFile(fullPath, 'utf-8');
           pluginInfo.files.push({
@@ -358,7 +359,7 @@ export class ResourceAnalyzer {
           pluginInfo.examples = this._extractCodeExamples(content);
         }
       }
-      
+
       this.pluginsIndex.set(pluginName, pluginInfo);
       logger.debug(`Indexed plugin: ${pluginName}`);
     } catch (error) {
@@ -372,7 +373,7 @@ export class ResourceAnalyzer {
   async _parsePluginsDocumentation(filePath) {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      
+
       this.pluginsIndex.set('_documentation', {
         name: 'plugins',
         documentation: content,
@@ -388,10 +389,10 @@ export class ResourceAnalyzer {
    */
   async _indexExamples() {
     const examplesPath = path.join(this.sharedLibraryPath, 'examples');
-    
+
     try {
       const entries = await fs.readdir(examplesPath, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         if (entry.isDirectory()) {
           const fullPath = path.join(examplesPath, entry.name);
@@ -410,14 +411,14 @@ export class ResourceAnalyzer {
     try {
       const packageJsonPath = path.join(dirPath, 'package.json');
       let packageInfo = {};
-      
+
       try {
         const packageContent = await fs.readFile(packageJsonPath, 'utf-8');
         packageInfo = JSON.parse(packageContent);
-      } catch (error) {
+      } catch (_error) {
         logger.warn(`No package.json found for example ${projectName}`);
       }
-      
+
       const exampleInfo = {
         name: projectName,
         dirPath,
@@ -425,7 +426,7 @@ export class ResourceAnalyzer {
         structure: await this._getDirectoryStructure(dirPath),
         documentation: ''
       };
-      
+
       this.examplesIndex.set(projectName, exampleInfo);
       logger.debug(`Indexed example: ${projectName}`);
     } catch (error) {
@@ -437,21 +438,25 @@ export class ResourceAnalyzer {
    * Get directory structure recursively
    */
   async _getDirectoryStructure(dirPath, maxDepth = 3, currentDepth = 0) {
-    if (currentDepth >= maxDepth) return [];
-    
+    if (currentDepth >= maxDepth) {
+      return [];
+    }
+
     try {
       const entries = await fs.readdir(dirPath, { withFileTypes: true });
       const structure = [];
-      
+
       for (const entry of entries) {
-        if (entry.name.startsWith('.')) continue;
-        
+        if (entry.name.startsWith('.')) {
+          continue;
+        }
+
         const item = {
           name: entry.name,
           type: entry.isDirectory() ? 'directory' : 'file',
           path: path.join(dirPath, entry.name)
         };
-        
+
         if (entry.isDirectory()) {
           item.children = await this._getDirectoryStructure(
             path.join(dirPath, entry.name),
@@ -459,12 +464,12 @@ export class ResourceAnalyzer {
             currentDepth + 1
           );
         }
-        
+
         structure.push(item);
       }
-      
+
       return structure;
-    } catch (error) {
+    } catch (_error) {
       return [];
     }
   }
@@ -474,21 +479,21 @@ export class ResourceAnalyzer {
    */
   _extractProps(content) {
     const props = [];
-    
+
     // Find the props object with better regex
     const propsMatch = content.match(/props:\s*\{([\s\S]*?)\n\s*\}/);
-    
+
     if (propsMatch) {
-      const propsContent = propsMatch[1];
-      
+      const [, propsContent] = propsMatch;
+
       // Split by lines and process each prop
       const lines = propsContent.split('\n');
       let currentProp = null;
       let propDefinition = '';
-      
+
       for (const line of lines) {
         const trimmedLine = line.trim();
-        
+
         // Check if this line starts a new prop
         const propStartMatch = trimmedLine.match(/^(\w+):\s*\{/);
         if (propStartMatch) {
@@ -496,13 +501,13 @@ export class ResourceAnalyzer {
           if (currentProp) {
             this._parsePropDefinition(currentProp, propDefinition, props);
           }
-          
+
           currentProp = propStartMatch[1];
           propDefinition = trimmedLine.substring(propStartMatch[0].length);
         } else if (currentProp) {
-          propDefinition += ' ' + trimmedLine;
+          propDefinition += ` ${trimmedLine}`;
         }
-        
+
         // Check if prop definition ends
         if (trimmedLine.includes('}') && currentProp) {
           this._parsePropDefinition(currentProp, propDefinition, props);
@@ -511,7 +516,7 @@ export class ResourceAnalyzer {
         }
       }
     }
-    
+
     return props;
   }
 
@@ -521,7 +526,7 @@ export class ResourceAnalyzer {
   _parsePropDefinition(propName, definition, props) {
     const typeMatch = definition.match(/type:\s*(\w+)/);
     const defaultMatch = definition.match(/default:\s*([^,}]+)/);
-    
+
     props.push({
       name: propName,
       type: typeMatch ? typeMatch[1] : 'unknown',
@@ -535,7 +540,7 @@ export class ResourceAnalyzer {
   _extractEvents(content) {
     const events = [];
     const eventMatches = content.match(/\$emit\(['"`]([^'"`]+)['"`]/g);
-    
+
     if (eventMatches) {
       eventMatches.forEach(match => {
         const eventMatch = match.match(/\$emit\(['"`]([^'"`]+)['"`]/);
@@ -547,7 +552,7 @@ export class ResourceAnalyzer {
         }
       });
     }
-    
+
     return [...new Set(events.map(e => e.name))].map(name => ({ name, source: 'emit' }));
   }
 
@@ -557,16 +562,16 @@ export class ResourceAnalyzer {
   _extractMixins(content) {
     const mixins = [];
     const mixinsMatch = content.match(/mixins:\s*\[([^\]]+)\]/);
-    
+
     if (mixinsMatch) {
       const mixinsContent = mixinsMatch[1];
       const mixinMatches = mixinsContent.match(/\w+/g);
-      
+
       if (mixinMatches) {
         mixins.push(...mixinMatches);
       }
     }
-    
+
     return mixins;
   }
 
@@ -576,7 +581,7 @@ export class ResourceAnalyzer {
   _extractImports(content) {
     const imports = [];
     const importMatches = content.match(/import\s+.*?\s+from\s+['"`]([^'"`]+)['"`]/g);
-    
+
     if (importMatches) {
       importMatches.forEach(match => {
         const pathMatch = match.match(/from\s+['"`]([^'"`]+)['"`]/);
@@ -585,7 +590,7 @@ export class ResourceAnalyzer {
         }
       });
     }
-    
+
     return imports;
   }
 
@@ -602,7 +607,7 @@ export class ResourceAnalyzer {
    */
   _extractFunctions(content) {
     const functions = [];
-    
+
     // Extract function declarations
     const functionMatches = content.match(/(?:export\s+)?function\s+(\w+)\s*\([^)]*\)/g);
     if (functionMatches) {
@@ -617,9 +622,11 @@ export class ResourceAnalyzer {
         }
       });
     }
-    
+
     // Extract arrow functions
-    const arrowMatches = content.match(/(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*\([^)]*\)\s*=>/g);
+    const arrowMatches = content.match(
+      /(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*\([^)]*\)\s*=>/g
+    );
     if (arrowMatches) {
       arrowMatches.forEach(match => {
         const nameMatch = match.match(/(?:const|let|var)\s+(\w+)/);
@@ -632,7 +639,7 @@ export class ResourceAnalyzer {
         }
       });
     }
-    
+
     return functions;
   }
 
@@ -641,7 +648,7 @@ export class ResourceAnalyzer {
    */
   _extractExports(content) {
     const exports = [];
-    
+
     // Named exports
     const namedExports = content.match(/export\s*{\s*([^}]+)\s*}/g);
     if (namedExports) {
@@ -653,13 +660,13 @@ export class ResourceAnalyzer {
         }
       });
     }
-    
+
     // Default exports
     const defaultExport = content.match(/export\s+default\s+(\w+)/);
     if (defaultExport) {
       exports.push(`default: ${defaultExport[1]}`);
     }
-    
+
     // Direct exports
     const directExports = content.match(/export\s+(?:const|let|var|function|class)\s+(\w+)/g);
     if (directExports) {
@@ -670,7 +677,7 @@ export class ResourceAnalyzer {
         }
       });
     }
-    
+
     return exports;
   }
 
@@ -680,12 +687,12 @@ export class ResourceAnalyzer {
   _extractConstants(content) {
     const constants = [];
     const constMatches = content.match(/(?:export\s+)?const\s+(\w+)\s*=\s*([^;]+)/g);
-    
+
     if (constMatches) {
       constMatches.forEach(match => {
         const nameMatch = match.match(/const\s+(\w+)/);
         const valueMatch = match.match(/=\s*([^;]+)/);
-        
+
         if (nameMatch) {
           constants.push({
             name: nameMatch[1],
@@ -695,7 +702,7 @@ export class ResourceAnalyzer {
         }
       });
     }
-    
+
     return constants;
   }
 
@@ -705,11 +712,11 @@ export class ResourceAnalyzer {
   _parseMarkdownSections(content) {
     const sections = [];
     const sectionMatches = content.split(/^#{1,6}\s+/m);
-    
+
     for (let i = 1; i < sectionMatches.length; i++) {
       const section = sectionMatches[i];
       const titleMatch = section.match(/^([^\n]+)/);
-      
+
       if (titleMatch) {
         sections.push({
           title: titleMatch[1].trim(),
@@ -717,7 +724,7 @@ export class ResourceAnalyzer {
         });
       }
     }
-    
+
     return sections;
   }
 
@@ -727,7 +734,7 @@ export class ResourceAnalyzer {
   _extractCodeExamples(content) {
     const examples = [];
     const codeBlocks = content.match(/```[\s\S]*?```/g);
-    
+
     if (codeBlocks) {
       codeBlocks.forEach(block => {
         const langMatch = block.match(/```(\w+)?\n([\s\S]*?)```/);
@@ -739,7 +746,7 @@ export class ResourceAnalyzer {
         }
       });
     }
-    
+
     return examples;
   }
 
@@ -748,16 +755,24 @@ export class ResourceAnalyzer {
    */
   _extractPropsDocumentation(content) {
     const propsSection = content.match(/#### Props([\s\S]*?)(?=####|$)/);
-    if (!propsSection) return [];
-    
+    if (!propsSection) {
+      return [];
+    }
+
     const tableMatch = propsSection[1].match(/\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|/g);
-    if (!tableMatch) return [];
-    
+    if (!tableMatch) {
+      return [];
+    }
+
     const props = [];
-    for (let i = 1; i < tableMatch.length; i++) { // Skip header row
+    for (let i = 1; i < tableMatch.length; i++) {
+      // Skip header row
       const row = tableMatch[i];
-      const columns = row.split('|').map(col => col.trim()).filter(col => col);
-      
+      const columns = row
+        .split('|')
+        .map(col => col.trim())
+        .filter(col => col);
+
       if (columns.length >= 4) {
         props.push({
           name: columns[0],
@@ -767,7 +782,7 @@ export class ResourceAnalyzer {
         });
       }
     }
-    
+
     return props;
   }
 
@@ -776,16 +791,24 @@ export class ResourceAnalyzer {
    */
   _extractEventsDocumentation(content) {
     const eventsSection = content.match(/#### Events([\s\S]*?)(?=####|$)/);
-    if (!eventsSection) return [];
-    
+    if (!eventsSection) {
+      return [];
+    }
+
     const tableMatch = eventsSection[1].match(/\|([^|]+)\|([^|]+)\|([^|]+)\|/g);
-    if (!tableMatch) return [];
-    
+    if (!tableMatch) {
+      return [];
+    }
+
     const events = [];
-    for (let i = 1; i < tableMatch.length; i++) { // Skip header row
+    for (let i = 1; i < tableMatch.length; i++) {
+      // Skip header row
       const row = tableMatch[i];
-      const columns = row.split('|').map(col => col.trim()).filter(col => col);
-      
+      const columns = row
+        .split('|')
+        .map(col => col.trim())
+        .filter(col => col);
+
       if (columns.length >= 3) {
         events.push({
           name: columns[0],
@@ -794,7 +817,7 @@ export class ResourceAnalyzer {
         });
       }
     }
-    
+
     return events;
   }
 
@@ -810,13 +833,15 @@ export class ResourceAnalyzer {
 
     // Search for exact match first
     let component = this.componentsIndex.get(name);
-    
+
     // If not found and category is specified, search within category
     if (!component && category) {
       for (const [componentName, componentInfo] of this.componentsIndex) {
-        if (componentInfo.category.includes(category) && 
-            (componentName.toLowerCase().includes(name.toLowerCase()) || 
-             name.toLowerCase().includes(componentName.toLowerCase()))) {
+        if (
+          componentInfo.category.includes(category) &&
+          (componentName.toLowerCase().includes(name.toLowerCase()) ||
+            name.toLowerCase().includes(componentName.toLowerCase()))
+        ) {
           component = componentInfo;
           break;
         }
@@ -868,17 +893,19 @@ export class ResourceAnalyzer {
     }
 
     // Search for exact match first
-    let utility = this.utilsIndex.get(name);
-    
+    const utility = this.utilsIndex.get(name);
+
     // If not found, search within utility files
     if (!utility) {
       for (const [utilName, utilInfo] of this.utilsIndex) {
-        if (utilName === '_documentation') continue;
-        
-        const matchingFunction = utilInfo.functions.find(func => 
-          func.name === name || func.name.toLowerCase().includes(name.toLowerCase())
+        if (utilName === '_documentation') {
+          continue;
+        }
+
+        const matchingFunction = utilInfo.functions.find(
+          func => func.name === name || func.name.toLowerCase().includes(name.toLowerCase())
         );
-        
+
         if (matchingFunction) {
           return {
             name: matchingFunction.name,
@@ -928,7 +955,7 @@ export class ResourceAnalyzer {
     }
 
     const plugin = this.pluginsIndex.get(name);
-    
+
     if (!plugin) {
       return {
         name,
@@ -966,8 +993,10 @@ export class ResourceAnalyzer {
 
     // Search in component documentation
     for (const [componentName, componentInfo] of this.componentsIndex) {
-      if (componentInfo.documentation && 
-          componentInfo.documentation.toLowerCase().includes(topic.toLowerCase())) {
+      if (
+        componentInfo.documentation &&
+        componentInfo.documentation.toLowerCase().includes(topic.toLowerCase())
+      ) {
         practices.push({
           type: 'component',
           name: componentName,
@@ -990,10 +1019,14 @@ export class ResourceAnalyzer {
 
     // Search in plugin documentation
     for (const [pluginName, pluginInfo] of this.pluginsIndex) {
-      if (pluginName === '_documentation') continue;
-      
-      if (pluginInfo.documentation && 
-          pluginInfo.documentation.toLowerCase().includes(topic.toLowerCase())) {
+      if (pluginName === '_documentation') {
+        continue;
+      }
+
+      if (
+        pluginInfo.documentation &&
+        pluginInfo.documentation.toLowerCase().includes(topic.toLowerCase())
+      ) {
         practices.push({
           type: 'plugin',
           name: pluginName,
@@ -1045,8 +1078,10 @@ export class ResourceAnalyzer {
 
     const utilities = [];
     for (const [name, info] of this.utilsIndex) {
-      if (name === '_documentation') continue;
-      
+      if (name === '_documentation') {
+        continue;
+      }
+
       utilities.push({
         name,
         functions: info.functions.map(f => f.name),
@@ -1067,8 +1102,10 @@ export class ResourceAnalyzer {
 
     const plugins = [];
     for (const [name, info] of this.pluginsIndex) {
-      if (name === '_documentation') continue;
-      
+      if (name === '_documentation') {
+        continue;
+      }
+
       plugins.push({
         name,
         description: this._extractDescriptionFromDoc(info.documentation)
@@ -1077,7 +1114,6 @@ export class ResourceAnalyzer {
 
     return plugins.sort((a, b) => a.name.localeCompare(b.name));
   }
-}
 
   /**
    * Fuzzy search for components
@@ -1130,8 +1166,10 @@ export class ResourceAnalyzer {
     const searchTerm = name.toLowerCase();
 
     for (const [utilName, utilInfo] of this.utilsIndex) {
-      if (utilName === '_documentation') continue;
-      
+      if (utilName === '_documentation') {
+        continue;
+      }
+
       // Check utility name
       const utilScore = this._calculateSimilarity(searchTerm, utilName.toLowerCase());
       if (utilScore > 0.3) {
@@ -1161,8 +1199,10 @@ export class ResourceAnalyzer {
     const searchTerm = name.toLowerCase();
 
     for (const [pluginName, pluginInfo] of this.pluginsIndex) {
-      if (pluginName === '_documentation') continue;
-      
+      if (pluginName === '_documentation') {
+        continue;
+      }
+
       const score = this._calculateSimilarity(searchTerm, pluginName.toLowerCase());
       if (score > 0.3) {
         suggestions.push({ name: pluginName, score });
@@ -1214,7 +1254,9 @@ export class ResourceAnalyzer {
    * Merge props with documentation
    */
   _mergePropsWithDocumentation(props, propsDoc) {
-    if (!propsDoc || propsDoc.length === 0) return props;
+    if (!propsDoc || propsDoc.length === 0) {
+      return props;
+    }
 
     return props.map(prop => {
       const docProp = propsDoc.find(doc => doc.name === prop.name);
@@ -1230,7 +1272,9 @@ export class ResourceAnalyzer {
    * Merge events with documentation
    */
   _mergeEventsWithDocumentation(events, eventsDoc) {
-    if (!eventsDoc || eventsDoc.length === 0) return events;
+    if (!eventsDoc || eventsDoc.length === 0) {
+      return events;
+    }
 
     return events.map(event => {
       const docEvent = eventsDoc.find(doc => doc.name === event.name);
@@ -1257,7 +1301,7 @@ export class ResourceAnalyzer {
 
     examples.push({
       title: 'Basic Usage',
-      code: `<${component.name}${basicProps ? ' ' + basicProps : ''}></${component.name}>`,
+      code: `<${component.name}${basicProps ? ` ${basicProps}` : ''}></${component.name}>`,
       language: 'vue'
     });
 
@@ -1277,7 +1321,10 @@ export class ResourceAnalyzer {
     // Events example if available
     if (component.events && component.events.length > 0) {
       const eventsExample = component.events
-        .map(event => `@${event.name}="handle${event.name.charAt(0).toUpperCase() + event.name.slice(1)}"`)
+        .map(
+          event =>
+            `@${event.name}="handle${event.name.charAt(0).toUpperCase() + event.name.slice(1)}"`
+        )
         .join('\n  ');
 
       examples.push({
@@ -1318,12 +1365,13 @@ export class ResourceAnalyzer {
    */
   _getUtilityExamples(utilityName) {
     const utilsDoc = this.utilsIndex.get('_documentation');
-    if (!utilsDoc) return [];
+    if (!utilsDoc) {
+      return [];
+    }
 
     const examples = utilsDoc.examples || [];
-    return examples.filter(example => 
-      example.code.includes(utilityName) || 
-      example.code.includes(`utils.${utilityName}`)
+    return examples.filter(
+      example => example.code.includes(utilityName) || example.code.includes(`utils.${utilityName}`)
     );
   }
 
@@ -1332,11 +1380,11 @@ export class ResourceAnalyzer {
    */
   _extractBestPracticeFromDoc(documentation, topic) {
     const lines = documentation.split('\n');
-    const relevantLines = lines.filter(line => 
-      line.toLowerCase().includes(topic.toLowerCase())
-    );
+    const relevantLines = lines.filter(line => line.toLowerCase().includes(topic.toLowerCase()));
 
-    if (relevantLines.length === 0) return '';
+    if (relevantLines.length === 0) {
+      return '';
+    }
 
     // Find the section containing the topic
     let sectionStart = -1;
@@ -1347,7 +1395,9 @@ export class ResourceAnalyzer {
       }
     }
 
-    if (sectionStart === -1) return relevantLines.join('\n');
+    if (sectionStart === -1) {
+      return relevantLines.join('\n');
+    }
 
     // Extract the relevant section (next few lines)
     const sectionLines = lines.slice(sectionStart, sectionStart + 5);
@@ -1371,7 +1421,12 @@ export class ResourceAnalyzer {
       practices.push({
         type: 'general',
         practice: 'Import components from @yiban-shared path for consistency',
-        examples: [{ code: "import YbAvatar from '@yiban-shared/components/yb-avatar';", language: 'javascript' }]
+        examples: [
+          {
+            code: "import YbAvatar from '@yiban-shared/components/yb-avatar';",
+            language: 'javascript'
+          }
+        ]
       });
     }
 
@@ -1379,7 +1434,9 @@ export class ResourceAnalyzer {
       practices.push({
         type: 'general',
         practice: 'Import utilities from the main utils index for tree-shaking',
-        examples: [{ code: "import { encrypted } from '@yiban-shared/utils';", language: 'javascript' }]
+        examples: [
+          { code: "import { encrypted } from '@yiban-shared/utils';", language: 'javascript' }
+        ]
       });
     }
 
@@ -1387,7 +1444,7 @@ export class ResourceAnalyzer {
       practices.push({
         type: 'general',
         practice: 'Configure plugins in the main plugins index file',
-        examples: [{ code: "Vue.use(plugin, { /* config */ });", language: 'javascript' }]
+        examples: [{ code: 'Vue.use(plugin, { /* config */ });', language: 'javascript' }]
       });
     }
 
@@ -1398,17 +1455,21 @@ export class ResourceAnalyzer {
    * Extract description from documentation
    */
   _extractDescriptionFromDoc(documentation) {
-    if (!documentation) return '';
+    if (!documentation) {
+      return '';
+    }
 
     const lines = documentation.split('\n');
     const firstNonEmptyLine = lines.find(line => line.trim().length > 0);
-    
-    if (!firstNonEmptyLine) return '';
+
+    if (!firstNonEmptyLine) {
+      return '';
+    }
 
     // Remove markdown headers and get the first sentence
     const cleaned = firstNonEmptyLine.replace(/^#+\s*/, '').trim();
     const firstSentence = cleaned.split('.')[0];
-    
-    return firstSentence.length > 100 ? firstSentence.substring(0, 100) + '...' : firstSentence;
+
+    return firstSentence.length > 100 ? `${firstSentence.substring(0, 100)}...` : firstSentence;
   }
 }

@@ -26,7 +26,7 @@ export class ToolRegistry {
     try {
       // Create tool interface
       const toolInterface = new ToolInterface(name, description, inputSchema, handler);
-      
+
       // Check for duplicate registration
       if (this.tools.has(name)) {
         if (!options.allowOverride) {
@@ -81,14 +81,11 @@ export class ToolRegistry {
    */
   unregister(name) {
     if (!this.tools.has(name)) {
-      throw new BalmSharedMCPError(
-        ErrorCodes.TOOL_NOT_FOUND,
-        `Tool '${name}' not found`
-      );
+      throw new BalmSharedMCPError(ErrorCodes.TOOL_NOT_FOUND, `Tool '${name}' not found`);
     }
 
     const tool = this.tools.get(name);
-    
+
     // Remove from category mapping
     this.categories.get(tool.category)?.delete(name);
     if (this.categories.get(tool.category)?.size === 0) {
@@ -109,10 +106,7 @@ export class ToolRegistry {
   get(name) {
     const tool = this.tools.get(name);
     if (!tool) {
-      throw new BalmSharedMCPError(
-        ErrorCodes.TOOL_NOT_FOUND,
-        `Tool '${name}' not found`
-      );
+      throw new BalmSharedMCPError(ErrorCodes.TOOL_NOT_FOUND, `Tool '${name}' not found`);
     }
     return tool;
   }
@@ -129,7 +123,7 @@ export class ToolRegistry {
    */
   list(options = {}) {
     const { category, tags, includeUsage = false } = options;
-    
+
     let tools = Array.from(this.tools.entries());
 
     // Filter by category
@@ -139,14 +133,12 @@ export class ToolRegistry {
 
     // Filter by tags
     if (tags && tags.length > 0) {
-      tools = tools.filter(([, tool]) => 
-        tags.some(tag => tool.tags.includes(tag))
-      );
+      tools = tools.filter(([, tool]) => tags.some(tag => tool.tags.includes(tag)));
     }
 
     return tools.map(([name, tool]) => {
       const definition = tool.interface.getDefinition();
-      
+
       const result = {
         name,
         description: definition.description,
@@ -196,7 +188,7 @@ export class ToolRegistry {
   async execute(name, args, context = {}) {
     const tool = this.get(name);
     const startTime = Date.now();
-    
+
     try {
       // Update usage statistics
       tool.usage.callCount++;
@@ -222,13 +214,13 @@ export class ToolRegistry {
     } catch (error) {
       // Update error statistics
       tool.usage.errorCount++;
-      
+
       logger.error(`Tool execution failed: ${name}`, {
         error: error.message,
         callCount: tool.usage.callCount,
         errorCount: tool.usage.errorCount
       });
-      
+
       throw error;
     }
   }
@@ -282,16 +274,16 @@ export class ToolRegistry {
    */
   validateAll() {
     const results = [];
-    
+
     for (const [name, tool] of this.tools.entries()) {
       try {
         tool.interface.validateToolDefinition();
         results.push({ name, valid: true });
       } catch (error) {
-        results.push({ 
-          name, 
-          valid: false, 
-          error: error.message 
+        results.push({
+          name,
+          valid: false,
+          error: error.message
         });
       }
     }
@@ -306,7 +298,7 @@ export class ToolRegistry {
     const count = this.tools.size;
     this.tools.clear();
     this.categories.clear();
-    
-    logger.info(`Cleared all tools from registry`, { clearedCount: count });
+
+    logger.info('Cleared all tools from registry', { clearedCount: count });
   }
 }

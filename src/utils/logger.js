@@ -48,7 +48,7 @@ class Logger {
     this.logDirectory = options.logDirectory || path.join(__dirname, '../../logs');
     this.maxFileSize = options.maxFileSize || 10 * 1024 * 1024; // 10MB
     this.maxFiles = options.maxFiles || 5;
-    
+
     this.levels = {
       debug: 0,
       info: 1,
@@ -60,7 +60,7 @@ class Logger {
 
     // Performance tracking
     this.performanceTimers = new Map();
-    
+
     // Initialize log directory
     this.initializeLogDirectory();
   }
@@ -69,7 +69,9 @@ class Logger {
    * Initialize log directory structure
    */
   async initializeLogDirectory() {
-    if (!this.enableFileLogging) return;
+    if (!this.enableFileLogging) {
+      return;
+    }
 
     try {
       await fs.mkdir(this.logDirectory, { recursive: true });
@@ -127,15 +129,17 @@ class Logger {
    * Write log to file
    */
   async writeToFile(logEntry, filename = 'app.log') {
-    if (!this.enableFileLogging) return;
+    if (!this.enableFileLogging) {
+      return;
+    }
 
     try {
       const logPath = path.join(this.logDirectory, filename);
-      const logLine = JSON.stringify(logEntry) + '\n';
-      
+      const logLine = `${JSON.stringify(logEntry)}\n`;
+
       // Check file size and rotate if necessary
       await this.rotateLogIfNeeded(logPath);
-      
+
       await fs.appendFile(logPath, logLine);
     } catch (error) {
       console.error('Failed to write to log file:', error);
@@ -162,19 +166,19 @@ class Logger {
   async rotateLogFile(logPath) {
     const dir = path.dirname(logPath);
     const basename = path.basename(logPath, '.log');
-    
+
     // Move existing rotated files
     for (let i = this.maxFiles - 1; i > 0; i--) {
       const oldFile = path.join(dir, `${basename}.${i}.log`);
       const newFile = path.join(dir, `${basename}.${i + 1}.log`);
-      
+
       try {
         await fs.rename(oldFile, newFile);
       } catch (error) {
         // File doesn't exist, continue
       }
     }
-    
+
     // Move current file to .1
     const rotatedFile = path.join(dir, `${basename}.1.log`);
     try {
@@ -241,7 +245,7 @@ class Logger {
       action,
       auditType: details.auditType || 'user_action'
     });
-    
+
     console.log(JSON.stringify(logEntry));
     await this.writeToFile(logEntry, 'audit/audit.log');
   }
@@ -257,7 +261,7 @@ class Logger {
       value,
       unit: meta.unit || 'ms'
     });
-    
+
     console.log(JSON.stringify(logEntry));
     await this.writeToFile(logEntry, 'performance/performance.log');
   }
@@ -365,7 +369,7 @@ class Logger {
   child(context = {}) {
     const childLogger = Object.create(this);
     childLogger.defaultMeta = { ...this.defaultMeta, ...context };
-    
+
     // Override logging methods to include default meta
     ['debug', 'info', 'warn', 'error', 'audit', 'performance'].forEach(method => {
       const originalMethod = this[method].bind(this);
@@ -373,7 +377,7 @@ class Logger {
         return originalMethod(message, { ...childLogger.defaultMeta, ...meta });
       };
     });
-    
+
     return childLogger;
   }
 
@@ -387,8 +391,13 @@ class Logger {
 
     try {
       const stats = {};
-      const logFiles = ['app.log', 'audit/audit.log', 'performance/performance.log', 'errors/error.log'];
-      
+      const logFiles = [
+        'app.log',
+        'audit/audit.log',
+        'performance/performance.log',
+        'errors/error.log'
+      ];
+
       for (const file of logFiles) {
         const filePath = path.join(this.logDirectory, file);
         try {
@@ -402,7 +411,7 @@ class Logger {
           stats[file] = { exists: false };
         }
       }
-      
+
       return stats;
     } catch (error) {
       await this.error('Failed to get log statistics', { error: error.message });
@@ -426,18 +435,20 @@ class Logger {
    * Clean old log files
    */
   async cleanOldLogs(daysToKeep = 30) {
-    if (!this.enableFileLogging) return;
+    if (!this.enableFileLogging) {
+      return;
+    }
 
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
     try {
       const files = await fs.readdir(this.logDirectory, { recursive: true });
-      
+
       for (const file of files) {
         const filePath = path.join(this.logDirectory, file);
         const stats = await fs.stat(filePath);
-        
+
         if (stats.isFile() && stats.mtime < cutoffDate) {
           await fs.unlink(filePath);
           await this.info(`Cleaned old log file: ${file}`, {

@@ -11,7 +11,7 @@ import { BalmSharedMCPError, ErrorCodes } from '../utils/errors.js';
 export class ModelConfigManager {
   constructor(fileSystemHandler, config) {
     this.fileSystemHandler = fileSystemHandler;
-    
+
     // Handle both config object and logger (for backward compatibility with tests)
     if (config && typeof config.info === 'function') {
       // If config has logger methods, treat it as a logger
@@ -22,10 +22,10 @@ export class ModelConfigManager {
       this.config = config || {};
       this.logger = logger; // Use imported logger
     }
-    
+
     // Field type to UI component mapping
     this.componentMapping = this.initializeComponentMapping();
-    
+
     // Validation rules mapping
     this.validationMapping = this.initializeValidationMapping();
   }
@@ -36,48 +36,48 @@ export class ModelConfigManager {
   initializeComponentMapping() {
     return {
       // Text inputs
-      'string': 'ui-textfield',
-      'text': 'ui-textfield',
-      'textarea': 'ui-textarea',
-      'password': 'ui-textfield',
-      'email': 'ui-textfield',
-      'url': 'ui-textfield',
-      'phone': 'ui-textfield',
-      
+      string: 'ui-textfield',
+      text: 'ui-textfield',
+      textarea: 'ui-textarea',
+      password: 'ui-textfield',
+      email: 'ui-textfield',
+      url: 'ui-textfield',
+      phone: 'ui-textfield',
+
       // Numbers
-      'number': 'ui-textfield',
-      'integer': 'ui-textfield',
-      'float': 'ui-textfield',
-      'currency': 'ui-textfield',
-      
+      number: 'ui-textfield',
+      integer: 'ui-textfield',
+      float: 'ui-textfield',
+      currency: 'ui-textfield',
+
       // Selections
-      'select': 'ui-select',
-      'multiselect': 'ui-select',
-      'radio': 'ui-radio-group',
-      'checkbox': 'ui-checkbox',
-      'switch': 'ui-switch',
-      
+      select: 'ui-select',
+      multiselect: 'ui-select',
+      radio: 'ui-radio-group',
+      checkbox: 'ui-checkbox',
+      switch: 'ui-switch',
+
       // Date and time
-      'date': 'ui-datepicker',
-      'datetime': 'ui-datepicker',
-      'time': 'ui-timepicker',
-      'daterange': 'ui-rangepicker',
-      
+      date: 'ui-datepicker',
+      datetime: 'ui-datepicker',
+      time: 'ui-timepicker',
+      daterange: 'ui-rangepicker',
+
       // File uploads
-      'file': 'ui-file',
-      'image': 'ui-file',
-      'avatar': 'ui-file',
-      'upload': 'ui-file-upload',
-      
+      file: 'ui-file',
+      image: 'ui-file',
+      avatar: 'ui-file',
+      upload: 'ui-file-upload',
+
       // Rich content
-      'editor': 'ui-editor',
-      'markdown': 'ui-editor',
-      
+      editor: 'ui-editor',
+      markdown: 'ui-editor',
+
       // Special components
-      'color': 'ui-textfield',
-      'slider': 'ui-slider',
-      'rating': 'ui-rating',
-      'readonly': 'ui-readonly-item'
+      color: 'ui-textfield',
+      slider: 'ui-slider',
+      rating: 'ui-rating',
+      readonly: 'ui-readonly-item'
     };
   }
 
@@ -86,17 +86,17 @@ export class ModelConfigManager {
    */
   initializeValidationMapping() {
     return {
-      'required': { required: true },
-      'email': { pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: '请输入有效的邮箱地址' },
-      'phone': { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号码' },
-      'url': { pattern: /^https?:\/\/.+/, message: '请输入有效的URL地址' },
-      'number': { type: 'number', message: '请输入数字' },
-      'numeric': { type: 'number', message: '请输入数字' },
-      'integer': { type: 'integer', message: '请输入整数' },
-      'minLength': (length) => ({ minLength: length, message: `最少输入${length}个字符` }),
-      'maxLength': (length) => ({ maxLength: length, message: `最多输入${length}个字符` }),
-      'min': (value) => ({ min: value, message: `最小值为${value}` }),
-      'max': (value) => ({ max: value, message: `最大值为${value}` })
+      required: { required: true },
+      email: { pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: '请输入有效的邮箱地址' },
+      phone: { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号码' },
+      url: { pattern: /^https?:\/\/.+/, message: '请输入有效的URL地址' },
+      number: { type: 'number', message: '请输入数字' },
+      numeric: { type: 'number', message: '请输入数字' },
+      integer: { type: 'integer', message: '请输入整数' },
+      minLength: length => ({ minLength: length, message: `最少输入${length}个字符` }),
+      maxLength: length => ({ maxLength: length, message: `最多输入${length}个字符` }),
+      min: value => ({ min: value, message: `最小值为${value}` }),
+      max: value => ({ max: value, message: `最大值为${value}` })
     };
   }
 
@@ -105,20 +105,20 @@ export class ModelConfigManager {
    */
   mapFieldToComponent(fieldType, fieldOptions = {}) {
     const component = this.componentMapping[fieldType] || 'ui-textfield';
-    
+
     // Handle special cases
     if (fieldType === 'select' && fieldOptions.multiple) {
       return 'ui-select';
     }
-    
+
     if (fieldType === 'textfield' && fieldOptions.type === 'password') {
       return 'ui-textfield';
     }
-    
+
     if (fieldType === 'file' && fieldOptions.accept?.includes('image')) {
       return 'ui-file';
     }
-    
+
     return component;
   }
 
@@ -133,11 +133,11 @@ export class ModelConfigManager {
     if (options.placeholder) {
       props.placeholder = options.placeholder;
     }
-    
+
     if (options.disabled) {
       props.disabled = options.disabled;
     }
-    
+
     if (options.readonly) {
       props.readonly = options.readonly;
     }
@@ -264,7 +264,7 @@ export class ModelConfigManager {
     // Type-specific validation
     Object.keys(validation).forEach(rule => {
       const value = validation[rule];
-      
+
       if (this.validationMapping[rule]) {
         if (typeof this.validationMapping[rule] === 'function') {
           validationRules.push(this.validationMapping[rule](value));
@@ -283,10 +283,10 @@ export class ModelConfigManager {
    * Generate model configuration from field definitions
    */
   async generateModelConfig(options) {
-    const { 
+    const {
       name,
       model, // Support both 'name' and 'model' parameter names
-      fields = [], 
+      fields = [],
       formLayout = 'vertical',
       submitText = '保存',
       cancelText = '取消',
@@ -345,8 +345,6 @@ export class ModelConfigManager {
           );
         }
       });
-
-
 
       // Generate field configurations
       const configFields = fields.map(field => {
@@ -428,9 +426,12 @@ export class ModelConfigManager {
         model: modelName,
         config: modelConfig,
         fieldsCount: configFields.length,
-        filePath: filePath || (projectPath ? `${projectPath}/src/model-config/${this.toKebabCase(modelName)}.js` : undefined)
+        filePath:
+          filePath ||
+          (projectPath
+            ? `${projectPath}/src/model-config/${this.toKebabCase(modelName)}.js`
+            : undefined)
       };
-
     } catch (error) {
       this.logger.error(`Failed to generate model config: ${modelName}`, { error: error.message });
 
@@ -457,8 +458,8 @@ export class ModelConfigManager {
 
     try {
       // Generate the configuration (without projectPath to avoid recursion)
-      const { config } = await this.generateModelConfig({ 
-        name: modelName, 
+      const { config } = await this.generateModelConfig({
+        name: modelName,
         ...configOptions,
         projectPath: undefined // Remove projectPath to avoid recursion
       });
@@ -498,49 +499,53 @@ export default () => [
 
       // Process template
       let content = template;
-      
+
       // Simple template processing
       content = content.replace(/\{\{pascalCase name\}\}/g, this.toPascalCase(modelName));
-      
+
       // Process fields iteration
-      const fieldsContent = config.fields.map((field, index) => {
-        let fieldStr = `  {\n    label: '${field.label}',\n    component: '${field.component}',\n    key: '${field.key}',\n    value: ${typeof field.value === 'string' ? `'${field.value}'` : field.value || "''"}`;
-        
-        if (field.attrOrProp) {
-          fieldStr += `,\n    attrOrProp: ${JSON.stringify(field.attrOrProp, null, 6).replace(/\n/g, '\n    ')}`;
-        }
-        
-        if (field.validation) {
-          fieldStr += `,\n    validation: ${JSON.stringify(field.validation, null, 6).replace(/\n/g, '\n    ')}`;
-        }
-        
-        if (field.if !== undefined) {
-          fieldStr += `,\n    if: ${field.if}`;
-        }
-        
-        fieldStr += '\n  }';
-        
-        if (index < config.fields.length - 1) {
-          fieldStr += ',';
-        }
-        
-        return fieldStr;
-      }).join('\n');
-      
+      const fieldsContent = config.fields
+        .map((field, index) => {
+          let fieldStr = `  {\n    label: '${field.label}',\n    component: '${field.component}',\n    key: '${field.key}',\n    value: ${typeof field.value === 'string' ? `'${field.value}'` : field.value || "''"}`;
+
+          if (field.attrOrProp) {
+            fieldStr += `,\n    attrOrProp: ${JSON.stringify(field.attrOrProp, null, 6).replace(/\n/g, '\n    ')}`;
+          }
+
+          if (field.validation) {
+            fieldStr += `,\n    validation: ${JSON.stringify(field.validation, null, 6).replace(/\n/g, '\n    ')}`;
+          }
+
+          if (field.if !== undefined) {
+            fieldStr += `,\n    if: ${field.if}`;
+          }
+
+          fieldStr += '\n  }';
+
+          if (index < config.fields.length - 1) {
+            fieldStr += ',';
+          }
+
+          return fieldStr;
+        })
+        .join('\n');
+
       content = content.replace(/\{\{#each fields\}\}[\s\S]*?\{\{\/each\}\}/g, fieldsContent);
 
       // Determine output path
-      const finalOutputPath = outputPath || path.join(
-        projectPath,
-        'src/scripts/pages',
-        this.toKebabCase(modelName),
-        'model-config',
-        `${this.toKebabCase(modelName)}.js`
-      );
+      const finalOutputPath =
+        outputPath ||
+        path.join(
+          projectPath,
+          'src/scripts/pages',
+          this.toKebabCase(modelName),
+          'model-config',
+          `${this.toKebabCase(modelName)}.js`
+        );
 
       // Ensure output directory exists
       const outputDir = path.dirname(finalOutputPath);
-      
+
       // Check if directory exists, create if not
       if (this.fileSystemHandler.exists) {
         const dirExists = await this.fileSystemHandler.exists(outputDir);
@@ -548,7 +553,7 @@ export default () => [
           await this.fileSystemHandler.createDirectory(outputDir);
         }
       }
-      
+
       if (this.fileSystemHandler.ensureDirectory) {
         await this.fileSystemHandler.ensureDirectory(outputDir);
       }
@@ -560,14 +565,15 @@ export default () => [
 
       return {
         success: true,
-        message: `Model config file generated successfully`,
+        message: 'Model config file generated successfully',
         filePath: finalOutputPath,
         config,
         content
       };
-
     } catch (error) {
-      this.logger.error(`Failed to generate model config file: ${modelName}`, { error: error.message });
+      this.logger.error(`Failed to generate model config file: ${modelName}`, {
+        error: error.message
+      });
 
       if (error instanceof BalmSharedMCPError) {
         throw error;
@@ -585,22 +591,26 @@ export default () => [
    * Convert string to PascalCase
    */
   toPascalCase(str) {
-    return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase())
-              .replace(/^([a-z])/, (g) => g.toUpperCase());
+    return str
+      .replace(/-([a-z])/g, g => g[1].toUpperCase())
+      .replace(/^([a-z])/, g => g.toUpperCase());
   }
 
   /**
    * Convert string to kebab-case
    */
   toKebabCase(str) {
-    return str.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '');
+    return str
+      .replace(/([A-Z])/g, '-$1')
+      .toLowerCase()
+      .replace(/^-/, '');
   }
 
   /**
    * Convert string to camelCase
    */
   toCamelCase(str) {
-    return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+    return str.replace(/-([a-z])/g, g => g[1].toUpperCase());
   }
 
   /**
@@ -637,7 +647,9 @@ export default () => [
    * Get supported components (alias for getAvailableComponents)
    */
   getSupportedComponents() {
-    return Object.values(this.componentMapping).filter((value, index, self) => self.indexOf(value) === index);
+    return Object.values(this.componentMapping).filter(
+      (value, index, self) => self.indexOf(value) === index
+    );
   }
 
   /**
@@ -696,11 +708,9 @@ export default () => [
     const { model, fields, projectPath } = options;
 
     if (!model) {
-      throw new BalmSharedMCPError(
-        ErrorCodes.INVALID_GENERATOR_CONFIG,
-        'Model name is required',
-        { model }
-      );
+      throw new BalmSharedMCPError(ErrorCodes.INVALID_GENERATOR_CONFIG, 'Model name is required', {
+        model
+      });
     }
 
     // Validate model name format (should be PascalCase)
@@ -745,9 +755,9 @@ export default () => [
    */
   _generateModelTemplate(options) {
     const { model, fields } = options;
-    
+
     const fieldsConfig = fields.map(field => this._generateFieldConfig(field)).join(',\n');
-    
+
     return `/**
  * ${model} Model Configuration
  * Generated by BalmSharedMCP
@@ -763,7 +773,7 @@ ${fieldsConfig}
    */
   _generateFieldConfig(field) {
     const { name, type, component, required = false, validation, attributes, options } = field;
-    
+
     let config = `  {
     label: '${name}',
     component: '${component}',
@@ -786,7 +796,7 @@ ${fieldsConfig}
     }
 
     config += '\n  }';
-    
+
     return config;
   }
 

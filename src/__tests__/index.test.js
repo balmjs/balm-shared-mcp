@@ -42,7 +42,7 @@ describe('Main Application', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Mock process
     mockProcess = {
       argv: ['node', 'index.js'],
@@ -53,7 +53,7 @@ describe('Main Application', () => {
       stdout: { on: vi.fn() },
       stderr: { on: vi.fn() }
     };
-    
+
     // Mock console
     mockConsole = {
       log: vi.fn(),
@@ -148,9 +148,7 @@ describe('Main Application', () => {
 
       await import('../index.js');
 
-      expect(mockConsole.log).toHaveBeenCalledWith(
-        expect.stringContaining('Usage:')
-      );
+      expect(mockConsole.log).toHaveBeenCalledWith(expect.stringContaining('Usage:'));
     });
 
     it('should handle --version argument', async () => {
@@ -158,9 +156,7 @@ describe('Main Application', () => {
 
       await import('../index.js');
 
-      expect(mockConsole.log).toHaveBeenCalledWith(
-        expect.stringContaining('1.0.0')
-      );
+      expect(mockConsole.log).toHaveBeenCalledWith(expect.stringContaining('1.0.0'));
     });
 
     it('should handle --config argument', async () => {
@@ -222,7 +218,9 @@ describe('Main Application', () => {
       await import('../index.js');
 
       // Find the unhandledRejection handler
-      const rejectionCall = mockProcess.on.mock.calls.find(call => call[0] === 'unhandledRejection');
+      const rejectionCall = mockProcess.on.mock.calls.find(
+        call => call[0] === 'unhandledRejection'
+      );
       expect(rejectionCall).toBeDefined();
 
       // Simulate unhandled rejection

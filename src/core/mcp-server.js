@@ -19,7 +19,7 @@ export class MCPServer {
     this.toolRegistry = new ToolRegistry();
     this.requestCount = 0;
     this.startTime = Date.now();
-    
+
     // Initialize server
     this.initialize();
   }
@@ -36,7 +36,7 @@ export class MCPServer {
       });
 
       this.registerTools();
-      
+
       const stats = this.toolRegistry.getStatistics();
       logger.info('MCP Server initialized successfully', {
         toolCount: stats.totalTools,
@@ -216,13 +216,9 @@ export class MCPServer {
    * Register a tool with the server (legacy method for backward compatibility)
    */
   registerTool(name, handler, schema) {
-    this.toolRegistry.register(
-      name,
-      schema.description,
-      schema.inputSchema,
-      handler,
-      { category: 'general' }
-    );
+    this.toolRegistry.register(name, schema.description, schema.inputSchema, handler, {
+      category: 'general'
+    });
     logger.debug(`Registered tool: ${name}`);
   }
 
@@ -278,10 +274,10 @@ export class MCPServer {
       throw new BalmSharedMCPError(
         ErrorCodes.TOOL_EXECUTION_FAILED,
         `Tool execution failed: ${error.message}`,
-        { 
-          toolName: name, 
+        {
+          toolName: name,
           requestId,
-          originalError: error.message 
+          originalError: error.message
         }
       );
     }
@@ -345,7 +341,7 @@ export class MCPServer {
       // Validate required parameters
       const requiredParams = ['module', 'model', 'fields', 'projectPath'];
       const missingParams = requiredParams.filter(param => !args[param]);
-      
+
       if (missingParams.length > 0) {
         throw new BalmSharedMCPError(
           ErrorCodes.VALIDATION_FAILED,
@@ -403,7 +399,6 @@ export class MCPServer {
 
       logger.info('CRUD module generated successfully', result.summary);
       return result;
-
     } catch (error) {
       logger.error('Failed to generate CRUD module', {
         module: args?.module,
@@ -437,7 +432,7 @@ export class MCPServer {
       // Validate required parameters
       const requiredParams = ['name', 'type', 'model', 'projectPath'];
       const missingParams = requiredParams.filter(param => !args[param]);
-      
+
       if (missingParams.length > 0) {
         throw new BalmSharedMCPError(
           ErrorCodes.VALIDATION_FAILED,
@@ -503,7 +498,6 @@ export class MCPServer {
 
       logger.info('Page component generated successfully', result.summary);
       return result;
-
     } catch (error) {
       logger.error('Failed to generate page component', {
         name: args?.name,
@@ -555,11 +549,9 @@ export class MCPServer {
 
       // Validate category if provided
       if (args.category && typeof args.category !== 'string') {
-        throw new BalmSharedMCPError(
-          ErrorCodes.VALIDATION_FAILED,
-          'Category must be a string',
-          { category: args.category }
-        );
+        throw new BalmSharedMCPError(ErrorCodes.VALIDATION_FAILED, 'Category must be a string', {
+          category: args.category
+        });
       }
 
       // Validate category enum if provided
@@ -593,7 +585,6 @@ export class MCPServer {
       });
 
       return result;
-
     } catch (error) {
       logger.error('Failed to query component', {
         name: args?.name,
@@ -636,11 +627,9 @@ export class MCPServer {
 
       // Validate topic format
       if (args.topic.trim() === '') {
-        throw new BalmSharedMCPError(
-          ErrorCodes.VALIDATION_FAILED,
-          'Topic cannot be empty',
-          { topic: args.topic }
-        );
+        throw new BalmSharedMCPError(ErrorCodes.VALIDATION_FAILED, 'Topic cannot be empty', {
+          topic: args.topic
+        });
       }
 
       // Validate topic enum
@@ -672,7 +661,6 @@ export class MCPServer {
       });
 
       return result;
-
     } catch (error) {
       logger.error('Failed to get best practices', {
         topic: args?.topic,

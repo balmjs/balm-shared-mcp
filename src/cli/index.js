@@ -2,7 +2,7 @@
 
 /**
  * BalmSharedMCP CLI Tool
- * 
+ *
  * Command line interface for managing the BalmSharedMCP server
  * Provides configuration wizard, health checks, and service management
  */
@@ -97,25 +97,33 @@ program
   .option('-c, --config <path>', 'Configuration file path')
   .option('-i, --interval <seconds>', 'Monitoring interval', '5')
   .option('-o, --output <format>', 'Output format (console|json|csv)', 'console')
-  .action(async (options) => {
+  .action(async options => {
     const { monitor } = await import('./commands/monitor.js');
     await monitor(options);
   });
 
 // Version command (already handled by commander)
 
-// Error handling
-program.exitOverride();
-
-try {
-  program.parse();
-} catch (error) {
-  if (error.code === 'commander.help') {
-    process.exit(0);
-  } else if (error.code === 'commander.version') {
-    process.exit(0);
+// Main execution
+async function main() {
+  // Check if no command was provided, default to starting the server
+  if (process.argv.length <= 2) {
+    console.log('No command provided, starting MCP server...');
+    try {
+      // Import and run the server directly
+      await import('../index.js');
+      // The server module will start automatically when imported
+    } catch (error) {
+      logger.error('Failed to start server', { error: error.message });
+      process.exit(1);
+    }
   } else {
-    logger.error('CLI error', { error: error.message });
-    process.exit(1);
+    // Parse commands normally
+    program.parse();
   }
 }
+
+main().catch(error => {
+  logger.error('CLI error', { error: error.message });
+  process.exit(1);
+});
