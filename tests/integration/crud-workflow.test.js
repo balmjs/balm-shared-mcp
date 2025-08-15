@@ -198,7 +198,7 @@ describe('CRUD Workflow Integration Tests', () => {
     });
 
     it('should provide best practices for different topics with error handling', async () => {
-      const topics = ['project-structure', 'api-config', 'component', 'routing'];
+      const topics = ['project-structure', 'api-config', 'component-usage', 'routing'];
 
       for (const topic of topics) {
         try {

@@ -179,7 +179,7 @@ async function main() {
     if (!skipTests) {
       console.log('\n2. Running tests...');
       try {
-        execSync('npm run test:run', { cwd: rootDir, stdio: 'inherit' });
+        execSync('npm run test:publish', { cwd: rootDir, stdio: 'inherit' });
         console.log('✅ Tests passed');
       } catch (error) {
         console.log('⚠️  Tests failed, but continuing with publish...');

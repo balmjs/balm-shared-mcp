@@ -9,6 +9,7 @@
     "dev": "node --watch src/index.js",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:publish": "vitest run --config vitest.config.publish.js",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
