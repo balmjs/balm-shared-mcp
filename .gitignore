@@ -97,3 +97,8 @@ temp/
 # Test artifacts
 test-results/
 test-output/
+
+# Others
+FILESYSTEM_HANDLER_ANALYSIS.md
+TEST_SUITE_STABILITY_REPORT.md
+docs/VIDEO_TUTORIAL_SCRIPT.md
