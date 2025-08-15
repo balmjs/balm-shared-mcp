@@ -21,6 +21,8 @@
     "publish:patch": "node scripts/publish.js",
     "publish:minor": "node scripts/version.js bump minor && node scripts/publish.js",
     "publish:major": "node scripts/version.js bump major && node scripts/publish.js",
+    "publish:quick": "node scripts/quick-publish.js",
+    "publish:quick-dry": "node scripts/quick-publish.js --dry-run",
     "version:bump": "node scripts/version.js bump",
     "version:current": "node scripts/version.js current",
     "docker:build": "docker build -t balm-shared-mcp .",
