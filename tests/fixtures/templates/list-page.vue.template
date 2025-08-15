@@ -1,0 +1,81 @@
+<template>
+  <div class="{{kebabCase module}}-list">
+    <ui-list-view
+      :data="{{camelCase module}}List"
+      :columns="columns"
+      :pagination="pagination"
+      @page-change="handlePageChange"
+      @filter-change="handleFilterChange"
+    >
+      <template #actions="{ item }">
+        <ui-button @click="editItem(item)">Edit</ui-button>
+        <ui-button @click="deleteItem(item)" type="danger">Delete</ui-button>
+      </template>
+    </ui-list-view>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import { {{camelCase module}}Api } from '@/apis/{{kebabCase module}}.js';
+
+const {{camelCase module}}List = ref([]);
+const pagination = ref({
+  current: 1,
+  pageSize: 20,
+  total: 0
+});
+
+const columns = [
+  {{#each fields}}
+  { key: '{{name}}', title: '{{title}}', type: '{{type}}' },
+  {{/each}}
+];
+
+const load{{pascalCase module}}List = async () => {
+  try {
+    const response = await {{camelCase module}}Api.list({
+      page: pagination.value.current,
+      pageSize: pagination.value.pageSize
+    });
+    {{camelCase module}}List.value = response.data;
+    pagination.value.total = response.total;
+  } catch (error) {
+    console.error('Failed to load {{module}} list:', error);
+  }
+};
+
+const handlePageChange = (page) => {
+  pagination.value.current = page;
+  load{{pascalCase module}}List();
+};
+
+const handleFilterChange = (filters) => {
+  pagination.value.current = 1;
+  load{{pascalCase module}}List();
+};
+
+const editItem = (item) => {
+  // Navigate to edit page
+  console.log('Edit item:', item);
+};
+
+const deleteItem = async (item) => {
+  try {
+    await {{camelCase module}}Api.delete(item.id);
+    load{{pascalCase module}}List();
+  } catch (error) {
+    console.error('Failed to delete {{module}}:', error);
+  }
+};
+
+onMounted(() => {
+  load{{pascalCase module}}List();
+});
+</script>
+
+<style scoped>
+.{{kebabCase module}}-list {
+  padding: 20px;
+}
+</style>

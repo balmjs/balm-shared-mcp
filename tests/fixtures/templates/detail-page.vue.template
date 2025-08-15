@@ -1,0 +1,79 @@
+<template>
+  <div class="{{kebabCase module}}-detail">
+    <ui-detail-view
+      :data="{{camelCase module}}Data"
+      :fields="fields"
+      :mode="mode"
+      @save="handleSave"
+      @cancel="handleCancel"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { {{camelCase module}}Api } from '@/apis/{{kebabCase module}}.js';
+
+const route = useRoute();
+const router = useRouter();
+
+const {{camelCase module}}Data = ref({});
+const mode = ref(route.params.id ? 'edit' : 'create');
+
+const fields = [
+  {{#each fields}}
+  {
+    key: '{{name}}',
+    label: '{{label}}',
+    type: '{{type}}',
+    component: '{{component}}',
+    required: {{required}},
+    {{#if options}}
+    options: {{{stringify options}}},
+    {{/if}}
+    {{#if validation}}
+    validation: {{{stringify validation}}}
+    {{/if}}
+  },
+  {{/each}}
+];
+
+const load{{pascalCase module}}Data = async () => {
+  if (route.params.id) {
+    try {
+      const response = await {{camelCase module}}Api.read(route.params.id);
+      {{camelCase module}}Data.value = response.data;
+    } catch (error) {
+      console.error('Failed to load {{module}} data:', error);
+    }
+  }
+};
+
+const handleSave = async (data) => {
+  try {
+    if (mode.value === 'create') {
+      await {{camelCase module}}Api.create(data);
+    } else {
+      await {{camelCase module}}Api.update(route.params.id, data);
+    }
+    router.push('/{{kebabCase module}}');
+  } catch (error) {
+    console.error('Failed to save {{module}}:', error);
+  }
+};
+
+const handleCancel = () => {
+  router.push('/{{kebabCase module}}');
+};
+
+onMounted(() => {
+  load{{pascalCase module}}Data();
+});
+</script>
+
+<style scoped>
+.{{kebabCase module}}-detail {
+  padding: 20px;
+}
+</style>

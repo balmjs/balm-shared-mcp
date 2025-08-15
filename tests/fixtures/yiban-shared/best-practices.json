@@ -1,0 +1,86 @@
+{
+  "project-structure": {
+    "topic": "project-structure",
+    "practices": [
+      {
+        "title": "Organize by feature",
+        "description": "Group related files by feature rather than by file type",
+        "example": "src/features/user/components/, src/features/user/services/"
+      },
+      {
+        "title": "Use consistent naming",
+        "description": "Follow consistent naming conventions for files and directories",
+        "example": "PascalCase for components, kebab-case for directories"
+      }
+    ],
+    "examples": [
+      {
+        "title": "Feature-based structure",
+        "code": "src/\n  features/\n    user/\n      components/\n      services/\n      types/"
+      }
+    ]
+  },
+  "api-config": {
+    "topic": "api-config",
+    "practices": [
+      {
+        "title": "Use RESTful conventions",
+        "description": "Follow REST conventions for API endpoints",
+        "example": "GET /api/users, POST /api/users, PUT /api/users/:id"
+      },
+      {
+        "title": "Handle errors consistently",
+        "description": "Use consistent error response format",
+        "example": "{ error: { code: 'VALIDATION_ERROR', message: 'Invalid input' } }"
+      }
+    ],
+    "examples": [
+      {
+        "title": "API configuration",
+        "code": "export const userApi = {\n  list: 'GET /api/users',\n  create: 'POST /api/users',\n  update: 'PUT /api/users/:id'\n};"
+      }
+    ]
+  },
+  "component-usage": {
+    "topic": "component-usage",
+    "practices": [
+      {
+        "title": "Use composition over inheritance",
+        "description": "Prefer composition patterns for reusable components",
+        "example": "Use slots and props instead of extending components"
+      },
+      {
+        "title": "Keep components focused",
+        "description": "Each component should have a single responsibility",
+        "example": "Separate data fetching from presentation logic"
+      }
+    ],
+    "examples": [
+      {
+        "title": "Component composition",
+        "code": "<template>\n  <ui-list-view :data=\"users\" :columns=\"columns\">\n    <template #actions=\"{ item }\">\n      <ui-button @click=\"edit(item)\">Edit</ui-button>\n    </template>\n  </ui-list-view>\n</template>"
+      }
+    ]
+  },
+  "routing": {
+    "topic": "routing",
+    "practices": [
+      {
+        "title": "Use nested routes",
+        "description": "Organize routes hierarchically to match UI structure",
+        "example": "/users/:id/profile, /users/:id/settings"
+      },
+      {
+        "title": "Implement route guards",
+        "description": "Use route guards for authentication and authorization",
+        "example": "beforeEnter: requireAuth"
+      }
+    ],
+    "examples": [
+      {
+        "title": "Route configuration",
+        "code": "{\n  path: '/users',\n  component: UserLayout,\n  children: [\n    { path: '', component: UserList },\n    { path: ':id', component: UserDetail }\n  ]\n}"
+      }
+    ]
+  }
+}

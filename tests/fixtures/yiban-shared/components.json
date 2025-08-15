@@ -1,0 +1,78 @@
+{
+  "common": {
+    "ui-textfield": {
+      "name": "ui-textfield",
+      "category": "common",
+      "description": "Basic text input field",
+      "props": {
+        "value": "string",
+        "placeholder": "string",
+        "required": "boolean",
+        "disabled": "boolean"
+      },
+      "usage": [
+        "<ui-textfield v-model=\"value\" placeholder=\"Enter text\" />",
+        "<ui-textfield v-model=\"name\" required />"
+      ]
+    },
+    "ui-switch": {
+      "name": "ui-switch",
+      "category": "common", 
+      "description": "Toggle switch component",
+      "props": {
+        "value": "boolean",
+        "disabled": "boolean"
+      },
+      "usage": [
+        "<ui-switch v-model=\"active\" />",
+        "<ui-switch v-model=\"enabled\" disabled />"
+      ]
+    },
+    "ui-select": {
+      "name": "ui-select",
+      "category": "common",
+      "description": "Select dropdown component",
+      "props": {
+        "value": "any",
+        "options": "array",
+        "placeholder": "string",
+        "required": "boolean"
+      },
+      "usage": [
+        "<ui-select v-model=\"category\" :options=\"categories\" />",
+        "<ui-select v-model=\"status\" :options=\"statusOptions\" placeholder=\"Select status\" />"
+      ]
+    }
+  },
+  "pro-views": {
+    "ui-list-view": {
+      "name": "ui-list-view",
+      "category": "pro-views",
+      "description": "Advanced list view component with pagination and filtering",
+      "props": {
+        "data": "array",
+        "columns": "array",
+        "pagination": "object",
+        "filters": "object"
+      },
+      "usage": [
+        "<ui-list-view :data=\"items\" :columns=\"columns\" />",
+        "<ui-list-view :data=\"users\" :columns=\"userColumns\" :pagination=\"pagination\" />"
+      ]
+    },
+    "ui-detail-view": {
+      "name": "ui-detail-view", 
+      "category": "pro-views",
+      "description": "Detail view component for displaying and editing records",
+      "props": {
+        "data": "object",
+        "fields": "array",
+        "mode": "string"
+      },
+      "usage": [
+        "<ui-detail-view :data=\"item\" :fields=\"fields\" />",
+        "<ui-detail-view :data=\"user\" :fields=\"userFields\" mode=\"edit\" />"
+      ]
+    }
+  }
+}

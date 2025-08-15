@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  balm-shared-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: balm-shared-mcp
+    restart: unless-stopped
+    
+    # Environment variables
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - MCP_MODE=stdio
+    
+    # Volumes for persistent data
+    volumes:
+      - ./config:/app/config:ro
+      - ./logs:/app/logs
+      - balm-shared-data:/app/data
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "src/cli/index.js", "health", "--timeout", "10"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: HTTP mode service
+  balm-shared-mcp-http:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: balm-shared-mcp-http
+    restart: unless-stopped
+    profiles:
+      - http
+    
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - MCP_MODE=http
+      - MCP_PORT=3000
+      - MCP_HOST=0.0.0.0
+    
+    ports:
+      - "3000:3000"
+    
+    volumes:
+      - ./config:/app/config:ro
+      - ./logs:/app/logs
+      - balm-shared-data:/app/data
+    
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  balm-shared-data:
+    driver: local
