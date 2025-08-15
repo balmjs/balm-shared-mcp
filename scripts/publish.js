@@ -178,8 +178,18 @@ async function main() {
     // Run tests
     if (!skipTests) {
       console.log('\n2. Running tests...');
-      execSync('npm run test:run', { cwd: rootDir, stdio: 'inherit' });
-      console.log('✅ Tests passed');
+      try {
+        execSync('npm run test:run', { cwd: rootDir, stdio: 'inherit' });
+        console.log('✅ Tests passed');
+      } catch (error) {
+        console.log('⚠️  Tests failed, but continuing with publish...');
+        console.log('   Use --skip-tests to skip tests entirely');
+        const continueAnyway = await askQuestion('Continue publishing despite test failures? (y/N): ');
+        if (!continueAnyway.toLowerCase().startsWith('y')) {
+          console.log('Publishing cancelled due to test failures');
+          process.exit(1);
+        }
+      }
     } else {
       console.log('\n2. Skipping tests...');
     }
