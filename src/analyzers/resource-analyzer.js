@@ -424,7 +424,7 @@ export class ResourceAnalyzer {
       try {
         const packageContent = await fs.readFile(packageJsonPath, 'utf-8');
         packageInfo = JSON.parse(packageContent);
-      } catch (_error) {
+      } catch {
         logger.warn(`No package.json found for example ${projectName}`);
       }
 
@@ -478,7 +478,7 @@ export class ResourceAnalyzer {
       }
 
       return structure;
-    } catch (_error) {
+    } catch {
       return [];
     }
   }
@@ -511,7 +511,8 @@ export class ResourceAnalyzer {
             this._parsePropDefinition(currentProp, propDefinition, props);
           }
 
-          currentProp = propStartMatch[1];
+          const [, matchedProp] = propStartMatch;
+          currentProp = matchedProp;
           propDefinition = trimmedLine.substring(propStartMatch[0].length);
         } else if (currentProp) {
           propDefinition += ` ${trimmedLine}`;
@@ -573,7 +574,7 @@ export class ResourceAnalyzer {
     const mixinsMatch = content.match(/mixins:\s*\[([^\]]+)\]/);
 
     if (mixinsMatch) {
-      const mixinsContent = mixinsMatch[1];
+      const [, mixinsContent] = mixinsMatch;
       const mixinMatches = mixinsContent.match(/\w+/g);
 
       if (mixinMatches) {
@@ -1207,7 +1208,7 @@ export class ResourceAnalyzer {
     const suggestions = [];
     const searchTerm = name.toLowerCase();
 
-    for (const [pluginName, pluginInfo] of this.pluginsIndex) {
+    for (const [pluginName] of this.pluginsIndex) {
       if (pluginName === '_documentation') {
         continue;
       }
@@ -1480,7 +1481,7 @@ export class ResourceAnalyzer {
 
     // Remove markdown headers and get the first sentence
     const cleaned = firstNonEmptyLine.replace(/^#+\s*/, '').trim();
-    const firstSentence = cleaned.split('.')[0];
+    const [firstSentence] = cleaned.split('.');
 
     return firstSentence.length > 100 ? `${firstSentence.substring(0, 100)}...` : firstSentence;
   }

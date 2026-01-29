@@ -87,7 +87,7 @@ describe('Main Application', () => {
 
       try {
         await import('../index.js');
-      } catch (error) {
+      } catch {
         // Expected to handle the error
       }
 
@@ -104,7 +104,7 @@ describe('Main Application', () => {
 
       try {
         await import('../index.js');
-      } catch (error) {
+      } catch {
         // Expected to handle the error
       }
 
@@ -121,7 +121,7 @@ describe('Main Application', () => {
       expect(sigintCall).toBeDefined();
 
       // Simulate SIGINT
-      const sigintHandler = sigintCall[1];
+      const [, sigintHandler] = sigintCall;
       await sigintHandler();
 
       expect(mockProcess.exit).toHaveBeenCalledWith(0);
@@ -135,7 +135,7 @@ describe('Main Application', () => {
       expect(sigtermCall).toBeDefined();
 
       // Simulate SIGTERM
-      const sigtermHandler = sigtermCall[1];
+      const [, sigtermHandler] = sigtermCall;
       await sigtermHandler();
 
       expect(mockProcess.exit).toHaveBeenCalledWith(0);
@@ -203,7 +203,7 @@ describe('Main Application', () => {
       expect(uncaughtCall).toBeDefined();
 
       // Simulate uncaught exception
-      const uncaughtHandler = uncaughtCall[1];
+      const [, uncaughtHandler] = uncaughtCall;
       const error = new Error('Uncaught error');
       uncaughtHandler(error);
 
@@ -224,7 +224,7 @@ describe('Main Application', () => {
       expect(rejectionCall).toBeDefined();
 
       // Simulate unhandled rejection
-      const rejectionHandler = rejectionCall[1];
+      const [, rejectionHandler] = rejectionCall;
       const reason = new Error('Unhandled rejection');
       rejectionHandler(reason);
 
@@ -250,7 +250,7 @@ describe('Main Application', () => {
 
       // Simulate shutdown
       const sigintCall = mockProcess.on.mock.calls.find(call => call[0] === 'SIGINT');
-      const sigintHandler = sigintCall[1];
+      const [, sigintHandler] = sigintCall;
       await sigintHandler();
 
       expect(mockServer.stop).toHaveBeenCalled();
@@ -269,7 +269,7 @@ describe('Main Application', () => {
 
       // Simulate shutdown
       const sigintCall = mockProcess.on.mock.calls.find(call => call[0] === 'SIGINT');
-      const sigintHandler = sigintCall[1];
+      const [, sigintHandler] = sigintCall;
       await sigintHandler();
 
       expect(mockConsole.error).toHaveBeenCalledWith(

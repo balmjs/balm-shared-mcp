@@ -177,7 +177,7 @@ export class ToolInterface {
    */
   createZodTypeFromProperty(prop) {
     switch (prop.type) {
-      case 'string':
+      case 'string': {
         let stringType = z.string();
         if (prop.enum) {
           stringType = z.enum(prop.enum);
@@ -192,8 +192,9 @@ export class ToolInterface {
           stringType = stringType.regex(new RegExp(prop.pattern));
         }
         return stringType;
+      }
 
-      case 'number':
+      case 'number': {
         let numberType = z.number();
         if (prop.minimum !== undefined) {
           numberType = numberType.min(prop.minimum);
@@ -202,8 +203,9 @@ export class ToolInterface {
           numberType = numberType.max(prop.maximum);
         }
         return numberType;
+      }
 
-      case 'integer':
+      case 'integer': {
         let intType = z.number().int();
         if (prop.minimum !== undefined) {
           intType = intType.min(prop.minimum);
@@ -212,6 +214,7 @@ export class ToolInterface {
           intType = intType.max(prop.maximum);
         }
         return intType;
+      }
 
       case 'boolean':
         return z.boolean();
@@ -255,7 +258,7 @@ export class ToolInterface {
   /**
    * Format response according to MCP protocol
    */
-  formatResponse(result, requestId) {
+  formatResponse(result, _requestId) {
     if (result === null || result === undefined) {
       return {
         content: [

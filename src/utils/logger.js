@@ -87,7 +87,7 @@ class Logger {
    * Set log level
    */
   setLevel(level) {
-    if (this.levels.hasOwnProperty(level)) {
+    if (Object.hasOwn(this.levels, level)) {
       this.level = level;
     }
   }
@@ -155,7 +155,7 @@ class Logger {
       if (stats.size > this.maxFileSize) {
         await this.rotateLogFile(logPath);
       }
-    } catch (error) {
+    } catch {
       // File doesn't exist yet, no need to rotate
     }
   }
@@ -174,7 +174,7 @@ class Logger {
 
       try {
         await fs.rename(oldFile, newFile);
-      } catch (error) {
+      } catch {
         // File doesn't exist, continue
       }
     }
@@ -407,7 +407,7 @@ class Logger {
             modified: fileStat.mtime,
             lines: await this.countLines(filePath)
           };
-        } catch (error) {
+        } catch {
           stats[file] = { exists: false };
         }
       }
@@ -426,7 +426,7 @@ class Logger {
     try {
       const content = await fs.readFile(filePath, 'utf8');
       return content.split('\n').length - 1;
-    } catch (error) {
+    } catch {
       return 0;
     }
   }

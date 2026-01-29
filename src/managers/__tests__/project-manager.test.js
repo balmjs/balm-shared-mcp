@@ -17,7 +17,8 @@ const mockFileSystemHandler = {
 
 const mockConfig = {
   templatesPath: '/mock/templates',
-  sharedProjectPath: '../yiban-shared'
+  sharedProjectPath: '../my-shared',
+  sharedLibraryName: 'my-shared'
 };
 
 describe('ProjectManager', () => {
@@ -37,7 +38,7 @@ describe('ProjectManager', () => {
 
     beforeEach(() => {
       // Setup default mocks for successful project creation
-      mockFileSystemHandler.exists.mockImplementation((path) => {
+      mockFileSystemHandler.exists.mockImplementation(path => {
         if (path === '/test/path') return false; // Target doesn't exist
         if (path.includes('templates')) return true; // Template exists
         return true;
@@ -69,36 +70,36 @@ describe('ProjectManager', () => {
     it('should throw error for invalid project name', async () => {
       const invalidOptions = { ...validOptions, name: '' };
 
-      await expect(projectManager.createProject(invalidOptions))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(projectManager.createProject(invalidOptions)).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should throw error for invalid project type', async () => {
       const invalidOptions = { ...validOptions, type: 'invalid' };
 
-      await expect(projectManager.createProject(invalidOptions))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(projectManager.createProject(invalidOptions)).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should throw error if target directory exists', async () => {
-      mockFileSystemHandler.exists.mockImplementation((path) => {
+      mockFileSystemHandler.exists.mockImplementation(path => {
         if (path === '/test/path') return true; // Target exists
         return true;
       });
 
-      await expect(projectManager.createProject(validOptions))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(projectManager.createProject(validOptions)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should throw error if template not found', async () => {
-      mockFileSystemHandler.exists.mockImplementation((path) => {
+      mockFileSystemHandler.exists.mockImplementation(path => {
         if (path === '/test/path') return false; // Target doesn't exist
         if (path.includes('templates')) return false; // Template doesn't exist
         return true;
       });
 
-      await expect(projectManager.createProject(validOptions))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(projectManager.createProject(validOptions)).rejects.toThrow(BalmSharedMCPError);
     });
   });
 
@@ -107,14 +108,14 @@ describe('ProjectManager', () => {
 
     beforeEach(() => {
       // Setup default mocks for successful project analysis
-      mockFileSystemHandler.exists.mockImplementation((path) => {
+      mockFileSystemHandler.exists.mockImplementation(path => {
         if (path === projectPath) return true; // Project exists
         if (path.includes('package.json')) return true;
         if (path.includes('src')) return true;
         return false;
       });
-      
-      mockFileSystemHandler.readFile.mockImplementation((path) => {
+
+      mockFileSystemHandler.readFile.mockImplementation(path => {
         if (path.includes('package.json')) {
           return JSON.stringify({
             name: 'test-project',
@@ -138,11 +139,11 @@ describe('ProjectManager', () => {
     });
 
     it('should detect backend project type', async () => {
-      mockFileSystemHandler.readFile.mockImplementation((path) => {
+      mockFileSystemHandler.readFile.mockImplementation(path => {
         if (path.includes('package.json')) {
           return JSON.stringify({
             name: 'test-project',
-            dependencies: { 
+            dependencies: {
               vue: '^2.7.0',
               'balm-ui-pro': '^1.0.0'
             }
@@ -156,22 +157,22 @@ describe('ProjectManager', () => {
     });
 
     it('should detect yiban-shared integration', async () => {
-      mockFileSystemHandler.exists.mockImplementation((path) => {
+      mockFileSystemHandler.exists.mockImplementation(path => {
         if (path === projectPath) return true;
         if (path.includes('package.json')) return true;
         if (path.includes('balm.alias.js')) return true;
         return false;
       });
 
-      mockFileSystemHandler.readFile.mockImplementation((path) => {
+      mockFileSystemHandler.readFile.mockImplementation(path => {
         if (path.includes('package.json')) {
           return JSON.stringify({
             name: 'test-project',
-            dependencies: { 'yiban-shared': '^1.0.0' }
+            dependencies: { 'my-shared': '^1.0.0' }
           });
         }
         if (path.includes('balm.alias.js')) {
-          return "module.exports = { 'yiban-shared': '../yiban-shared' };";
+          return "module.exports = { 'my-shared': '../my-shared' };";
         }
         return JSON.stringify({ mockFile: true });
       });
@@ -183,28 +184,27 @@ describe('ProjectManager', () => {
     });
 
     it('should generate recommendations for missing features', async () => {
-      mockFileSystemHandler.exists.mockImplementation((path) => {
+      mockFileSystemHandler.exists.mockImplementation(path => {
         if (path === projectPath) return true;
         if (path.includes('package.json')) return true;
         return false; // Everything else missing
       });
 
       const result = await projectManager.analyzeProject(projectPath);
-      
+
       expect(result.recommendations.length).toBeGreaterThan(0);
-      expect(result.recommendations.some(r => r.message.includes('yiban-shared'))).toBe(true);
+      expect(result.recommendations.some(r => r.message.includes('my-shared'))).toBe(true);
       expect(result.recommendations.some(r => r.message.includes('testing'))).toBe(true);
     });
 
     it('should throw error for non-existent project', async () => {
       mockFileSystemHandler.exists.mockReturnValue(false);
 
-      await expect(projectManager.analyzeProject(projectPath))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(projectManager.analyzeProject(projectPath)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should handle invalid package.json gracefully', async () => {
-      mockFileSystemHandler.readFile.mockImplementation((path) => {
+      mockFileSystemHandler.readFile.mockImplementation(path => {
         if (path.includes('package.json')) {
           return 'invalid json';
         }
@@ -233,8 +233,7 @@ describe('ProjectManager', () => {
         path: '/test/path'
       };
 
-      expect(() => projectManager.validateProjectOptions(options))
-        .toThrow(BalmSharedMCPError);
+      expect(() => projectManager.validateProjectOptions(options)).toThrow(BalmSharedMCPError);
     });
 
     it('should throw error for invalid type', () => {
@@ -244,8 +243,7 @@ describe('ProjectManager', () => {
         path: '/test/path'
       };
 
-      expect(() => projectManager.validateProjectOptions(options))
-        .toThrow(BalmSharedMCPError);
+      expect(() => projectManager.validateProjectOptions(options)).toThrow(BalmSharedMCPError);
     });
   });
 
@@ -263,7 +261,7 @@ describe('ProjectManager', () => {
   describe('getProjectFeatures', () => {
     it('should return frontend features', () => {
       const features = projectManager.getProjectFeatures('frontend');
-      
+
       expect(features).toContain('Vue.js 2.7');
       expect(features).toContain('Vue Router');
       expect(features).toContain('shared-project integration');
@@ -271,7 +269,7 @@ describe('ProjectManager', () => {
 
     it('should return backend features', () => {
       const features = projectManager.getProjectFeatures('backend');
-      
+
       expect(features).toContain('Vue.js 2.7');
       expect(features).toContain('Authentication system');
       expect(features).toContain('CRUD functionality');

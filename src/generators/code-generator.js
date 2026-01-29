@@ -1253,7 +1253,7 @@ ${exports}
     try {
       const content = await this.fileSystemHandler.readFile(indexPath);
       const kebabName = this.templateHelpers.get('kebabCase')(moduleName);
-      const pascalName = this.templateHelpers.get('pascalCase')(moduleName);
+      const _pascalName = this.templateHelpers.get('pascalCase')(moduleName);
 
       // Check if module is already imported
       if (content.includes(`from './${kebabName}'`)) {
@@ -1633,7 +1633,7 @@ ${exports}
       projectPath,
       operations = ['create', 'read', 'update', 'delete'],
       customActions = {},
-      category = 'content',
+      category: _category = 'content',
       responseHandler,
       errorHandler,
       ...otherOptions

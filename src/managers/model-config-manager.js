@@ -353,7 +353,7 @@ export class ModelConfigManager {
           label,
           type,
           defaultValue = '',
-          required = false,
+          required: _required = false,
           ...fieldOptions
         } = field;
 
@@ -418,7 +418,7 @@ export class ModelConfigManager {
           cancelText,
           validationRules
         });
-        filePath = result.filePath;
+        ({ filePath } = result);
       }
 
       return {
@@ -475,6 +475,7 @@ export class ModelConfigManager {
         submitText: config.submitText,
         cancelText: config.cancelText
       };
+      void context; // Mark as intentionally unused, prepared for future template engine
 
       // Generate file content using template
       const template = `/**
@@ -772,7 +773,15 @@ ${fieldsConfig}
    * Generate field configuration
    */
   _generateFieldConfig(field) {
-    const { name, type, component, required = false, validation, attributes, options } = field;
+    const {
+      name,
+      type: _type,
+      component,
+      required = false,
+      validation,
+      attributes,
+      options
+    } = field;
 
     let config = `  {
     label: '${name}',

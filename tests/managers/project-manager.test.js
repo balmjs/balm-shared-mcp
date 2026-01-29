@@ -30,7 +30,7 @@ describe('ProjectManager', () => {
   describe('getAvailableTemplates', () => {
     it('should return available templates', () => {
       const templates = projectManager.getAvailableTemplates();
-      
+
       expect(templates).toHaveProperty('frontend-project');
       expect(templates).toHaveProperty('backend-project');
       expect(templates['frontend-project'].type).toBe('frontend');
@@ -47,7 +47,7 @@ describe('ProjectManager', () => {
       };
 
       mockFileSystemHandler.exists.mockReturnValue(false);
-      
+
       expect(() => projectManager.validateProjectOptions(options)).not.toThrow();
     });
 
@@ -57,8 +57,7 @@ describe('ProjectManager', () => {
         path: '/test/path'
       };
 
-      expect(() => projectManager.validateProjectOptions(options))
-        .toThrow(BalmSharedMCPError);
+      expect(() => projectManager.validateProjectOptions(options)).toThrow(BalmSharedMCPError);
     });
 
     it('should throw error for invalid type', () => {
@@ -68,8 +67,7 @@ describe('ProjectManager', () => {
         path: '/test/path'
       };
 
-      expect(() => projectManager.validateProjectOptions(options))
-        .toThrow(BalmSharedMCPError);
+      expect(() => projectManager.validateProjectOptions(options)).toThrow(BalmSharedMCPError);
     });
 
     it('should throw error if target directory exists', () => {
@@ -81,29 +79,26 @@ describe('ProjectManager', () => {
 
       mockFileSystemHandler.exists.mockReturnValue(true);
 
-      expect(() => projectManager.validateProjectOptions(options))
-        .toThrow(BalmSharedMCPError);
+      expect(() => projectManager.validateProjectOptions(options)).toThrow(BalmSharedMCPError);
     });
   });
 
   describe('getTemplatePath', () => {
     it('should return template path for valid type', () => {
       mockFileSystemHandler.exists.mockReturnValue(true);
-      
+
       const templatePath = projectManager.getTemplatePath('frontend');
       expect(templatePath).toContain('frontend-project');
     });
 
     it('should throw error for invalid type', () => {
-      expect(() => projectManager.getTemplatePath('invalid'))
-        .toThrow(BalmSharedMCPError);
+      expect(() => projectManager.getTemplatePath('invalid')).toThrow(BalmSharedMCPError);
     });
 
     it('should throw error if template directory does not exist', () => {
       mockFileSystemHandler.exists.mockReturnValue(false);
-      
-      expect(() => projectManager.getTemplatePath('frontend'))
-        .toThrow(BalmSharedMCPError);
+
+      expect(() => projectManager.getTemplatePath('frontend')).toThrow(BalmSharedMCPError);
     });
   });
 
@@ -115,11 +110,11 @@ describe('ProjectManager', () => {
       };
 
       const variables = projectManager.prepareTemplateVariables(options);
-      
+
       expect(variables.projectName).toBe('test-project');
       expect(variables.projectType).toBe('frontend');
       expect(variables.apiEndpoint).toBe('/api');
-      expect(variables.sharedProjectPath).toBe('../yiban-shared');
+      expect(variables.sharedProjectPath).toBe('../my-shared');
       expect(variables.projectAuthor).toBe('Developer');
     });
 
@@ -134,7 +129,7 @@ describe('ProjectManager', () => {
       };
 
       const variables = projectManager.prepareTemplateVariables(options);
-      
+
       expect(variables.apiEndpoint).toBe('/custom-api');
       expect(variables.sharedProjectPath).toBe('../../shared');
       expect(variables.projectAuthor).toBe('John Doe');
@@ -152,8 +147,8 @@ describe('ProjectManager', () => {
 
       mockFileSystemHandler.exists
         .mockReturnValueOnce(false) // Target directory doesn't exist
-        .mockReturnValueOnce(true)  // Template directory exists
-        .mockReturnValueOnce(true)  // env.js exists
+        .mockReturnValueOnce(true) // Template directory exists
+        .mockReturnValueOnce(true) // env.js exists
         .mockReturnValueOnce(true); // balm.alias.js exists
 
       mockFileSystemHandler.copyDirectory.mockResolvedValue();
@@ -181,15 +176,14 @@ describe('ProjectManager', () => {
 
       mockFileSystemHandler.exists.mockReturnValue(true); // Target exists
 
-      await expect(projectManager.createProject(options))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(projectManager.createProject(options)).rejects.toThrow(BalmSharedMCPError);
     });
   });
 
   describe('getProjectFeatures', () => {
     it('should return frontend features', () => {
       const features = projectManager.getProjectFeatures('frontend');
-      
+
       expect(features).toContain('Vue.js 2.7');
       expect(features).toContain('Basic routing structure');
       expect(features).not.toContain('Authentication system');
@@ -197,7 +191,7 @@ describe('ProjectManager', () => {
 
     it('should return backend features', () => {
       const features = projectManager.getProjectFeatures('backend');
-      
+
       expect(features).toContain('Vue.js 2.7');
       expect(features).toContain('Authentication system');
       expect(features).toContain('CRUD functionality');
@@ -207,7 +201,7 @@ describe('ProjectManager', () => {
   describe('getNextSteps', () => {
     it('should return next steps for project setup', () => {
       const steps = projectManager.getNextSteps('/test/project');
-      
+
       expect(steps).toContain('cd /test/project');
       expect(steps).toContain('npm install');
       expect(steps).toContain('npm run dev');
@@ -317,7 +311,7 @@ describe('ProjectManager', () => {
       const options = {
         apiEndpoint: '/api/v1',
         proxyTarget: 'http://api.example.com',
-        dependencies: { 'lodash': '^4.17.21' },
+        dependencies: { lodash: '^4.17.21' },
         customAliases: { '@components': './components' }
       };
 

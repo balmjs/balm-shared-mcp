@@ -186,7 +186,7 @@ class ConfigurationManager extends EventEmitter {
       return; // Already watching this file
     }
 
-    const watcher = watchFile(configPath, { interval: 1000 }, async () => {
+    watchFile(configPath, { interval: 1000 }, async () => {
       try {
         logger.info(`Configuration file changed: ${configPath}`);
         await this.reloadConfig();

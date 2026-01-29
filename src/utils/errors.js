@@ -508,7 +508,7 @@ export class ErrorRecoveryManager {
     });
 
     // Default template recovery
-    this.recoveryHandlers.set('use_default_template', async error => {
+    this.recoveryHandlers.set('use_default_template', async _error => {
       return {
         success: true,
         message: 'Using default template instead',

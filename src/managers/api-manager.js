@@ -18,7 +18,13 @@ export class ApiManager {
    * Generate API configuration
    */
   async generateApiConfig(options) {
-    const { model, endpoint, operations, projectPath, customActions } = options;
+    const {
+      model,
+      endpoint: _endpoint,
+      operations: _operations,
+      projectPath,
+      customActions
+    } = options;
 
     this.validateApiOptions(options);
 
@@ -93,7 +99,7 @@ export class ApiManager {
    * Generate mock data
    */
   async generateMockData(options) {
-    const { model, fields, projectPath } = options;
+    const { model, fields: _fields, projectPath } = options;
 
     try {
       const mockDir = path.join(projectPath, 'mock-server/modules');
@@ -281,14 +287,14 @@ export class ApiManager {
       // Extract exports
       const exportMatch = content.match(/export\s+default\s+\{([^}]+)\}/);
       if (exportMatch) {
-        const exportContent = exportMatch[1];
+        const [, exportContent] = exportMatch;
         const exportNames = exportContent
           .split(',')
           .map(name => name.trim())
           .filter(name => name);
         exports.push(...exportNames);
       }
-    } catch (error) {
+    } catch {
       // If parsing fails, return empty arrays
     }
 
@@ -341,8 +347,8 @@ export class ApiManager {
       title,
       category = 'content',
       generateMock = true,
-      responseHandler,
-      errorHandler,
+      responseHandler: _responseHandler,
+      errorHandler: _errorHandler,
       ...otherOptions
     } = options;
 
@@ -486,6 +492,7 @@ export class ApiManager {
    */
   async updateApiConfig(options) {
     const { name, projectPath, category = 'content', updates = {}, ...otherOptions } = options;
+    void otherOptions; // Mark as intentionally unused
 
     logger.info(`Updating API configuration: ${name}`);
 

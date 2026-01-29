@@ -84,7 +84,7 @@ export class ProjectStructureAnalyzer {
             analysis.packageInfo
           );
           analysis.hasBalmShared = integration.hasDependency || integration.hasAlias;
-        } catch (error) {
+        } catch {
           analysis.issues.push('Invalid package.json format');
         }
       }
@@ -201,7 +201,7 @@ export class ProjectStructureAnalyzer {
             file: 'package.json'
           });
         }
-      } catch (error) {
+      } catch {
         validation.issues.push({
           type: 'error',
           category: 'package',
@@ -243,7 +243,7 @@ export class ProjectStructureAnalyzer {
         if (this.hasBalmSharedReferences(packageJson)) {
           check.isIntegrated = true;
         }
-      } catch (error) {
+      } catch {
         check.issues.push({
           type: 'error',
           category: 'package',
@@ -262,7 +262,7 @@ export class ProjectStructureAnalyzer {
         if (this.hasBalmSharedConfig(balmConfigContent)) {
           check.isIntegrated = true;
         }
-      } catch (error) {
+      } catch {
         check.issues.push({
           type: 'error',
           category: 'config',
@@ -410,7 +410,7 @@ export class ProjectStructureAnalyzer {
       }
 
       return structure;
-    } catch (error) {
+    } catch {
       return {
         hasPackageJson: false,
         hasSrc: false,
@@ -476,7 +476,7 @@ export class ProjectStructureAnalyzer {
       try {
         const aliasContent = await this.fileHandler.readFile(aliasPath);
         integration.hasAlias = aliasContent.includes(this.sharedLibraryName);
-      } catch (error) {
+      } catch {
         // Ignore read errors
       }
     }

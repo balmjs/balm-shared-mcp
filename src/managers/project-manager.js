@@ -298,7 +298,10 @@ export class ProjectManager {
    */
   async configureSharedProjectAlias(projectPath, options) {
     try {
-      const { sharedProjectPath = `../${this.sharedLibraryName}`, customAliases = {} } = options;
+      const {
+        sharedProjectPath: _sharedProjectPath = `../${this.sharedLibraryName}`,
+        customAliases = {}
+      } = options;
 
       // Update balm.alias.js
       const aliasPath = path.join(projectPath, 'config', 'balm.alias.js');
@@ -516,7 +519,7 @@ export class ProjectManager {
           analysis.structure.hasPackageJson = true;
           analysis.structure.projectName = packageData.name;
           analysis.structure.version = packageData.version;
-        } catch (error) {
+        } catch {
           analysis.issues.push('Invalid package.json format');
         }
       } else {
@@ -670,7 +673,7 @@ export class ProjectManager {
           aliasContent.includes(this.sharedLibraryName) ||
           aliasContent.includes('shared-project') ||
           aliasContent.includes(`../${this.sharedLibraryName}`);
-      } catch (error) {
+      } catch {
         analysis.issues.push('Unable to read balm.alias.js configuration');
       }
     }
@@ -690,7 +693,7 @@ export class ProjectManager {
               hasSharedProjectImports = true;
               break;
             }
-          } catch (error) {
+          } catch {
             // Continue checking other files
           }
         }
@@ -724,7 +727,7 @@ export class ProjectManager {
           hasAlias: balmrcContent.includes('alias'),
           hasIncludeJsResource: balmrcContent.includes('includeJsResource')
         };
-      } catch (error) {
+      } catch {
         analysis.issues.push('Unable to read balmrc.js configuration');
       }
     }
