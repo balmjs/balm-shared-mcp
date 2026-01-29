@@ -13,7 +13,9 @@ describe('ProjectStructureAnalyzer', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    analyzer = new ProjectStructureAnalyzer(mockFileSystemHandler);
+    analyzer = new ProjectStructureAnalyzer(mockFileSystemHandler, {
+      sharedLibraryName: 'yiban-shared'
+    });
   });
 
   describe('analyzeProject', () => {
@@ -21,14 +23,14 @@ describe('ProjectStructureAnalyzer', () => {
 
     beforeEach(() => {
       // Default successful setup
-      mockFileSystemHandler.exists.mockImplementation((path) => {
+      mockFileSystemHandler.exists.mockImplementation(path => {
         if (path === projectPath) return true;
         if (path.includes('package.json')) return true;
         if (path.includes('src')) return true;
         return false;
       });
 
-      mockFileSystemHandler.readFile.mockImplementation((path) => {
+      mockFileSystemHandler.readFile.mockImplementation(path => {
         if (path.includes('package.json')) {
           return JSON.stringify({
             name: 'test-project',
@@ -39,11 +41,9 @@ describe('ProjectStructureAnalyzer', () => {
         return '';
       });
 
-      mockFileSystemHandler.readDirectory.mockResolvedValue([
-        'src', 'package.json', 'README.md'
-      ]);
+      mockFileSystemHandler.readDirectory.mockResolvedValue(['src', 'package.json', 'README.md']);
 
-      mockFileSystemHandler.isDirectory.mockImplementation((path) => {
+      mockFileSystemHandler.isDirectory.mockImplementation(path => {
         return path === projectPath || path.includes('src');
       });
     });
@@ -58,11 +58,11 @@ describe('ProjectStructureAnalyzer', () => {
     });
 
     it('should detect project type from dependencies', async () => {
-      mockFileSystemHandler.readFile.mockImplementation((path) => {
+      mockFileSystemHandler.readFile.mockImplementation(path => {
         if (path.includes('package.json')) {
           return JSON.stringify({
             name: 'test-project',
-            dependencies: { 
+            dependencies: {
               vue: '^2.7.0',
               'balm-ui-pro': '^1.0.0'
             }
@@ -76,14 +76,14 @@ describe('ProjectStructureAnalyzer', () => {
     });
 
     it('should detect yiban-shared integration', async () => {
-      mockFileSystemHandler.exists.mockImplementation((path) => {
+      mockFileSystemHandler.exists.mockImplementation(path => {
         if (path === projectPath) return true;
         if (path.includes('package.json')) return true;
         if (path.includes('balm.alias.js')) return true;
         return false;
       });
 
-      mockFileSystemHandler.readFile.mockImplementation((path) => {
+      mockFileSystemHandler.readFile.mockImplementation(path => {
         if (path.includes('package.json')) {
           return JSON.stringify({
             name: 'test-project',
@@ -103,12 +103,11 @@ describe('ProjectStructureAnalyzer', () => {
     it('should throw error for non-existent project', async () => {
       mockFileSystemHandler.exists.mockReturnValue(false);
 
-      await expect(analyzer.analyzeProject(projectPath))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(analyzer.analyzeProject(projectPath)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should handle invalid package.json gracefully', async () => {
-      mockFileSystemHandler.readFile.mockImplementation((path) => {
+      mockFileSystemHandler.readFile.mockImplementation(path => {
         if (path.includes('package.json')) {
           return 'invalid json';
         }
@@ -123,7 +122,11 @@ describe('ProjectStructureAnalyzer', () => {
   describe('_analyzeDirectoryStructure', () => {
     it('should analyze directory structure correctly', async () => {
       mockFileSystemHandler.readDirectory.mockResolvedValue([
-        'src', 'pages', 'components', 'utils', 'apis'
+        'src',
+        'pages',
+        'components',
+        'utils',
+        'apis'
       ]);
       mockFileSystemHandler.isDirectory.mockReturnValue(true);
 
@@ -158,7 +161,7 @@ describe('ProjectStructureAnalyzer', () => {
 
     it('should detect backend project', () => {
       const packageJson = {
-        dependencies: { 
+        dependencies: {
           vue: '^2.7.0',
           'balm-ui-pro': '^1.0.0'
         }
@@ -195,7 +198,7 @@ describe('ProjectStructureAnalyzer', () => {
     it('should detect balm.alias.js configuration', async () => {
       const packageJson = { dependencies: {} };
 
-      mockFileSystemHandler.exists.mockImplementation((path) => {
+      mockFileSystemHandler.exists.mockImplementation(path => {
         return path.includes('balm.alias.js');
       });
 
@@ -218,9 +221,7 @@ describe('ProjectStructureAnalyzer', () => {
 
       const recommendations = analyzer._generateRecommendations(analysis);
 
-      expect(recommendations.some(r => 
-        r.message.includes('yiban-shared')
-      )).toBe(true);
+      expect(recommendations.some(r => r.message.includes(analyzer.sharedLibraryName))).toBe(true);
     });
 
     it('should recommend testing setup', () => {
@@ -231,9 +232,7 @@ describe('ProjectStructureAnalyzer', () => {
 
       const recommendations = analyzer._generateRecommendations(analysis);
 
-      expect(recommendations.some(r => 
-        r.message.includes('testing')
-      )).toBe(true);
+      expect(recommendations.some(r => r.message.includes('testing'))).toBe(true);
     });
 
     it('should recommend documentation', () => {
@@ -244,9 +243,7 @@ describe('ProjectStructureAnalyzer', () => {
 
       const recommendations = analyzer._generateRecommendations(analysis);
 
-      expect(recommendations.some(r => 
-        r.message.includes('README')
-      )).toBe(true);
+      expect(recommendations.some(r => r.message.includes('README'))).toBe(true);
     });
   });
 
@@ -293,11 +290,11 @@ describe('ProjectStructureAnalyzer', () => {
 
   describe('_analyzeConfiguration', () => {
     it('should analyze project configuration files', async () => {
-      mockFileSystemHandler.exists.mockImplementation((path) => {
+      mockFileSystemHandler.exists.mockImplementation(path => {
         return path.includes('balm.config.js') || path.includes('vue.config.js');
       });
 
-      mockFileSystemHandler.readFile.mockImplementation((path) => {
+      mockFileSystemHandler.readFile.mockImplementation(path => {
         if (path.includes('balm.config.js')) {
           return 'module.exports = { server: { port: 3000 } };';
         }

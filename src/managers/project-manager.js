@@ -13,6 +13,15 @@ export class ProjectManager {
     this.fileSystemHandler = fileSystemHandler;
     this.config = config;
     this.templatesPath = config.templatesPath || path.join(process.cwd(), 'examples');
+    // Configurable shared library name (allows company customization)
+    this.sharedLibraryName = config.sharedLibraryName || 'my-shared';
+  }
+
+  /**
+   * Get the configured shared library name
+   */
+  getSharedLibraryName() {
+    return this.sharedLibraryName;
   }
 
   /**
@@ -111,7 +120,7 @@ export class ProjectManager {
       projectDescription: description || `A Vue.js ${type} project`,
       projectAuthor: author || 'Developer',
       apiEndpoint: apiEndpoint || '/api',
-      sharedProjectPath: sharedProjectPath || '../yiban-shared',
+      sharedProjectPath: sharedProjectPath || `../${this.sharedLibraryName}`,
       // Add timestamp for unique identifiers
       timestamp: Date.now(),
       // Add current date
@@ -170,7 +179,7 @@ export class ProjectManager {
    */
   async configureSharedProjectIntegration(projectPath, options) {
     try {
-      const { sharedProjectPath = '../yiban-shared' } = options;
+      const { sharedProjectPath = `../${this.sharedLibraryName}` } = options;
 
       // Update env.js to point to correct shared-project path
       const envPath = path.join(projectPath, 'config', 'env.js');
@@ -289,7 +298,7 @@ export class ProjectManager {
    */
   async configureSharedProjectAlias(projectPath, options) {
     try {
-      const { sharedProjectPath = '../yiban-shared', customAliases = {} } = options;
+      const { sharedProjectPath = `../${this.sharedLibraryName}`, customAliases = {} } = options;
 
       // Update balm.alias.js
       const aliasPath = path.join(projectPath, 'config', 'balm.alias.js');
@@ -321,7 +330,7 @@ export class ProjectManager {
         if (!balmrcContent.includes('includeJsResource')) {
           const updatedContent = balmrcContent.replace(
             /alias$/m,
-            "alias,\n    includeJsResource: [globalResolve('yiban-shared/src/scripts')]"
+            `alias,\n    includeJsResource: [globalResolve('${this.sharedLibraryName}/src/scripts')]`
           );
 
           await this.fileSystemHandler.writeFile(balmrcPath, updatedContent);
@@ -647,8 +656,8 @@ export class ProjectManager {
 
     // Check if shared-project is in dependencies
     const hasSharedProjectDep =
-      (dependencies.dependencies && 'yiban-shared' in dependencies.dependencies) ||
-      (dependencies.devDependencies && 'yiban-shared' in dependencies.devDependencies);
+      (dependencies.dependencies && this.sharedLibraryName in dependencies.dependencies) ||
+      (dependencies.devDependencies && this.sharedLibraryName in dependencies.devDependencies);
 
     // Check for shared-project alias configuration
     const aliasPath = path.join(projectPath, 'config', 'balm.alias.js');
@@ -658,9 +667,9 @@ export class ProjectManager {
       try {
         const aliasContent = await this.fileSystemHandler.readFile(aliasPath);
         hasSharedProjectAlias =
-          aliasContent.includes('yiban-shared') ||
+          aliasContent.includes(this.sharedLibraryName) ||
           aliasContent.includes('shared-project') ||
-          aliasContent.includes('../yiban-shared');
+          aliasContent.includes(`../${this.sharedLibraryName}`);
       } catch (error) {
         analysis.issues.push('Unable to read balm.alias.js configuration');
       }
@@ -677,7 +686,7 @@ export class ProjectManager {
         if (this.fileSystemHandler.exists(filePath)) {
           try {
             const content = await this.fileSystemHandler.readFile(filePath);
-            if (content.includes('yiban-shared') || content.includes('shared-project')) {
+            if (content.includes(this.sharedLibraryName) || content.includes('shared-project')) {
               hasSharedProjectImports = true;
               break;
             }
@@ -750,8 +759,8 @@ export class ProjectManager {
     if (!analysis.hasSharedProject && analysis.projectType === 'frontend') {
       recommendations.push({
         type: 'suggestion',
-        message: 'Consider integrating yiban-shared for enhanced UI components',
-        action: 'Add yiban-shared dependency and configure aliases'
+        message: `Consider integrating ${this.sharedLibraryName} for enhanced UI components`,
+        action: `Add ${this.sharedLibraryName} dependency and configure aliases`
       });
     }
 

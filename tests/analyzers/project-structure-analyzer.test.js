@@ -23,9 +23,9 @@ describe('ProjectStructureAnalyzer', () => {
       listDirectory: vi.fn(),
       getStats: vi.fn()
     };
-    
+
     vi.mocked(FileSystemHandler).mockImplementation(() => mockFileHandler);
-    analyzer = new ProjectStructureAnalyzer();
+    analyzer = new ProjectStructureAnalyzer(undefined, { sharedLibraryName: 'yiban-shared' });
   });
 
   describe('constructor', () => {
@@ -33,22 +33,29 @@ describe('ProjectStructureAnalyzer', () => {
       expect(analyzer.requiredBalmJSFiles).toContain('balm.config.js');
       expect(analyzer.requiredBalmJSFiles).toContain('package.json');
       expect(analyzer.requiredBalmJSDirectories).toContain('app');
-      expect(analyzer.sharedProjectIndicators).toContain('yiban-shared');
+      expect(analyzer.sharedProjectIndicators).toContain(analyzer.sharedLibraryName);
     });
   });
 
   describe('analyzeProject', () => {
     it('should analyze valid BalmJS project', async () => {
       const projectPath = '/test/project';
-      
+
       mockFileHandler.validatePath.mockReturnValue(projectPath);
       mockFileHandler.exists.mockReturnValue(true);
       mockFileHandler.isDirectory.mockReturnValue(true);
       mockFileHandler.listDirectory.mockResolvedValue([
         { name: 'app', isDirectory: true, isFile: false, path: '/test/project/app' },
-        { name: 'package.json', isDirectory: false, isFile: true, path: '/test/project/package.json' }
+        {
+          name: 'package.json',
+          isDirectory: false,
+          isFile: true,
+          path: '/test/project/package.json'
+        }
       ]);
-      mockFileHandler.readFile.mockResolvedValue('{"name": "test-project", "dependencies": {"balm": "^1.0.0"}}');
+      mockFileHandler.readFile.mockResolvedValue(
+        '{"name": "test-project", "dependencies": {"balm": "^1.0.0"}}'
+      );
       mockFileHandler.getStats.mockResolvedValue({ size: 1024 });
 
       const result = await analyzer.analyzeProject(projectPath);
@@ -61,7 +68,7 @@ describe('ProjectStructureAnalyzer', () => {
 
     it('should throw error for non-existent project', async () => {
       const projectPath = '/nonexistent/project';
-      
+
       mockFileHandler.validatePath.mockReturnValue(projectPath);
       mockFileHandler.exists.mockReturnValue(false);
 
@@ -70,7 +77,7 @@ describe('ProjectStructureAnalyzer', () => {
 
     it('should throw error for non-directory path', async () => {
       const projectPath = '/test/file.txt';
-      
+
       mockFileHandler.validatePath.mockReturnValue(projectPath);
       mockFileHandler.exists.mockReturnValue(true);
       mockFileHandler.isDirectory.mockReturnValue(false);
@@ -82,20 +89,17 @@ describe('ProjectStructureAnalyzer', () => {
   describe('validateBalmJSStructure', () => {
     it('should validate complete BalmJS structure', async () => {
       const projectPath = '/test/project';
-      
+
       // Mock all required files exist
-      mockFileHandler.exists.mockImplementation((filePath) => {
-        return analyzer.requiredBalmJSFiles.some(file => 
-          filePath.endsWith(file)
-        ) || analyzer.requiredBalmJSDirectories.some(dir => 
-          filePath.endsWith(dir)
+      mockFileHandler.exists.mockImplementation(filePath => {
+        return (
+          analyzer.requiredBalmJSFiles.some(file => filePath.endsWith(file)) ||
+          analyzer.requiredBalmJSDirectories.some(dir => filePath.endsWith(dir))
         );
       });
-      
-      mockFileHandler.isDirectory.mockImplementation((filePath) => {
-        return analyzer.requiredBalmJSDirectories.some(dir => 
-          filePath.endsWith(dir)
-        );
+
+      mockFileHandler.isDirectory.mockImplementation(filePath => {
+        return analyzer.requiredBalmJSDirectories.some(dir => filePath.endsWith(dir));
       });
 
       mockFileHandler.readFile.mockResolvedValue('{"dependencies": {"balm": "^1.0.0"}}');
@@ -108,7 +112,7 @@ describe('ProjectStructureAnalyzer', () => {
 
     it('should detect missing BalmJS files', async () => {
       const projectPath = '/test/project';
-      
+
       mockFileHandler.exists.mockReturnValue(false);
       mockFileHandler.isDirectory.mockReturnValue(false);
 
@@ -116,18 +120,18 @@ describe('ProjectStructureAnalyzer', () => {
 
       expect(result.isValid).toBe(false);
       expect(result.issues.length).toBeGreaterThan(0);
-      expect(result.issues.some(issue => issue.message.includes('Missing required BalmJS file'))).toBe(true);
+      expect(
+        result.issues.some(issue => issue.message.includes('Missing required BalmJS file'))
+      ).toBe(true);
     });
   });
 
   describe('checkYibanSharedIntegration', () => {
     it('should detect yiban-shared in package.json', async () => {
       const projectPath = '/test/project';
-      
-      mockFileHandler.exists.mockImplementation((filePath) => 
-        filePath.endsWith('package.json')
-      );
-      
+
+      mockFileHandler.exists.mockImplementation(filePath => filePath.endsWith('package.json'));
+
       mockFileHandler.readFile.mockResolvedValue('{"dependencies": {"yiban-shared": "^1.0.0"}}');
 
       const result = await analyzer.checkYibanSharedIntegration(projectPath);
@@ -137,11 +141,9 @@ describe('ProjectStructureAnalyzer', () => {
 
     it('should detect yiban-shared in balm.config.js', async () => {
       const projectPath = '/test/project';
-      
-      mockFileHandler.exists.mockImplementation((filePath) => 
-        filePath.endsWith('balm.config.js')
-      );
-      
+
+      mockFileHandler.exists.mockImplementation(filePath => filePath.endsWith('balm.config.js'));
+
       mockFileHandler.readFile.mockResolvedValue('includeJsResource: ["yiban-shared"]');
 
       const result = await analyzer.checkYibanSharedIntegration(projectPath);
@@ -149,12 +151,13 @@ describe('ProjectStructureAnalyzer', () => {
       expect(result.isIntegrated).toBe(true);
     });
 
-    it('should detect yiban-shared directory', async () => {
+    it('should detect shared library directory', async () => {
       const projectPath = '/test/project';
-      
-      mockFileHandler.exists.mockImplementation((filePath) => 
-        filePath.endsWith('yiban-shared')
+
+      mockFileHandler.exists.mockImplementation(filePath =>
+        filePath.endsWith(analyzer.sharedLibraryName)
       );
+      mockFileHandler.isDirectory.mockReturnValue(true);
 
       const result = await analyzer.checkYibanSharedIntegration(projectPath);
 
@@ -163,21 +166,23 @@ describe('ProjectStructureAnalyzer', () => {
 
     it('should recommend integration when not found', async () => {
       const projectPath = '/test/project';
-      
+
       mockFileHandler.exists.mockReturnValue(false);
 
       const result = await analyzer.checkYibanSharedIntegration(projectPath);
 
       expect(result.isIntegrated).toBe(false);
-      expect(result.recommendations.some(rec => rec.action === 'setup_shared_project')).toBe(true);
+      expect(
+        result.recommendations.some(rec => rec.includes && rec.includes(analyzer.sharedLibraryName))
+      ).toBe(true);
     });
   });
 
   describe('hasBalmJSDependencies', () => {
     it('should detect balm dependencies', () => {
       const packageJson = {
-        dependencies: { 'balm': '^1.0.0' },
-        devDependencies: { 'gulp': '^4.0.0' }
+        dependencies: { balm: '^1.0.0' },
+        devDependencies: { gulp: '^4.0.0' }
       };
 
       const result = analyzer.hasBalmJSDependencies(packageJson);
@@ -186,8 +191,8 @@ describe('ProjectStructureAnalyzer', () => {
 
     it('should return false for no balm dependencies', () => {
       const packageJson = {
-        dependencies: { 'react': '^17.0.0' },
-        devDependencies: { 'webpack': '^5.0.0' }
+        dependencies: { react: '^17.0.0' },
+        devDependencies: { webpack: '^5.0.0' }
       };
 
       const result = analyzer.hasBalmJSDependencies(packageJson);
@@ -216,7 +221,7 @@ describe('ProjectStructureAnalyzer', () => {
 
     it('should return false for no yiban-shared references', () => {
       const packageJson = {
-        dependencies: { 'react': '^17.0.0' }
+        dependencies: { react: '^17.0.0' }
       };
 
       const result = analyzer.hasYibanSharedReferences(packageJson);

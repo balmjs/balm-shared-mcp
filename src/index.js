@@ -2,7 +2,7 @@
 
 /**
  * BalmSharedMCP - Model Context Protocol Server
- * 
+ *
  * Entry point for the MCP server that provides intelligent interaction
  * capabilities with the shared-project frontend resource library.
  */
@@ -30,7 +30,7 @@ async function main() {
 
     // Initialize core components
     const fileSystemHandler = new FileSystemHandler();
-    const resourceAnalyzer = new ResourceAnalyzer(config.sharedLibraryPath);
+    const resourceAnalyzer = new ResourceAnalyzer(config.sharedLibraryPath, config);
     const projectManager = new ProjectManager(fileSystemHandler, config);
     const codeGenerator = new CodeGenerator(fileSystemHandler, config);
 
@@ -47,12 +47,12 @@ async function main() {
     const server = new Server(
       {
         name: 'balm-shared-mcp',
-        version: '1.0.0',
+        version: '1.0.0'
       },
       {
         capabilities: {
-          tools: {},
-        },
+          tools: {}
+        }
       }
     );
 
@@ -61,7 +61,7 @@ async function main() {
       return mcpServer.listTools();
     });
 
-    server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    server.setRequestHandler(CallToolRequestSchema, async request => {
       return mcpServer.callTool(request.params);
     });
 
@@ -70,7 +70,6 @@ async function main() {
     await server.connect(transport);
 
     logger.info('BalmSharedMCP server started successfully');
-
   } catch (error) {
     logger.error('Failed to start BalmSharedMCP server', { error: error.message });
     process.exit(1);
@@ -89,7 +88,7 @@ process.on('SIGTERM', () => {
 });
 
 // Start the server
-main().catch((error) => {
+main().catch(error => {
   logger.error('Unhandled error in main process', { error: error.message });
   process.exit(1);
 });

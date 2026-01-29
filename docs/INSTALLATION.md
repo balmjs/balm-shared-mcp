@@ -174,7 +174,7 @@ npm run test:run
 
 ```bash
 # 共享库路径
-SHARED_LIBRARY_PATH=./yiban-shared
+SHARED_LIBRARY_PATH=./my-shared
 
 # 模板路径
 TEMPLATES_PATH=./templates

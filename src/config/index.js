@@ -15,6 +15,7 @@ import { BalmSharedMCPError } from '../utils/errors.js';
 // Configuration schema
 const ConfigSchema = z.object({
   sharedLibraryPath: z.string().default('./'),
+  sharedLibraryName: z.string().default('my-shared'),
   templatesPath: z.string().default('./templates'),
   defaultProjectConfig: z
     .object({
@@ -120,6 +121,10 @@ class ConfigurationManager extends EventEmitter {
 
     if (process.env.SHARED_LIBRARY_PATH) {
       envConfig.sharedLibraryPath = process.env.SHARED_LIBRARY_PATH;
+    }
+
+    if (process.env.SHARED_LIBRARY_NAME) {
+      envConfig.sharedLibraryName = process.env.SHARED_LIBRARY_NAME;
     }
 
     if (process.env.TEMPLATES_PATH) {
@@ -340,6 +345,7 @@ class ConfigurationManager extends EventEmitter {
  */
 export const defaultConfig = {
   sharedLibraryPath: './',
+  sharedLibraryName: 'my-shared',
   templatesPath: './templates',
   defaultProjectConfig: {
     apiEndpoint: '/api',

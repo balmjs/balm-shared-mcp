@@ -11,8 +11,10 @@ import { logger } from '../utils/logger.js';
 import { BalmSharedMCPError, ErrorCodes } from '../utils/errors.js';
 
 export class ProjectStructureAnalyzer {
-  constructor(fileSystemHandler) {
+  constructor(fileSystemHandler, config = {}) {
     this.fileHandler = fileSystemHandler || new FileSystemHandler();
+    // Configurable shared library name (allows company customization)
+    this.sharedLibraryName = config.sharedLibraryName || 'my-shared';
     this.requiredBalmJSFiles = [
       'balm.config.js',
       'package.json',
@@ -20,7 +22,19 @@ export class ProjectStructureAnalyzer {
       'app/scripts/main.js'
     ];
     this.requiredBalmJSDirectories = ['app', 'app/scripts', 'app/styles'];
-    this.sharedProjectIndicators = ['yiban-shared', '@yiban/shared', 'includeJsResource'];
+    // Dynamic indicators based on configured library name
+    this.sharedProjectIndicators = [
+      this.sharedLibraryName,
+      `@${this.sharedLibraryName.split('-')[0]}/shared`,
+      'includeJsResource'
+    ];
+  }
+
+  /**
+   * Get the configured shared library name
+   */
+  getSharedLibraryName() {
+    return this.sharedLibraryName;
   }
 
   /**
@@ -259,7 +273,7 @@ export class ProjectStructureAnalyzer {
     }
 
     // Check for shared-library directory or symlink
-    const sharedLibraryPath = path.join(projectPath, 'yiban-shared');
+    const sharedLibraryPath = path.join(projectPath, this.sharedLibraryName);
     if (this.fileHandler.exists(sharedLibraryPath)) {
       check.isIntegrated = true;
     }
@@ -451,7 +465,9 @@ export class ProjectStructureAnalyzer {
         ...packageJson.dependencies,
         ...packageJson.devDependencies
       };
-      integration.hasDependency = Object.keys(allDeps).some(dep => dep.includes('yiban-shared'));
+      integration.hasDependency = Object.keys(allDeps).some(dep =>
+        dep.includes(this.sharedLibraryName)
+      );
     }
 
     // Check balm.alias.js
@@ -459,7 +475,7 @@ export class ProjectStructureAnalyzer {
     if (this.fileHandler.exists(aliasPath)) {
       try {
         const aliasContent = await this.fileHandler.readFile(aliasPath);
-        integration.hasAlias = aliasContent.includes('yiban-shared');
+        integration.hasAlias = aliasContent.includes(this.sharedLibraryName);
       } catch (error) {
         // Ignore read errors
       }
@@ -477,7 +493,7 @@ export class ProjectStructureAnalyzer {
     if (!analysis.hasBalmShared && analysis.projectType === 'frontend') {
       recommendations.push({
         type: 'integration',
-        message: 'Consider adding yiban-shared integration for component reuse'
+        message: `Consider adding ${this.sharedLibraryName} integration for component reuse`
       });
     }
 
@@ -551,7 +567,7 @@ export class ProjectStructureAnalyzer {
     };
 
     // Check for balm-shared
-    deps.hasBalmShared = Object.keys(allDeps).some(dep => dep.includes('yiban-shared'));
+    deps.hasBalmShared = Object.keys(allDeps).some(dep => dep.includes(this.sharedLibraryName));
 
     // Add individual dependency info
     Object.keys(allDeps).forEach(depName => {
@@ -651,19 +667,16 @@ export class ProjectStructureAnalyzer {
         }
       }
 
-      // Check yiban-shared directory
-      const yibanSharedPath = path.join(projectPath, 'yiban-shared');
-      if (
-        this.fileHandler.exists(yibanSharedPath) &&
-        this.fileHandler.isDirectory(yibanSharedPath)
-      ) {
+      // Check shared library directory
+      const sharedLibPath = path.join(projectPath, this.sharedLibraryName);
+      if (this.fileHandler.exists(sharedLibPath) && this.fileHandler.isDirectory(sharedLibPath)) {
         integration.isIntegrated = true;
-        integration.methods.push('yiban-shared directory');
+        integration.methods.push(`${this.sharedLibraryName} directory`);
       }
 
       if (!integration.isIntegrated) {
         integration.recommendations.push(
-          'Consider integrating yiban-shared for better development experience'
+          `Consider integrating ${this.sharedLibraryName} for better development experience`
         );
       }
 

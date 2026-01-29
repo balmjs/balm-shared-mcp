@@ -10,14 +10,23 @@ import { logger } from '../utils/logger.js';
 // import { BalmSharedMCPError, ErrorCodes } from '../utils/errors.js';
 
 export class ResourceAnalyzer {
-  constructor(sharedLibraryPath) {
+  constructor(sharedLibraryPath, config = {}) {
     this.sharedLibraryPath = sharedLibraryPath;
+    // Configurable shared library name (allows company customization)
+    this.sharedLibraryName = config.sharedLibraryName || 'my-shared';
     this.componentsIndex = new Map();
     this.utilsIndex = new Map();
     this.configIndex = new Map();
     this.pluginsIndex = new Map();
     this.examplesIndex = new Map();
     this.isIndexed = false;
+  }
+
+  /**
+   * Get the configured shared library name
+   */
+  getSharedLibraryName() {
+    return this.sharedLibraryName;
   }
 
   /**
@@ -1346,14 +1355,14 @@ export class ResourceAnalyzer {
     // Import example
     examples.push({
       title: 'Import',
-      code: `import ${plugin.name} from '@yiban-shared/plugins/${plugin.name}';`,
+      code: `import ${plugin.name} from '@${this.sharedLibraryName}/plugins/${plugin.name}';`,
       language: 'javascript'
     });
 
     // Vue.use example
     examples.push({
       title: 'Vue Plugin Usage',
-      code: `import Vue from 'vue';\nimport ${plugin.name} from '@yiban-shared/plugins/${plugin.name}';\n\nVue.use(${plugin.name}, {\n  // configuration options\n});`,
+      code: `import Vue from 'vue';\nimport ${plugin.name} from '@${this.sharedLibraryName}/plugins/${plugin.name}';\n\nVue.use(${plugin.name}, {\n  // configuration options\n});`,
       language: 'javascript'
     });
 
@@ -1420,10 +1429,10 @@ export class ResourceAnalyzer {
 
       practices.push({
         type: 'general',
-        practice: 'Import components from @yiban-shared path for consistency',
+        practice: `Import components from @${this.sharedLibraryName} path for consistency`,
         examples: [
           {
-            code: "import YbAvatar from '@yiban-shared/components/yb-avatar';",
+            code: `import YbAvatar from '@${this.sharedLibraryName}/components/yb-avatar';`,
             language: 'javascript'
           }
         ]
@@ -1435,7 +1444,10 @@ export class ResourceAnalyzer {
         type: 'general',
         practice: 'Import utilities from the main utils index for tree-shaking',
         examples: [
-          { code: "import { encrypted } from '@yiban-shared/utils';", language: 'javascript' }
+          {
+            code: `import { encrypted } from '@${this.sharedLibraryName}/utils';`,
+            language: 'javascript'
+          }
         ]
       });
     }

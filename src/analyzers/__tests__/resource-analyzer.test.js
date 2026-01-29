@@ -15,7 +15,7 @@ describe('ResourceAnalyzer', () => {
   const mockSharedLibraryPath = '/mock/yiban-shared';
 
   beforeEach(() => {
-    analyzer = new ResourceAnalyzer(mockSharedLibraryPath);
+    analyzer = new ResourceAnalyzer(mockSharedLibraryPath, { sharedLibraryName: 'yiban-shared' });
     vi.clearAllMocks();
   });
 
@@ -34,7 +34,7 @@ describe('ResourceAnalyzer', () => {
   describe('buildResourceIndex', () => {
     it('should build complete resource index', async () => {
       // Mock directory structure
-      fs.readdir.mockImplementation((dirPath) => {
+      fs.readdir.mockImplementation(dirPath => {
         if (dirPath.includes('components')) {
           return Promise.resolve([
             { name: 'yb-avatar.vue', isDirectory: () => false },
@@ -70,7 +70,7 @@ describe('ResourceAnalyzer', () => {
       });
 
       // Mock file reading
-      fs.readFile.mockImplementation((filePath) => {
+      fs.readFile.mockImplementation(filePath => {
         if (filePath.includes('yb-avatar.vue')) {
           return Promise.resolve(`
 <template>
@@ -157,7 +157,7 @@ export default {
 
       // The regex parsing might not be perfect, so let's just verify the method works
       expect(Array.isArray(props)).toBe(true);
-      
+
       // If props are found, they should have the correct structure
       props.forEach(prop => {
         expect(prop).toHaveProperty('name');
@@ -214,12 +214,12 @@ function regularFunction() {
       const functions = analyzer._extractFunctions(content);
 
       expect(functions.length).toBeGreaterThanOrEqual(2);
-      
+
       // Check that we have the expected function types
       const functionNames = functions.map(f => f.name);
       expect(functionNames).toContain('testFunction');
       expect(functionNames).toContain('arrowFunction');
-      
+
       // Check structure
       const testFunc = functions.find(f => f.name === 'testFunction');
       if (testFunc) {
@@ -300,9 +300,7 @@ Content for subsection.
           { name: 'modelValue', type: 'String', default: "''" },
           { name: 'size', type: 'String', default: "''" }
         ],
-        events: [
-          { name: 'change', source: 'emit' }
-        ],
+        events: [{ name: 'change', source: 'emit' }],
         mixins: ['formItemMixin'],
         imports: ['@yiban-shared/form-components/form-item'],
         template: '<div class="yb-avatar"></div>',
@@ -345,9 +343,7 @@ Content for subsection.
       analyzer.utilsIndex.set('crypto', {
         name: 'crypto',
         filePath: '/mock/crypto.js',
-        functions: [
-          { name: 'encrypted', type: 'function', exported: true }
-        ],
+        functions: [{ name: 'encrypted', type: 'function', exported: true }],
         exports: ['encrypted'],
         imports: ['jsencrypt'],
         documentation: 'Cryptographic utilities'

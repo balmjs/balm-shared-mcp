@@ -514,7 +514,8 @@ export class FileSystemHandler {
         projectName: projectConfig.name,
         projectType: projectConfig.type,
         apiEndpoint: projectConfig.apiEndpoint || '/api',
-        sharedLibraryPath: projectConfig.sharedLibraryPath || '../yiban-shared',
+        sharedLibraryPath:
+          projectConfig.sharedLibraryPath || `../${projectConfig.sharedLibraryName || 'my-shared'}`,
         ...projectConfig.variables
       };
 

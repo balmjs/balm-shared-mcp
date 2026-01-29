@@ -60,7 +60,7 @@ npm run prepare
 
 | 变量名 | 描述 | 默认值 |
 |--------|------|--------|
-| `SHARED_LIBRARY_PATH` | 共享库路径 | `./yiban-shared` |
+| `SHARED_LIBRARY_PATH` | 共享库路径 | `./my-shared` |
 | `TEMPLATES_PATH` | 代码模板路径 | `./templates` |
 | `LOG_LEVEL` | 日志级别 (debug, info, warn, error) | `info` |
 | `CONFIG_PATH` | 配置文件路径 | `./config.json` |
