@@ -347,10 +347,10 @@ export class BalmSharedMCPError extends Error {
       stack: this.stack,
       originalError: this.originalError
         ? {
-            name: this.originalError.name,
-            message: this.originalError.message,
-            stack: this.originalError.stack
-          }
+          name: this.originalError.name,
+          message: this.originalError.message,
+          stack: this.originalError.stack
+        }
         : null
     };
   }
