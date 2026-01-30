@@ -50,12 +50,12 @@
     "balm-shared-mcp": "./src/cli/index.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.4.0",
+    "@modelcontextprotocol/sdk": "^1.25.3",
     "commander": "^14.0.2",
     "fs-extra": "^11.2.0",
     "handlebars": "^4.7.8",
     "yaml": "^2.3.4",
-    "zod": "^3.22.4"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
