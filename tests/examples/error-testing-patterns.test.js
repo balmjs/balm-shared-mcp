@@ -1,11 +1,11 @@
 /**
  * Error Testing Patterns Examples
- * 
+ *
  * This file demonstrates comprehensive error testing patterns and conventions.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { 
+import {
   createMockLogger,
   createMockFileSystemHandler,
   createMockError,
@@ -33,15 +33,17 @@ class ErrorProneService {
     if (!input) {
       throw new BalmSharedMCPError('Input is required');
     }
-    
+
     if (typeof input.name !== 'string' || input.name.trim() === '') {
       throw new BalmSharedMCPError('Name must be a non-empty string');
     }
-    
+
     if (input.type && !['string', 'number', 'boolean'].includes(input.type)) {
-      throw new BalmSharedMCPError(`Invalid type: ${input.type}. Must be string, number, or boolean`);
+      throw new BalmSharedMCPError(
+        `Invalid type: ${input.type}. Must be string, number, or boolean`
+      );
     }
-    
+
     return true;
   }
 
@@ -61,13 +63,12 @@ class ErrorProneService {
 
       // Read file
       const content = await this.fileSystemHandler.readFile(filePath);
-      
+
       // Process content
       const processed = this.processContent(content, options);
-      
+
       this.logger.info(`File processed successfully: ${filePath}`);
       return { success: true, data: processed };
-
     } catch (error) {
       // Log error with context
       this.logger.error('Failed to process file', {
@@ -81,7 +82,7 @@ class ErrorProneService {
       if (!(error instanceof BalmSharedMCPError)) {
         throw new BalmSharedMCPError(`File processing failed: ${error.message}`, { cause: error });
       }
-      
+
       throw error;
     }
   }
@@ -130,52 +131,44 @@ describe('Error Testing Patterns', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     mockLogger = createMockLogger();
     mockFileSystemHandler = createMockFileSystemHandler();
-    
+
     service = new ErrorProneService(mockFileSystemHandler, mockLogger);
   });
 
   describe('Input Validation Error Testing', () => {
     it('should throw BalmSharedMCPError for null input', () => {
-      expect(() => service.validateInput(null))
-        .toThrow(BalmSharedMCPError);
-      
-      expect(() => service.validateInput(null))
-        .toThrow('Input is required');
+      expect(() => service.validateInput(null)).toThrow(BalmSharedMCPError);
+
+      expect(() => service.validateInput(null)).toThrow('Input is required');
     });
 
     it('should throw BalmSharedMCPError for undefined input', () => {
-      expect(() => service.validateInput(undefined))
-        .toThrow(BalmSharedMCPError);
+      expect(() => service.validateInput(undefined)).toThrow(BalmSharedMCPError);
     });
 
     it('should throw BalmSharedMCPError for empty name', () => {
       const input = { name: '' };
-      
-      expect(() => service.validateInput(input))
-        .toThrow(BalmSharedMCPError);
-      
-      expect(() => service.validateInput(input))
-        .toThrow('Name must be a non-empty string');
+
+      expect(() => service.validateInput(input)).toThrow(BalmSharedMCPError);
+
+      expect(() => service.validateInput(input)).toThrow('Name must be a non-empty string');
     });
 
     it('should throw BalmSharedMCPError for whitespace-only name', () => {
       const input = { name: '   ' };
-      
-      expect(() => service.validateInput(input))
-        .toThrow('Name must be a non-empty string');
+
+      expect(() => service.validateInput(input)).toThrow('Name must be a non-empty string');
     });
 
     it('should throw BalmSharedMCPError for invalid type', () => {
       const input = { name: 'test', type: 'invalid' };
-      
-      expect(() => service.validateInput(input))
-        .toThrow(BalmSharedMCPError);
-      
-      expect(() => service.validateInput(input))
-        .toThrow('Invalid type: invalid');
+
+      expect(() => service.validateInput(input)).toThrow(BalmSharedMCPError);
+
+      expect(() => service.validateInput(input)).toThrow('Invalid type: invalid');
     });
 
     it('should accept valid input without throwing', () => {
@@ -199,11 +192,13 @@ describe('Error Testing Patterns', () => {
       mockFileSystemHandler.exists.mockReturnValue(false);
 
       // Act & Assert
-      await expect(service.processFileWithValidation(filePath, { name: 'test' }))
-        .rejects.toThrow(BalmSharedMCPError);
-      
-      await expect(service.processFileWithValidation(filePath, { name: 'test' }))
-        .rejects.toThrow('File not found');
+      await expect(service.processFileWithValidation(filePath, { name: 'test' })).rejects.toThrow(
+        BalmSharedMCPError
+      );
+
+      await expect(service.processFileWithValidation(filePath, { name: 'test' })).rejects.toThrow(
+        'File not found'
+      );
     });
 
     it('should handle file read permission errors', async () => {
@@ -215,9 +210,10 @@ describe('Error Testing Patterns', () => {
       );
 
       // Act & Assert
-      await expect(service.processFileWithValidation(filePath, { name: 'test' }))
-        .rejects.toThrow(BalmSharedMCPError);
-      
+      await expect(service.processFileWithValidation(filePath, { name: 'test' })).rejects.toThrow(
+        BalmSharedMCPError
+      );
+
       // Verify error logging
       mockAssertions.assertLoggerCalled(mockLogger, 'error', 'Failed to process file');
     });
@@ -231,33 +227,34 @@ describe('Error Testing Patterns', () => {
       );
 
       // Act & Assert
-      await expect(service.processFileWithValidation(filePath, { name: 'test' }))
-        .rejects.toThrow('File processing failed');
+      await expect(service.processFileWithValidation(filePath, { name: 'test' })).rejects.toThrow(
+        'File processing failed'
+      );
     });
   });
 
   describe('Content Processing Error Testing', () => {
     it('should handle empty content error', () => {
-      expect(() => service.processContent('', { name: 'test' }))
-        .toThrow(BalmSharedMCPError);
-      
-      expect(() => service.processContent('', { name: 'test' }))
-        .toThrow('Content cannot be empty');
+      expect(() => service.processContent('', { name: 'test' })).toThrow(BalmSharedMCPError);
+
+      expect(() => service.processContent('', { name: 'test' })).toThrow('Content cannot be empty');
     });
 
     it('should handle JSON parsing errors', () => {
       const invalidJson = '{ invalid json }';
-      
-      expect(() => service.processContent(invalidJson, { name: 'test', type: 'json' }))
-        .toThrow(BalmSharedMCPError);
-      
-      expect(() => service.processContent(invalidJson, { name: 'test', type: 'json' }))
-        .toThrow('Invalid JSON content');
+
+      expect(() => service.processContent(invalidJson, { name: 'test', type: 'json' })).toThrow(
+        BalmSharedMCPError
+      );
+
+      expect(() => service.processContent(invalidJson, { name: 'test', type: 'json' })).toThrow(
+        'Invalid JSON content'
+      );
     });
 
     it('should preserve original error as cause in JSON parsing', () => {
       const invalidJson = '{ invalid json }';
-      
+
       try {
         service.processContent(invalidJson, { name: 'test', type: 'json' });
       } catch (error) {
@@ -272,14 +269,13 @@ describe('Error Testing Patterns', () => {
     it('should log error context when file processing fails', async () => {
       // Arrange
       const filePath = '/test/error.txt';
-      const options = { name: 'test', type: 'json' };
-      
+      const options = { name: 'test' };
+
       mockFileSystemHandler.exists.mockReturnValue(true);
       mockFileSystemHandler.readFile.mockRejectedValue(new Error('Read failed'));
 
       // Act
-      await expect(service.processFileWithValidation(filePath, options))
-        .rejects.toThrow();
+      await expect(service.processFileWithValidation(filePath, options)).rejects.toThrow();
 
       // Assert error logging with context
       expect(mockLogger.error).toHaveBeenCalledWith(
@@ -297,7 +293,7 @@ describe('Error Testing Patterns', () => {
       // Arrange
       const filePath = '/test/chain.txt';
       const originalError = new Error('Original error');
-      
+
       mockFileSystemHandler.exists.mockReturnValue(true);
       mockFileSystemHandler.readFile.mockRejectedValue(originalError);
 
@@ -314,11 +310,12 @@ describe('Error Testing Patterns', () => {
     it('should not double-wrap BalmSharedMCPError', async () => {
       // Arrange
       const filePath = '/test/invalid-input.txt';
-      
+
       // Act & Assert - Input validation throws BalmSharedMCPError
-      await expect(service.processFileWithValidation(filePath, null))
-        .rejects.toThrow(BalmSharedMCPError);
-      
+      await expect(service.processFileWithValidation(filePath, null)).rejects.toThrow(
+        BalmSharedMCPError
+      );
+
       // The error should not be wrapped again
       try {
         await service.processFileWithValidation(filePath, null);
@@ -338,9 +335,7 @@ describe('Error Testing Patterns', () => {
         { path: '/test/success2.txt', options: { name: 'test3' } }
       ];
 
-      mockFileSystemHandler.exists.mockImplementation(path => 
-        !path.includes('failure')
-      );
+      mockFileSystemHandler.exists.mockImplementation(path => !path.includes('failure'));
       mockFileSystemHandler.readFile
         .mockResolvedValueOnce('content1')
         .mockResolvedValueOnce('content2');
@@ -351,14 +346,18 @@ describe('Error Testing Patterns', () => {
       // Assert
       expect(result.results).toHaveLength(2);
       expect(result.errors).toHaveLength(1);
-      
+
       expect(result.results[0].result.success).toBe(true);
       expect(result.results[1].result.success).toBe(true);
-      
+
       expect(result.errors[0].error).toBeInstanceOf(BalmSharedMCPError);
       expect(result.errors[0].error.message).toContain('File not found');
-      
-      mockAssertions.assertLoggerCalled(mockLogger, 'warn', 'Batch processing completed with 1 errors');
+
+      mockAssertions.assertLoggerCalled(
+        mockLogger,
+        'warn',
+        'Batch processing completed with 1 errors'
+      );
     });
 
     it('should handle all failures in batch processing', async () => {
@@ -376,7 +375,7 @@ describe('Error Testing Patterns', () => {
       // Assert
       expect(result.results).toHaveLength(0);
       expect(result.errors).toHaveLength(2);
-      
+
       result.errors.forEach(errorItem => {
         expect(errorItem.error).toBeInstanceOf(BalmSharedMCPError);
         expect(errorItem.error.message).toContain('File not found');
@@ -419,11 +418,13 @@ describe('Error Testing Patterns', () => {
         testCase.setup();
 
         // Act & Assert
-        await expect(service.processFileWithValidation(testCase.input.path, testCase.input.options))
-          .rejects.toThrow(testCase.expectedType);
-        
-        await expect(service.processFileWithValidation(testCase.input.path, testCase.input.options))
-          .rejects.toThrow(testCase.expectedMessage);
+        await expect(
+          service.processFileWithValidation(testCase.input.path, testCase.input.options)
+        ).rejects.toThrow(testCase.expectedType);
+
+        await expect(
+          service.processFileWithValidation(testCase.input.path, testCase.input.options)
+        ).rejects.toThrow(testCase.expectedMessage);
       }
     });
   });

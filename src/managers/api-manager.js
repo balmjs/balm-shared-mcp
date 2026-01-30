@@ -9,9 +9,11 @@ import { logger } from '../utils/logger.js';
 import { BalmSharedMCPError, ErrorCodes } from '../utils/errors.js';
 
 export class ApiManager {
-  constructor(fileSystemHandler, logger) {
+  constructor(fileSystemHandler, codeGenerator, config = {}) {
     this.fileSystemHandler = fileSystemHandler;
-    this.logger = logger || console;
+    this.codeGenerator = codeGenerator;
+    this.config = config;
+    this.logger = console;
   }
 
   /**

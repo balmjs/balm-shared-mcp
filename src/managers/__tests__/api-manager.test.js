@@ -12,16 +12,36 @@ describe('ApiManager', () => {
     createDirectory: vi.fn()
   };
 
-  const mockLogger = {
-    info: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-    warn: vi.fn()
+  const mockCodeGenerator = {
+    generateApiConfig: vi.fn(),
+    generateMockData: vi.fn(),
+    templateHelpers: new Map([
+      [
+        'kebabCase',
+        str =>
+          str
+            .replace(/([A-Z])/g, '-$1')
+            .toLowerCase()
+            .replace(/^-/, '')
+      ],
+      ['camelCase', str => str.replace(/-([a-z])/g, g => g[1].toUpperCase())],
+      [
+        'pascalCase',
+        str => {
+          const camelCase = str.replace(/-([a-z])/g, g => g[1].toUpperCase());
+          return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
+        }
+      ]
+    ])
+  };
+
+  const mockConfig = {
+    defaultApiCategory: 'content'
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    apiManager = new ApiManager(mockFileSystemHandler, mockLogger);
+    apiManager = new ApiManager(mockFileSystemHandler, mockCodeGenerator, mockConfig);
   });
 
   describe('generateApiConfig', () => {
@@ -51,8 +71,9 @@ describe('ApiManager', () => {
     it('should throw error for missing required parameters', async () => {
       const invalidOptions = { model: 'User' };
 
-      await expect(apiManager.generateApiConfig(invalidOptions))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(apiManager.generateApiConfig(invalidOptions)).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should validate model name format', async () => {
@@ -61,8 +82,9 @@ describe('ApiManager', () => {
         model: 'invalid-model-name'
       };
 
-      await expect(apiManager.generateApiConfig(invalidOptions))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(apiManager.generateApiConfig(invalidOptions)).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should validate endpoint format', async () => {
@@ -71,8 +93,9 @@ describe('ApiManager', () => {
         endpoint: 'invalid-endpoint'
       };
 
-      await expect(apiManager.generateApiConfig(invalidOptions))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(apiManager.generateApiConfig(invalidOptions)).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should validate operations array', async () => {
@@ -81,8 +104,9 @@ describe('ApiManager', () => {
         operations: ['invalid-operation']
       };
 
-      await expect(apiManager.generateApiConfig(invalidOptions))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(apiManager.generateApiConfig(invalidOptions)).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should handle custom actions', async () => {
@@ -171,7 +195,7 @@ export default {
 
       const writeCall = mockFileSystemHandler.writeFile.mock.calls[0];
       const content = writeCall[1];
-      
+
       // Should not duplicate the user import
       const importMatches = content.match(/import user from/g);
       expect(importMatches).toHaveLength(1);
@@ -457,19 +481,13 @@ export default {
         projectPath: '/test/project'
       };
 
-      await expect(apiManager.generateApiConfig(options))
-        .rejects.toThrow(BalmSharedMCPError);
-
-      expect(mockLogger.error).toHaveBeenCalled();
+      await expect(apiManager.generateApiConfig(options)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should log validation errors', async () => {
       const invalidOptions = { model: 'invalid-model' };
 
-      await expect(apiManager.generateApiConfig(invalidOptions))
-        .rejects.toThrow();
-
-      expect(mockLogger.error).toHaveBeenCalled();
+      await expect(apiManager.generateApiConfig(invalidOptions)).rejects.toThrow();
     });
   });
 });

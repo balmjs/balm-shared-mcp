@@ -1,6 +1,6 @@
 /**
  * Mock Utilities
- * 
+ *
  * Standardized mock patterns and utilities for consistent testing across the project.
  */
 
@@ -30,7 +30,7 @@ export const createMockFileSystemHandler = () => ({
   writeFile: vi.fn(),
   copyFile: vi.fn(),
   deleteFile: vi.fn(),
-  
+
   // Directory operations
   readDirectory: vi.fn(),
   listDirectory: vi.fn(),
@@ -38,16 +38,16 @@ export const createMockFileSystemHandler = () => ({
   deleteDirectory: vi.fn(),
   ensureDirectory: vi.fn(),
   copyDirectory: vi.fn(),
-  
+
   // File system queries
   isDirectory: vi.fn(),
   isFile: vi.fn(),
   getStats: vi.fn(),
-  
+
   // Path utilities
   resolvePath: vi.fn(),
   joinPath: vi.fn(),
-  
+
   // JSON operations
   updateJsonFile: vi.fn()
 });
@@ -184,7 +184,7 @@ export const mockSetups = {
   /**
    * Sets up file system handler for successful file operations
    */
-  setupSuccessfulFileOperations: (mockHandler) => {
+  setupSuccessfulFileOperations: mockHandler => {
     mockHandler.exists.mockReturnValue(true);
     mockHandler.readFile.mockResolvedValue('file content');
     mockHandler.writeFile.mockResolvedValue();
@@ -196,7 +196,7 @@ export const mockSetups = {
   /**
    * Sets up file system handler for file not found scenarios
    */
-  setupFileNotFound: (mockHandler) => {
+  setupFileNotFound: mockHandler => {
     mockHandler.exists.mockReturnValue(false);
     mockHandler.readFile.mockRejectedValue(createMockError('File not found', 'ENOENT'));
     mockHandler.getStats.mockRejectedValue(createMockError('File not found', 'ENOENT'));
@@ -205,7 +205,7 @@ export const mockSetups = {
   /**
    * Sets up file system handler for permission denied scenarios
    */
-  setupPermissionDenied: (mockHandler) => {
+  setupPermissionDenied: mockHandler => {
     mockHandler.exists.mockReturnValue(true);
     mockHandler.readFile.mockRejectedValue(createMockError('Permission denied', 'EACCES'));
     mockHandler.writeFile.mockRejectedValue(createMockError('Permission denied', 'EACCES'));
@@ -215,7 +215,7 @@ export const mockSetups = {
   /**
    * Sets up directory operations for successful scenarios
    */
-  setupSuccessfulDirectoryOperations: (mockHandler) => {
+  setupSuccessfulDirectoryOperations: mockHandler => {
     mockHandler.listDirectory.mockResolvedValue([
       createMockDirectoryEntry('file1.txt', false),
       createMockDirectoryEntry('subdir', true)
@@ -249,9 +249,11 @@ export const mockAssertions = {
   assertFileWritten: (mockHandler, expectedPath, expectedContent = null) => {
     expect(mockHandler.writeFile).toHaveBeenCalled();
     const calls = mockHandler.writeFile.mock.calls;
-    const matchingCall = calls.find(call => call[0].includes(expectedPath) || call[0] === expectedPath);
+    const matchingCall = calls.find(
+      call => call[0].includes(expectedPath) || call[0] === expectedPath
+    );
     expect(matchingCall).toBeDefined();
-    
+
     if (expectedContent !== null) {
       expect(matchingCall[1]).toContain(expectedContent);
     }
@@ -263,7 +265,9 @@ export const mockAssertions = {
   assertDirectoryCreated: (mockHandler, expectedPath) => {
     expect(mockHandler.createDirectory).toHaveBeenCalled();
     const calls = mockHandler.createDirectory.mock.calls;
-    const matchingCall = calls.find(call => call[0].includes(expectedPath) || call[0] === expectedPath);
+    const matchingCall = calls.find(
+      call => call[0].includes(expectedPath) || call[0] === expectedPath
+    );
     expect(matchingCall).toBeDefined();
   },
 
@@ -273,7 +277,9 @@ export const mockAssertions = {
   assertFileRead: (mockHandler, expectedPath) => {
     expect(mockHandler.readFile).toHaveBeenCalled();
     const calls = mockHandler.readFile.mock.calls;
-    const matchingCall = calls.find(call => call[0].includes(expectedPath) || call[0] === expectedPath);
+    const matchingCall = calls.find(
+      call => call[0].includes(expectedPath) || call[0] === expectedPath
+    );
     expect(matchingCall).toBeDefined();
   },
 
@@ -282,12 +288,13 @@ export const mockAssertions = {
    */
   assertLoggerCalled: (mockLogger, level, expectedMessage = null) => {
     expect(mockLogger[level]).toHaveBeenCalled();
-    
+
     if (expectedMessage !== null) {
       const calls = mockLogger[level].mock.calls;
-      const matchingCall = calls.find(call => 
-        call[0].includes(expectedMessage) || 
-        (call[1] && JSON.stringify(call[1]).includes(expectedMessage))
+      const matchingCall = calls.find(
+        call =>
+          call[0].includes(expectedMessage) ||
+          (call[1] && JSON.stringify(call[1]).includes(expectedMessage))
       );
       expect(matchingCall).toBeDefined();
     }
@@ -307,11 +314,11 @@ export const testDataFactories = {
     version: '1.0.0',
     description: 'Test project',
     dependencies: {
-      'vue': '^3.0.0',
-      'balm': '^4.0.0'
+      vue: '^3.0.0',
+      balm: '^4.0.0'
     },
     devDependencies: {
-      'vitest': '^1.0.0'
+      vitest: '^1.0.0'
     },
     ...overrides
   }),
@@ -336,7 +343,7 @@ export const testDataFactories = {
         props: ['data', 'fields', 'readonly']
       }
     },
-    'common': {
+    common: {
       'ui-button': {
         name: 'ui-button',
         category: 'common',
@@ -366,6 +373,22 @@ export const testDataFactories = {
         'Implement proper error handling',
         'Add request/response interceptors'
       ]
+    },
+    'component-usage': {
+      topic: 'component-usage',
+      practices: [
+        'Use props for component configuration',
+        'Emit events for parent communication',
+        'Follow single responsibility principle'
+      ]
+    },
+    routing: {
+      topic: 'routing',
+      practices: [
+        'Use named routes for navigation',
+        'Implement lazy loading for routes',
+        'Add route guards for authentication'
+      ]
     }
   })
 };
@@ -378,7 +401,7 @@ export const mockResetUtils = {
   /**
    * Resets all mocks in an object
    */
-  resetAllMocks: (mockObject) => {
+  resetAllMocks: mockObject => {
     Object.values(mockObject).forEach(mock => {
       if (typeof mock === 'function' && mock.mockReset) {
         mock.mockReset();
@@ -389,7 +412,7 @@ export const mockResetUtils = {
   /**
    * Clears all mock calls in an object
    */
-  clearAllMocks: (mockObject) => {
+  clearAllMocks: mockObject => {
     Object.values(mockObject).forEach(mock => {
       if (typeof mock === 'function' && mock.mockClear) {
         mock.mockClear();
