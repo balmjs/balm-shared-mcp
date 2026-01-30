@@ -18,7 +18,6 @@ describe('RuntimeConfigManager', () => {
       expect(config.workspaceRoot).toBe('./');
       expect(config.sharedLibraryName).toBe('my-shared');
       expect(config.resolvedSharedLibraryPath).toBe('my-shared');
-      expect(config.templatesPath).toBe('./templates');
       expect(config.logging.level).toBe('info');
       expect(config.hotReload).toBe(true);
       expect(config.backup.enabled).toBe(true);
@@ -28,15 +27,14 @@ describe('RuntimeConfigManager', () => {
     it('should update configuration', async () => {
       const newConfig = {
         workspaceRoot: '/path/to/workspace',
-        sharedLibraryName: 'custom-shared',
-        templatesPath: '/path/to/templates'
+        sharedLibraryName: 'custom-shared'
       };
 
       await manager.updateConfig(newConfig);
       const config = manager.getConfig();
 
       expect(config.workspaceRoot).toBe('/path/to/workspace');
-      expect(config.templatesPath).toBe('/path/to/templates');
+      expect(config.sharedLibraryName).toBe('custom-shared');
     });
 
     it('should merge configuration deeply', async () => {
@@ -67,9 +65,9 @@ describe('RuntimeConfigManager', () => {
       }).rejects.toThrow(BalmSharedMCPError);
     });
 
-    it('should validate templatesPath type', async () => {
+    it('should validate sharedLibraryName type', async () => {
       await expect(async () => {
-        await manager.updateConfig({ templatesPath: [] });
+        await manager.updateConfig({ sharedLibraryName: [] });
       }).rejects.toThrow(BalmSharedMCPError);
     });
 
@@ -93,15 +91,21 @@ describe('RuntimeConfigManager', () => {
   });
 
   describe('Environment Variables', () => {
+    let originalEnv;
+
+    beforeEach(() => {
+      originalEnv = { ...process.env };
+    });
+
+    afterEach(() => {
+      // Restore original environment
+      process.env = originalEnv;
+    });
+
     it('should load configuration from environment variables', async () => {
-      const originalEnv = process.env;
-      process.env = {
-        ...originalEnv,
-        WORKSPACE_ROOT: '/env/workspace',
-        SHARED_LIBRARY_NAME: 'env-shared',
-        TEMPLATES_PATH: '/env/templates',
-        LOG_LEVEL: 'debug'
-      };
+      process.env.WORKSPACE_ROOT = '/env/workspace';
+      process.env.SHARED_LIBRARY_NAME = 'env-shared';
+      process.env.LOG_LEVEL = 'debug';
 
       const envManager = new RuntimeConfigManager();
       await envManager.loadConfig();
@@ -110,20 +114,13 @@ describe('RuntimeConfigManager', () => {
       expect(config.workspaceRoot).toBe('/env/workspace');
       expect(config.sharedLibraryName).toBe('env-shared');
       expect(config.resolvedSharedLibraryPath).toBe('/env/workspace/env-shared');
-      expect(config.templatesPath).toBe('/env/templates');
       expect(config.logging.level).toBe('debug');
-
-      process.env = originalEnv;
     });
 
     it('should prioritize explicit SHARED_LIBRARY_PATH over computed path', async () => {
-      const originalEnv = process.env;
-      process.env = {
-        ...originalEnv,
-        WORKSPACE_ROOT: '/env/workspace',
-        SHARED_LIBRARY_NAME: 'env-shared',
-        SHARED_LIBRARY_PATH: '/explicit/full/path'
-      };
+      process.env.WORKSPACE_ROOT = '/env/workspace';
+      process.env.SHARED_LIBRARY_NAME = 'env-shared';
+      process.env.SHARED_LIBRARY_PATH = '/explicit/full/path';
 
       const envManager = new RuntimeConfigManager();
       await envManager.loadConfig();
@@ -131,8 +128,6 @@ describe('RuntimeConfigManager', () => {
       const config = envManager.getConfig();
       // SHARED_LIBRARY_PATH should override the computed path
       expect(config.resolvedSharedLibraryPath).toBe('/explicit/full/path');
-
-      process.env = originalEnv;
     });
   });
 
@@ -153,7 +148,7 @@ describe('RuntimeConfigManager', () => {
       expect(config).toBeDefined();
       expect(config.workspaceRoot).toBeDefined();
       expect(config.resolvedSharedLibraryPath).toBeDefined();
-      expect(config.templatesPath).toBeDefined();
+      expect(config.sharedLibraryName).toBeDefined();
     });
   });
 
@@ -254,7 +249,6 @@ describe('RuntimeConfigManager', () => {
       expect(config.workspaceRoot).toBe('./');
       expect(config.sharedLibraryName).toBe('my-shared');
       expect(config.resolvedSharedLibraryPath).toBe('my-shared');
-      expect(config.templatesPath).toBe('./templates');
       expect(config.logging.level).toBe('info');
     });
   });

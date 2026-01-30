@@ -19,7 +19,6 @@ const ConfigSchema = z.object({
   sharedLibraryName: z.string().default('my-shared'),
   // Computed field: resolvedSharedLibraryPath = sharedLibraryPath || (workspaceRoot + sharedLibraryName)
   resolvedSharedLibraryPath: z.string().optional(),
-  templatesPath: z.string().default('./templates'),
   defaultProjectConfig: z
     .object({
       apiEndpoint: z.string().default('/api'),
@@ -153,10 +152,6 @@ class ConfigurationManager extends EventEmitter {
     envConfig.resolvedSharedLibraryPath = explicitPath
       ? explicitPath
       : path.join(workspaceRoot, libraryName);
-
-    if (process.env.TEMPLATES_PATH) {
-      envConfig.templatesPath = process.env.TEMPLATES_PATH;
-    }
 
     if (process.env.LOG_LEVEL) {
       envConfig.logging = { level: process.env.LOG_LEVEL };
@@ -375,7 +370,6 @@ export const defaultConfig = {
   sharedLibraryPath: undefined, // Optional: explicit override path
   sharedLibraryName: 'my-shared',
   resolvedSharedLibraryPath: 'my-shared', // Computed: sharedLibraryPath || path.join(workspaceRoot, sharedLibraryName)
-  templatesPath: './templates',
   defaultProjectConfig: {
     apiEndpoint: '/api',
     mockEnabled: true,

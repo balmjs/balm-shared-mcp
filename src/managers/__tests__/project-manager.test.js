@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ProjectManager } from '../project-manager.js';
-import { BalmSharedMCPError, ErrorCodes } from '../../utils/errors.js';
+import { BalmSharedMCPError } from '../../utils/errors.js';
 
 // Mock dependencies
 const mockFileSystemHandler = {
@@ -16,7 +16,7 @@ const mockFileSystemHandler = {
 };
 
 const mockConfig = {
-  templatesPath: '/mock/templates',
+  workspaceRoot: '/mock/workspace',
   sharedProjectPath: '../my-shared',
   sharedLibraryName: 'my-shared'
 };
@@ -39,8 +39,10 @@ describe('ProjectManager', () => {
     beforeEach(() => {
       // Setup default mocks for successful project creation
       mockFileSystemHandler.exists.mockImplementation(path => {
-        if (path === '/test/path') return false; // Target doesn't exist
-        if (path.includes('templates')) return true; // Template exists
+        if (path === '/test/path') {return false;} // Target doesn't exist
+        // Built-in templates in examples directory
+        if (path.includes('examples/frontend-project')) {return true;}
+        if (path.includes('examples/backend-project')) {return true;}
         return true;
       });
       mockFileSystemHandler.copyDirectory.mockResolvedValue();
@@ -85,21 +87,41 @@ describe('ProjectManager', () => {
 
     it('should throw error if target directory exists', async () => {
       mockFileSystemHandler.exists.mockImplementation(path => {
-        if (path === '/test/path') return true; // Target exists
+        if (path === '/test/path') {return true;} // Target exists
         return true;
       });
 
       await expect(projectManager.createProject(validOptions)).rejects.toThrow(BalmSharedMCPError);
     });
 
-    it('should throw error if template not found', async () => {
+    it('should throw error if built-in template not found', async () => {
       mockFileSystemHandler.exists.mockImplementation(path => {
-        if (path === '/test/path') return false; // Target doesn't exist
-        if (path.includes('templates')) return false; // Template doesn't exist
+        if (path === '/test/path') {return false;} // Target doesn't exist
+        // Built-in templates don't exist
+        if (path.includes('examples')) {return false;}
         return true;
       });
 
       await expect(projectManager.createProject(validOptions)).rejects.toThrow(BalmSharedMCPError);
+    });
+
+    it('should use referenceProject when specified', async () => {
+      const optionsWithRef = {
+        ...validOptions,
+        referenceProject: 'company-admin'
+      };
+
+      mockFileSystemHandler.exists.mockImplementation(path => {
+        if (path === '/test/path') {return false;} // Target doesn't exist
+        if (path === '/mock/workspace/company-admin') {return true;} // Reference project exists
+        return true;
+      });
+
+      const result = await projectManager.createProject(optionsWithRef);
+
+      expect(result.success).toBe(true);
+      expect(result.referenceProject).toBe('company-admin');
+      expect(result.template).toBe('/mock/workspace/company-admin');
     });
   });
 
@@ -109,9 +131,9 @@ describe('ProjectManager', () => {
     beforeEach(() => {
       // Setup default mocks for successful project analysis
       mockFileSystemHandler.exists.mockImplementation(path => {
-        if (path === projectPath) return true; // Project exists
-        if (path.includes('package.json')) return true;
-        if (path.includes('src')) return true;
+        if (path === projectPath) {return true;} // Project exists
+        if (path.includes('package.json')) {return true;}
+        if (path.includes('src')) {return true;}
         return false;
       });
 
@@ -158,9 +180,9 @@ describe('ProjectManager', () => {
 
     it('should detect yiban-shared integration', async () => {
       mockFileSystemHandler.exists.mockImplementation(path => {
-        if (path === projectPath) return true;
-        if (path.includes('package.json')) return true;
-        if (path.includes('balm.alias.js')) return true;
+        if (path === projectPath) {return true;}
+        if (path.includes('package.json')) {return true;}
+        if (path.includes('balm.alias.js')) {return true;}
         return false;
       });
 
@@ -185,8 +207,8 @@ describe('ProjectManager', () => {
 
     it('should generate recommendations for missing features', async () => {
       mockFileSystemHandler.exists.mockImplementation(path => {
-        if (path === projectPath) return true;
-        if (path.includes('package.json')) return true;
+        if (path === projectPath) {return true;}
+        if (path.includes('package.json')) {return true;}
         return false; // Everything else missing
       });
 

@@ -183,9 +183,6 @@ SHARED_LIBRARY_NAME=my-shared
 # 如果设置，会覆盖 WORKSPACE_ROOT + SHARED_LIBRARY_NAME 的计算结果
 # SHARED_LIBRARY_PATH=/opt/company/shared-libs/my-shared-v2
 
-# 模板路径
-TEMPLATES_PATH=./templates
-
 # 日志级别
 LOG_LEVEL=info
 

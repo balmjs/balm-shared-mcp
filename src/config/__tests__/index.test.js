@@ -3,15 +3,10 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readFile, writeFile, unlink } from 'fs/promises';
+import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import path from 'path';
 import { ConfigurationManager, defaultConfig, configManager } from '../index.js';
-import { 
-  createMockProjectConfig,
-  mockSetups,
-  mockAssertions
-} from '../../../tests/utils/mock-utilities.js';
+import { createMockProjectConfig } from '../../../tests/utils/mock-utilities.js';
 
 // Mock file system operations
 vi.mock('fs/promises');
@@ -26,10 +21,9 @@ describe('ConfigurationManager', () => {
     manager = new ConfigurationManager();
     mockReadFile = vi.mocked(readFile);
     mockExistsSync = vi.mocked(existsSync);
-    
+
     // Reset environment variables
     delete process.env.SHARED_LIBRARY_PATH;
-    delete process.env.TEMPLATES_PATH;
     delete process.env.LOG_LEVEL;
     delete process.env.HOT_RELOAD;
   });
@@ -51,7 +45,7 @@ describe('ConfigurationManager', () => {
     it('should load configuration from file', async () => {
       const mockConfig = createMockProjectConfig({
         sharedLibraryPath: './custom',
-        templatesPath: './custom-templates'
+        workspaceRoot: './custom-workspace'
       });
 
       mockExistsSync.mockReturnValue(true);
@@ -60,7 +54,7 @@ describe('ConfigurationManager', () => {
       const config = await manager.loadConfig();
 
       expect(config.sharedLibraryPath).toBe('./custom');
-      expect(config.templatesPath).toBe('./custom-templates');
+      expect(config.workspaceRoot).toBe('./custom-workspace');
     });
 
     it('should override file config with environment variables', async () => {
@@ -209,11 +203,11 @@ describe('ConfigurationManager', () => {
 
     it('should restore configuration from backup', async () => {
       const originalPath = manager.getConfig().sharedProjectPath;
-      
+
       await manager.updateConfig({ sharedProjectPath: './updated-path' });
-      
+
       const restoredConfig = await manager.restoreFromBackup(0);
-      
+
       expect(restoredConfig.sharedProjectPath).toBe(originalPath);
     });
 
@@ -266,7 +260,7 @@ describe('ConfigurationManager', () => {
   describe('getConfig', () => {
     it('should return current configuration', async () => {
       mockExistsSync.mockReturnValue(false);
-      
+
       const loadedConfig = await manager.loadConfig();
       const currentConfig = manager.getConfig();
 
@@ -306,7 +300,7 @@ describe('Legacy loadConfig function', () => {
 
   it('should use global config manager', async () => {
     const loadConfigSpy = vi.spyOn(configManager, 'loadConfig');
-    
+
     vi.mocked(existsSync).mockReturnValue(false);
 
     const { loadConfig } = await import('../index.js');
@@ -318,15 +312,13 @@ describe('Legacy loadConfig function', () => {
 
 describe('RuntimeConfigManager', () => {
   let runtimeManager;
-  let mockReadFile;
   let mockExistsSync;
 
   beforeEach(async () => {
     const { RuntimeConfigManager } = await import('../index.js');
     runtimeManager = new RuntimeConfigManager();
-    mockReadFile = vi.mocked(readFile);
     mockExistsSync = vi.mocked(existsSync);
-    
+
     // Load initial config
     mockExistsSync.mockReturnValue(false);
     await runtimeManager.loadConfig();
@@ -396,14 +388,14 @@ describe('RuntimeConfigManager', () => {
       runtimeManager.subscribe('test', callback);
 
       runtimeManager.applyConfigChanges({ sharedLibraryPath: './path1' });
-      runtimeManager.applyConfigChanges({ templatesPath: './templates1' });
+      runtimeManager.applyConfigChanges({ workspaceRoot: './workspace1' });
 
       // Wait for queue processing
       await new Promise(resolve => setTimeout(resolve, 150));
 
       const config = runtimeManager.getConfig();
       expect(config.sharedLibraryPath).toBe('./path1');
-      expect(config.templatesPath).toBe('./templates1');
+      expect(config.workspaceRoot).toBe('./workspace1');
     });
   });
 
@@ -420,7 +412,7 @@ describe('RuntimeConfigManager', () => {
 
     it('should set configuration value by path', async () => {
       await runtimeManager.setConfigValue('logging.level', 'debug', { immediate: true });
-      
+
       const value = runtimeManager.getConfigValue('logging.level');
       expect(value).toBe('debug');
     });
@@ -513,7 +505,7 @@ describe('RuntimeConfigManager', () => {
   describe('destroy', () => {
     it('should cleanup runtime resources', () => {
       runtimeManager.subscribe('test', vi.fn());
-      
+
       const stats = runtimeManager.getRuntimeStats();
       expect(stats.subscriberCount).toBe(1);
 

@@ -12,7 +12,10 @@ export class ProjectManager {
   constructor(fileSystemHandler, config) {
     this.fileSystemHandler = fileSystemHandler;
     this.config = config;
-    this.templatesPath = config.templatesPath || path.join(process.cwd(), 'examples');
+    // Workspace root for resolving reference projects
+    this.workspaceRoot = config.workspaceRoot || './';
+    // Built-in scaffolding templates (fallback)
+    this.builtInTemplatesPath = path.join(process.cwd(), 'examples');
     // Configurable shared library name (allows company customization)
     this.sharedLibraryName = config.sharedLibraryName || 'my-shared';
   }
@@ -25,22 +28,33 @@ export class ProjectManager {
   }
 
   /**
-   * Get available project templates
+   * Get built-in project templates (used when no referenceProject is specified)
    */
-  getAvailableTemplates() {
+  getBuiltInTemplates() {
     return {
-      'frontend-project': {
+      frontend: {
         name: 'Frontend Project',
         description: 'Vue.js frontend project with router and basic components',
-        path: path.join(this.templatesPath, 'frontend-project'),
+        path: path.join(this.builtInTemplatesPath, 'frontend-project'),
         type: 'frontend'
       },
-      'backend-project': {
+      backend: {
         name: 'Backend Project',
         description: 'Vue.js backend project with authentication, menu, and CRUD functionality',
-        path: path.join(this.templatesPath, 'backend-project'),
+        path: path.join(this.builtInTemplatesPath, 'backend-project'),
         type: 'backend'
       }
+    };
+  }
+
+  /**
+   * Get available project templates (legacy compatibility)
+   */
+  getAvailableTemplates() {
+    const templates = this.getBuiltInTemplates();
+    return {
+      'frontend-project': templates.frontend,
+      'backend-project': templates.backend
     };
   }
 
@@ -83,29 +97,59 @@ export class ProjectManager {
   }
 
   /**
-   * Get template path for project type
+   * Resolve reference project path
+   * Priority:
+   * 1. referenceProject (absolute path or relative to workspaceRoot)
+   * 2. Built-in template for the specified type
    */
-  getTemplatePath(type) {
-    const templates = this.getAvailableTemplates();
-    const templateKey = `${type}-project`;
+  resolveTemplatePath(type, referenceProject) {
+    // If referenceProject is specified, use it
+    if (referenceProject) {
+      let refPath = referenceProject;
 
-    if (!templates[templateKey]) {
+      // If not absolute path, resolve relative to workspaceRoot
+      if (!path.isAbsolute(referenceProject)) {
+        refPath = path.join(this.workspaceRoot, referenceProject);
+      }
+
+      if (!this.fileSystemHandler.exists(refPath)) {
+        throw new BalmSharedMCPError(
+          ErrorCodes.TEMPLATE_NOT_FOUND,
+          `Reference project not found: ${refPath}`
+        );
+      }
+
+      logger.info(`Using reference project: ${refPath}`);
+      return refPath;
+    }
+
+    // Fall back to built-in template
+    const templates = this.getBuiltInTemplates();
+    const template = templates[type];
+
+    if (!template) {
       throw new BalmSharedMCPError(
         ErrorCodes.TEMPLATE_NOT_FOUND,
         `Template not found for project type: ${type}`
       );
     }
 
-    const templatePath = templates[templateKey].path;
-
-    if (!this.fileSystemHandler.exists(templatePath)) {
+    if (!this.fileSystemHandler.exists(template.path)) {
       throw new BalmSharedMCPError(
         ErrorCodes.TEMPLATE_NOT_FOUND,
-        `Template directory not found: ${templatePath}`
+        `Built-in template directory not found: ${template.path}. Consider specifying a referenceProject.`
       );
     }
 
-    return templatePath;
+    logger.info(`Using built-in template: ${template.path}`);
+    return template.path;
+  }
+
+  /**
+   * Get template path for project type (legacy compatibility)
+   */
+  getTemplatePath(type, referenceProject = null) {
+    return this.resolveTemplatePath(type, referenceProject);
   }
 
   /**
@@ -383,19 +427,29 @@ export class ProjectManager {
   }
 
   /**
-   * Create a new project based on template
+   * Create a new project based on template or reference project
+   *
+   * @param {Object} options - Project creation options
+   * @param {string} options.name - Project name (required)
+   * @param {string} options.type - Project type: 'frontend' or 'backend' (required)
+   * @param {string} options.path - Project path (required)
+   * @param {string} [options.referenceProject] - Reference project path (optional)
+   *   Can be absolute path or relative to WORKSPACE_ROOT
    */
   async createProject(options) {
     try {
-      const { name, type, path: projectPath } = options;
+      const { name, type, path: projectPath, referenceProject } = options;
 
       logger.info(`Creating ${type} project: ${name} at ${projectPath}`);
+      if (referenceProject) {
+        logger.info(`Using reference project: ${referenceProject}`);
+      }
 
       // Validate input options
       this.validateProjectOptions(options);
 
-      // Get template path
-      const templatePath = this.getTemplatePath(type);
+      // Get template path (from referenceProject or built-in template)
+      const templatePath = this.getTemplatePath(type, referenceProject);
 
       // Prepare template variables
       const variables = this.prepareTemplateVariables(options);
@@ -418,6 +472,7 @@ export class ProjectManager {
         projectPath,
         type,
         template: templatePath,
+        referenceProject: referenceProject || null,
         features: this.getProjectFeatures(type),
         nextSteps: this.getNextSteps(projectPath)
       };
