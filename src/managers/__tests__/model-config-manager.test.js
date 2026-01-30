@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ModelConfigManager } from '../model-config-manager.js';
 import { BalmSharedMCPError } from '../../utils/errors.js';
-import { 
+import {
   createMockLogger,
   createMockFileSystemHandler,
   createMockModelOptions,
@@ -20,7 +20,7 @@ describe('ModelConfigManager', () => {
     mockLogger = createMockLogger();
     mockFileSystemHandler = createMockFileSystemHandler();
     mockSetups.setupSuccessfulFileOperations(mockFileSystemHandler);
-    
+
     manager = new ModelConfigManager(mockFileSystemHandler, mockLogger);
   });
 
@@ -34,7 +34,12 @@ describe('ModelConfigManager', () => {
           createMockModelField({ name: 'id', type: 'number', required: false }),
           createMockModelField({ name: 'name', type: 'string', required: true }),
           createMockModelField({ name: 'email', type: 'string', required: true }),
-          createMockModelField({ name: 'active', type: 'boolean', component: 'ui-switch', required: false })
+          createMockModelField({
+            name: 'active',
+            type: 'boolean',
+            component: 'ui-switch',
+            required: false
+          })
         ]
       });
     });
@@ -51,24 +56,24 @@ describe('ModelConfigManager', () => {
     it('should throw error for missing required parameters', async () => {
       const invalidOptions = { model: 'User' };
 
-      await expect(manager.generateModelConfig(invalidOptions))
-        .rejects.toThrow(BalmSharedMCPError);
-      
-      await expect(manager.generateModelConfig(invalidOptions))
-        .rejects.toThrow('Fields array cannot be empty');
+      await expect(manager.generateModelConfig(invalidOptions)).rejects.toThrow(BalmSharedMCPError);
+
+      await expect(manager.generateModelConfig(invalidOptions)).rejects.toThrow(
+        'Fields array cannot be empty'
+      );
     });
 
     it('should throw error for non-array fields parameter', async () => {
-      const invalidOptions = { 
+      const invalidOptions = {
         model: 'User',
         fields: 'not-an-array'
       };
 
-      await expect(manager.generateModelConfig(invalidOptions))
-        .rejects.toThrow(BalmSharedMCPError);
-      
-      await expect(manager.generateModelConfig(invalidOptions))
-        .rejects.toThrow('Fields array is required for model config generation');
+      await expect(manager.generateModelConfig(invalidOptions)).rejects.toThrow(BalmSharedMCPError);
+
+      await expect(manager.generateModelConfig(invalidOptions)).rejects.toThrow(
+        'Fields array is required for model config generation'
+      );
     });
 
     it('should validate model name format', async () => {
@@ -77,8 +82,7 @@ describe('ModelConfigManager', () => {
         model: 'invalid-model-name'
       };
 
-      await expect(manager.generateModelConfig(invalidOptions))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(manager.generateModelConfig(invalidOptions)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should validate fields array', async () => {
@@ -87,8 +91,7 @@ describe('ModelConfigManager', () => {
         fields: []
       };
 
-      await expect(manager.generateModelConfig(invalidOptions))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(manager.generateModelConfig(invalidOptions)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should validate field structure', async () => {
@@ -99,11 +102,11 @@ describe('ModelConfigManager', () => {
         ]
       };
 
-      await expect(manager.generateModelConfig(invalidOptions))
-        .rejects.toThrow(BalmSharedMCPError);
-      
-      await expect(manager.generateModelConfig(invalidOptions))
-        .rejects.toThrow('Field at index 0 is missing required properties (name, type)');
+      await expect(manager.generateModelConfig(invalidOptions)).rejects.toThrow(BalmSharedMCPError);
+
+      await expect(manager.generateModelConfig(invalidOptions)).rejects.toThrow(
+        'Field at index 0 is missing required properties (name, type)'
+      );
     });
 
     it('should create model-config directory if it does not exist', async () => {
@@ -138,9 +141,7 @@ describe('ModelConfigManager', () => {
     it('should validate correct options', () => {
       const validOptions = {
         model: 'User',
-        fields: [
-          { name: 'name', type: 'string', component: 'ui-textfield', required: true }
-        ],
+        fields: [{ name: 'name', type: 'string', component: 'ui-textfield', required: true }],
         projectPath: '/test/project'
       };
 
@@ -151,9 +152,7 @@ describe('ModelConfigManager', () => {
 
     it('should throw error for missing model', () => {
       const invalidOptions = {
-        fields: [
-          { name: 'name', type: 'string', component: 'ui-textfield', required: true }
-        ],
+        fields: [{ name: 'name', type: 'string', component: 'ui-textfield', required: true }],
         projectPath: '/test/project'
       };
 
@@ -165,9 +164,7 @@ describe('ModelConfigManager', () => {
     it('should throw error for invalid model name', () => {
       const invalidOptions = {
         model: 'invalid-model',
-        fields: [
-          { name: 'name', type: 'string', component: 'ui-textfield', required: true }
-        ],
+        fields: [{ name: 'name', type: 'string', component: 'ui-textfield', required: true }],
         projectPath: '/test/project'
       };
 
@@ -200,7 +197,7 @@ describe('ModelConfigManager', () => {
       expect(() => {
         manager.validateModelOptions(invalidOptions);
       }).toThrow(BalmSharedMCPError);
-      
+
       expect(() => {
         manager.validateModelOptions(invalidOptions);
       }).toThrow('Field at index 0 is missing required properties (name, type, component)');
@@ -209,16 +206,14 @@ describe('ModelConfigManager', () => {
     it('should throw error for missing project path', () => {
       const invalidOptions = {
         model: 'User',
-        fields: [
-          { name: 'name', type: 'string', component: 'ui-textfield', required: true }
-        ]
+        fields: [{ name: 'name', type: 'string', component: 'ui-textfield', required: true }]
         // missing projectPath
       };
 
       expect(() => {
         manager.validateModelOptions(invalidOptions);
       }).toThrow(BalmSharedMCPError);
-      
+
       expect(() => {
         manager.validateModelOptions(invalidOptions);
       }).toThrow('Project path is required');
@@ -502,8 +497,7 @@ describe('ModelConfigManager', () => {
         fields: [createMockModelField({ name: 'name', required: true })]
       });
 
-      await expect(manager.generateModelConfig(options))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(manager.generateModelConfig(options)).rejects.toThrow(BalmSharedMCPError);
 
       mockAssertions.assertLoggerCalled(mockLogger, 'error', 'Failed to generate model config');
     });
@@ -511,8 +505,7 @@ describe('ModelConfigManager', () => {
     it('should log validation errors', async () => {
       const invalidOptions = { model: 'invalid-model' };
 
-      await expect(manager.generateModelConfig(invalidOptions))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(manager.generateModelConfig(invalidOptions)).rejects.toThrow(BalmSharedMCPError);
 
       mockAssertions.assertLoggerCalled(mockLogger, 'error', 'Failed to generate model config');
     });

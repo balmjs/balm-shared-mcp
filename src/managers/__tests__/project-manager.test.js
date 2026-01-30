@@ -59,8 +59,26 @@ describe('ProjectManager', () => {
 
     it('should create a frontend project successfully with balm init', async () => {
       // Mock runBalmInit for balm-init mode
-      projectManager.runBalmInit = vi.fn().mockResolvedValue({ success: true, output: 'done' });
-      mockFileSystemHandler.exists.mockReturnValue(false); // Target doesn't exist
+      projectManager.runBalmInit = vi.fn().mockResolvedValue({
+        success: true,
+        output: 'done',
+        projectPath: '/test/path'
+      });
+
+      // Mock exists to return false for initial check, true after creation
+      let callCount = 0;
+      mockFileSystemHandler.exists.mockImplementation(path => {
+        callCount++;
+        // First call: check if target exists (should be false)
+        if (callCount === 1 && path === '/test/path') {
+          return false;
+        }
+        // Second call: verify project was created (should be true)
+        if (path === '/test/path') {
+          return true;
+        }
+        return false;
+      });
 
       const result = await projectManager.createProject(validOptions);
 
@@ -78,8 +96,26 @@ describe('ProjectManager', () => {
     });
 
     it('should create a backend project successfully with balm init', async () => {
-      projectManager.runBalmInit = vi.fn().mockResolvedValue({ success: true, output: 'done' });
-      mockFileSystemHandler.exists.mockReturnValue(false);
+      projectManager.runBalmInit = vi.fn().mockResolvedValue({
+        success: true,
+        output: 'done',
+        projectPath: '/test/path'
+      });
+
+      // Mock exists to return false for initial check, true after creation
+      let callCount = 0;
+      mockFileSystemHandler.exists.mockImplementation(path => {
+        callCount++;
+        // First call: check if target exists (should be false)
+        if (callCount === 1 && path === '/test/path') {
+          return false;
+        }
+        // Second call: verify project was created (should be true)
+        if (path === '/test/path') {
+          return true;
+        }
+        return false;
+      });
 
       const backendOptions = { ...validOptions, type: 'backend' };
       const result = await projectManager.createProject(backendOptions);
@@ -289,8 +325,50 @@ describe('ProjectManager', () => {
       expect(() => projectManager.validateProjectOptions(options)).not.toThrow();
     });
 
+    it('should validate project name with underscores and numbers', () => {
+      const options = {
+        name: 'test_project_123',
+        type: 'frontend',
+        path: '/test/path'
+      };
+
+      expect(() => projectManager.validateProjectOptions(options)).not.toThrow();
+    });
+
     it('should throw error for missing name', () => {
       const options = {
+        type: 'frontend',
+        path: '/test/path'
+      };
+
+      expect(() => projectManager.validateProjectOptions(options)).toThrow(BalmSharedMCPError);
+    });
+
+    it('should throw error for project name with uppercase letters', () => {
+      const options = {
+        name: 'TestProject',
+        type: 'frontend',
+        path: '/test/path'
+      };
+
+      expect(() => projectManager.validateProjectOptions(options)).toThrow(BalmSharedMCPError);
+      expect(() => projectManager.validateProjectOptions(options)).toThrow(/lowercase/);
+    });
+
+    it('should throw error for project name with spaces', () => {
+      const options = {
+        name: 'test project',
+        type: 'frontend',
+        path: '/test/path'
+      };
+
+      expect(() => projectManager.validateProjectOptions(options)).toThrow(BalmSharedMCPError);
+      expect(() => projectManager.validateProjectOptions(options)).toThrow(/lowercase/);
+    });
+
+    it('should throw error for project name with special characters', () => {
+      const options = {
+        name: 'test@project',
         type: 'frontend',
         path: '/test/path'
       };

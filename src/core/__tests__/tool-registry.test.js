@@ -1,10 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ToolRegistry } from '../tool-registry.js';
 import { BalmSharedMCPError } from '../../utils/errors.js';
-import { 
-  createMockTool,
-  createMockMCPContext
-} from '../../../tests/utils/mock-utilities.js';
+import { createMockTool, createMockMCPContext } from '../../../tests/utils/mock-utilities.js';
 
 describe('ToolRegistry', () => {
   let registry;
@@ -124,11 +121,14 @@ describe('ToolRegistry', () => {
       const args = { name: 'Test User' };
       const result = await registry.execute('test_tool', args, mockContext);
 
-      expect(mockTool.handler).toHaveBeenCalledWith(args, expect.objectContaining({
-        requestId: mockContext.requestId,
-        toolName: 'test_tool',
-        category: 'testing'
-      }));
+      expect(mockTool.handler).toHaveBeenCalledWith(
+        args,
+        expect.objectContaining({
+          requestId: mockContext.requestId,
+          toolName: 'test_tool',
+          category: 'testing'
+        })
+      );
       expect(result.content).toBeDefined();
 
       const tool = registry.tools.get('test_tool');
@@ -140,7 +140,7 @@ describe('ToolRegistry', () => {
       const errorTool = {
         name: 'error_tool',
         description: 'Error tool',
-        inputSchema: { 
+        inputSchema: {
           type: 'object',
           properties: {}
         },
@@ -154,9 +154,9 @@ describe('ToolRegistry', () => {
         errorTool.handler
       );
 
-      await expect(
-        registry.execute('error_tool', {}, { requestId: 'test-123' })
-      ).rejects.toThrow('Execution failed');
+      await expect(registry.execute('error_tool', {}, { requestId: 'test-123' })).rejects.toThrow(
+        'Execution failed'
+      );
 
       const tool = registry.tools.get('error_tool');
       expect(tool.usage.callCount).toBe(1);
@@ -164,16 +164,16 @@ describe('ToolRegistry', () => {
     });
 
     it('should throw error for non-existent tool', async () => {
-      await expect(
-        registry.execute('non_existent', {}, { requestId: 'test-123' })
-      ).rejects.toThrow(BalmSharedMCPError);
+      await expect(registry.execute('non_existent', {}, { requestId: 'test-123' })).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should track execution times', async () => {
       const slowTool = {
         name: 'slow_tool',
         description: 'Slow tool',
-        inputSchema: { 
+        inputSchema: {
           type: 'object',
           properties: {}
         },
@@ -252,13 +252,9 @@ describe('ToolRegistry', () => {
 
     beforeEach(() => {
       mockTools.forEach(tool => {
-        registry.register(
-          tool.name,
-          tool.description,
-          tool.inputSchema,
-          tool.handler,
-          { category: tool.category }
-        );
+        registry.register(tool.name, tool.description, tool.inputSchema, tool.handler, {
+          category: tool.category
+        });
       });
     });
 
@@ -326,13 +322,9 @@ describe('ToolRegistry', () => {
       ];
 
       tools.forEach(tool => {
-        registry.register(
-          tool.name,
-          'Description',
-          { type: 'object', properties: {} },
-          vi.fn(),
-          { category: tool.category }
-        );
+        registry.register(tool.name, 'Description', { type: 'object', properties: {} }, vi.fn(), {
+          category: tool.category
+        });
       });
 
       const categories = registry.getCategories();
@@ -351,12 +343,7 @@ describe('ToolRegistry', () => {
         handler: vi.fn()
       };
 
-      registry.register(
-        tool.name,
-        tool.description,
-        tool.inputSchema,
-        tool.handler
-      );
+      registry.register(tool.name, tool.description, tool.inputSchema, tool.handler);
 
       const stats = registry.getStatistics();
       expect(stats.totalTools).toBe(1);
@@ -374,13 +361,9 @@ describe('ToolRegistry', () => {
         handler: vi.fn()
       };
 
-      registry.register(
-        tool.name,
-        tool.description,
-        tool.inputSchema,
-        tool.handler,
-        { category: 'testing' }
-      );
+      registry.register(tool.name, tool.description, tool.inputSchema, tool.handler, {
+        category: 'testing'
+      });
 
       registry.clear();
 

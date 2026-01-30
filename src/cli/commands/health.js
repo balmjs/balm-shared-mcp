@@ -18,7 +18,7 @@ export async function healthCheck(options) {
     logger.info('Starting health check...');
 
     const timeout = parseInt(options.timeout) * 1000;
-    const verbose = options.verbose;
+    const { verbose } = options;
 
     const results = {
       overall: 'healthy',
@@ -61,7 +61,6 @@ export async function healthCheck(options) {
     } else if (results.overall === 'degraded') {
       process.exit(2);
     }
-
   } catch (error) {
     logger.error('Health check failed', { error: error.message });
     process.exit(1);
@@ -80,9 +79,7 @@ async function checkConfiguration(options, results, verbose) {
   };
 
   try {
-    const config = options.config ? 
-      await loadConfig(resolve(options.config)) : 
-      await loadConfig();
+    const config = options.config ? await loadConfig(resolve(options.config)) : await loadConfig();
 
     check.details.configPath = config._configPath || 'default';
     check.details.sharedProjectPath = config.sharedProjectPath;
@@ -95,7 +92,6 @@ async function checkConfiguration(options, results, verbose) {
       check.status = 'failed';
       check.message = 'BalmShared library path does not exist';
     }
-
   } catch (error) {
     check.status = 'failed';
     check.message = `Configuration error: ${error.message}`;
@@ -153,7 +149,6 @@ async function checkDependencies(results, verbose) {
       check.status = 'warning';
       check.message = 'package.json not found';
     }
-
   } catch (error) {
     check.status = 'failed';
     check.message = `Dependency check error: ${error.message}`;
@@ -174,9 +169,7 @@ async function checkBalmSharedLibrary(options, results, verbose) {
   };
 
   try {
-    const config = options.config ? 
-      await loadConfig(resolve(options.config)) : 
-      await loadConfig();
+    const config = options.config ? await loadConfig(resolve(options.config)) : await loadConfig();
 
     if (!config.sharedProjectPath) {
       check.status = 'failed';
@@ -205,9 +198,7 @@ async function checkBalmSharedLibrary(options, results, verbose) {
 
     // Check for essential directories
     const essentialDirs = ['src', 'lib', 'dist'];
-    const existingDirs = essentialDirs.filter(dir => 
-      existsSync(join(libraryPath, dir))
-    );
+    const existingDirs = essentialDirs.filter(dir => existsSync(join(libraryPath, dir)));
 
     check.details.availableDirectories = existingDirs;
 
@@ -215,7 +206,6 @@ async function checkBalmSharedLibrary(options, results, verbose) {
       check.status = 'warning';
       check.message = 'No standard directories found in BalmShared library';
     }
-
   } catch (error) {
     check.status = 'failed';
     check.message = `BalmShared library check error: ${error.message}`;
@@ -237,7 +227,7 @@ async function checkServerProcess(results, verbose) {
 
   try {
     const pidFile = join(process.cwd(), '.balm-shared-mcp.pid');
-    
+
     if (existsSync(pidFile)) {
       const pid = parseInt(readFileSync(pidFile, 'utf8'));
       check.details.pid = pid;
@@ -255,7 +245,6 @@ async function checkServerProcess(results, verbose) {
       check.details.status = 'not_running';
       check.message = 'Server is not running as daemon';
     }
-
   } catch (error) {
     check.status = 'failed';
     check.message = `Process check error: ${error.message}`;
@@ -315,7 +304,6 @@ async function checkFileSystem(results, verbose) {
       // Disk space check is optional
       check.details.diskSpaceCheck = 'unavailable';
     }
-
   } catch (error) {
     check.status = 'failed';
     check.message = `File system check error: ${error.message}`;
@@ -337,7 +325,7 @@ async function checkMemoryUsage(results, verbose) {
 
   try {
     const memUsage = process.memoryUsage();
-    const formatBytes = (bytes) => (bytes / 1024 / 1024).toFixed(2) + ' MB';
+    const formatBytes = bytes => `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 
     check.details.memoryUsage = {
       rss: formatBytes(memUsage.rss),
@@ -352,7 +340,6 @@ async function checkMemoryUsage(results, verbose) {
       check.status = 'warning';
       check.message = `High memory usage: ${formatBytes(memUsage.heapUsed)}`;
     }
-
   } catch (error) {
     check.status = 'failed';
     check.message = `Memory check error: ${error.message}`;
@@ -377,7 +364,6 @@ async function checkNetworkConnectivity(results, verbose) {
     // you might want to test actual HTTP endpoints
     check.details.mode = 'stdio';
     check.message = 'Running in STDIO mode, network check skipped';
-
   } catch (error) {
     check.status = 'failed';
     check.message = `Network check error: ${error.message}`;
@@ -405,11 +391,10 @@ function displayHealthResults(results, verbose) {
 
   // Individual checks
   results.checks.forEach(check => {
-    const emoji = check.status === 'passed' ? '✅' : 
-                  check.status === 'warning' ? '⚠️' : '❌';
-    
+    const emoji = check.status === 'passed' ? '✅' : check.status === 'warning' ? '⚠️' : '❌';
+
     console.log(`${emoji} ${check.name}: ${check.message}`);
-    
+
     if (verbose && check.details && Object.keys(check.details).length > 0) {
       Object.entries(check.details).forEach(([key, value]) => {
         console.log(`   ${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`);

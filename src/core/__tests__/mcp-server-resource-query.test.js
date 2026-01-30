@@ -51,15 +51,9 @@ describe('MCPServer Resource Query Tools', () => {
         name: 'yb-avatar',
         category: 'common',
         found: true,
-        props: [
-          { name: 'size', type: 'String', default: 'medium' }
-        ],
-        events: [
-          { name: 'click', source: 'emit' }
-        ],
-        examples: [
-          { language: 'vue', code: '<yb-avatar size="large" />' }
-        ],
+        props: [{ name: 'size', type: 'String', default: 'medium' }],
+        events: [{ name: 'click', source: 'emit' }],
+        examples: [{ language: 'vue', code: '<yb-avatar size="large" />' }],
         documentation: 'Avatar component for displaying user avatars'
       });
     });
@@ -79,7 +73,7 @@ describe('MCPServer Resource Query Tools', () => {
 
     it('should query component without category', async () => {
       const argsWithoutCategory = { name: 'yb-button' };
-      
+
       const result = await mcpServer.queryComponent(argsWithoutCategory);
 
       expect(result.query.category).toBeNull();
@@ -89,47 +83,41 @@ describe('MCPServer Resource Query Tools', () => {
     it('should throw error for missing required parameters', async () => {
       const invalidArgs = {}; // Missing name
 
-      await expect(mcpServer.queryComponent(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
-      
+      await expect(mcpServer.queryComponent(invalidArgs)).rejects.toThrow(BalmSharedMCPError);
+
       expect(mockResourceAnalyzer.queryComponent).not.toHaveBeenCalled();
     });
 
     it('should throw error for invalid name type', async () => {
       const invalidArgs = { name: 123 };
 
-      await expect(mcpServer.queryComponent(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.queryComponent(invalidArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should throw error for empty name', async () => {
       const invalidArgs = { name: '   ' };
 
-      await expect(mcpServer.queryComponent(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.queryComponent(invalidArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should throw error for invalid category type', async () => {
       const invalidArgs = { name: 'yb-avatar', category: 123 };
 
-      await expect(mcpServer.queryComponent(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.queryComponent(invalidArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should throw error for invalid category value', async () => {
       const invalidArgs = { name: 'yb-avatar', category: 'invalid-category' };
 
-      await expect(mcpServer.queryComponent(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.queryComponent(invalidArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should accept valid category values', async () => {
       const validCategories = ['common', 'form', 'chart', 'pro-views'];
-      
+
       for (const category of validCategories) {
         const args = { name: 'test-component', category };
-        await expect(mcpServer.queryComponent(args))
-          .resolves.toBeDefined();
+        await expect(mcpServer.queryComponent(args)).resolves.toBeDefined();
       }
     });
 
@@ -138,8 +126,7 @@ describe('MCPServer Resource Query Tools', () => {
         new Error('Component not found in index')
       );
 
-      await expect(mcpServer.queryComponent(validArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.queryComponent(validArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should preserve BalmSharedMCPError from resource analyzer', async () => {
@@ -149,16 +136,13 @@ describe('MCPServer Resource Query Tools', () => {
       );
       mockResourceAnalyzer.queryComponent.mockRejectedValue(originalError);
 
-      await expect(mcpServer.queryComponent(validArgs))
-        .rejects.toThrow(originalError);
+      await expect(mcpServer.queryComponent(validArgs)).rejects.toThrow(originalError);
     });
 
     it('should handle null and undefined parameters', async () => {
-      await expect(mcpServer.queryComponent(null))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.queryComponent(null)).rejects.toThrow(BalmSharedMCPError);
 
-      await expect(mcpServer.queryComponent(undefined))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.queryComponent(undefined)).rejects.toThrow(BalmSharedMCPError);
     });
   });
 
@@ -176,14 +160,10 @@ describe('MCPServer Resource Query Tools', () => {
             name: 'yb-avatar',
             category: 'common',
             practice: 'Use size prop to control avatar dimensions',
-            examples: [
-              { language: 'vue', code: '<yb-avatar size="large" />' }
-            ]
+            examples: [{ language: 'vue', code: '<yb-avatar size="large" />' }]
           }
         ],
-        examples: [
-          { language: 'vue', code: 'Example usage code' }
-        ],
+        examples: [{ language: 'vue', code: 'Example usage code' }],
         references: []
       });
     });
@@ -203,40 +183,35 @@ describe('MCPServer Resource Query Tools', () => {
     it('should throw error for missing required parameters', async () => {
       const invalidArgs = {}; // Missing topic
 
-      await expect(mcpServer.getBestPractices(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
-      
+      await expect(mcpServer.getBestPractices(invalidArgs)).rejects.toThrow(BalmSharedMCPError);
+
       expect(mockResourceAnalyzer.getBestPractices).not.toHaveBeenCalled();
     });
 
     it('should throw error for invalid topic type', async () => {
       const invalidArgs = { topic: 123 };
 
-      await expect(mcpServer.getBestPractices(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.getBestPractices(invalidArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should throw error for empty topic', async () => {
       const invalidArgs = { topic: '   ' };
 
-      await expect(mcpServer.getBestPractices(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.getBestPractices(invalidArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should throw error for invalid topic value', async () => {
       const invalidArgs = { topic: 'invalid-topic' };
 
-      await expect(mcpServer.getBestPractices(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.getBestPractices(invalidArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should accept valid topic values', async () => {
       const validTopics = ['project-structure', 'api-config', 'component-usage', 'routing'];
-      
+
       for (const topic of validTopics) {
         const args = { topic };
-        await expect(mcpServer.getBestPractices(args))
-          .resolves.toBeDefined();
+        await expect(mcpServer.getBestPractices(args)).resolves.toBeDefined();
       }
     });
 
@@ -245,27 +220,20 @@ describe('MCPServer Resource Query Tools', () => {
         new Error('Best practices not found')
       );
 
-      await expect(mcpServer.getBestPractices(validArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.getBestPractices(validArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should preserve BalmSharedMCPError from resource analyzer', async () => {
-      const originalError = new BalmSharedMCPError(
-        ErrorCodes.INVALID_REQUEST,
-        'Invalid topic'
-      );
+      const originalError = new BalmSharedMCPError(ErrorCodes.INVALID_REQUEST, 'Invalid topic');
       mockResourceAnalyzer.getBestPractices.mockRejectedValue(originalError);
 
-      await expect(mcpServer.getBestPractices(validArgs))
-        .rejects.toThrow(originalError);
+      await expect(mcpServer.getBestPractices(validArgs)).rejects.toThrow(originalError);
     });
 
     it('should handle null and undefined parameters', async () => {
-      await expect(mcpServer.getBestPractices(null))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.getBestPractices(null)).rejects.toThrow(BalmSharedMCPError);
 
-      await expect(mcpServer.getBestPractices(undefined))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.getBestPractices(undefined)).rejects.toThrow(BalmSharedMCPError);
     });
   });
 
@@ -287,11 +255,9 @@ describe('MCPServer Resource Query Tools', () => {
     });
 
     it('should handle empty object parameters', async () => {
-      await expect(mcpServer.queryComponent({}))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.queryComponent({})).rejects.toThrow(BalmSharedMCPError);
 
-      await expect(mcpServer.getBestPractices({}))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.getBestPractices({})).rejects.toThrow(BalmSharedMCPError);
     });
   });
 
@@ -328,7 +294,7 @@ describe('MCPServer Resource Query Tools', () => {
   describe('result formatting', () => {
     it('should add query metadata to component query results', async () => {
       const args = { name: 'yb-avatar', category: 'common' };
-      
+
       mockResourceAnalyzer.queryComponent.mockResolvedValue({
         found: true,
         name: 'yb-avatar'
@@ -345,7 +311,7 @@ describe('MCPServer Resource Query Tools', () => {
 
     it('should add query metadata to best practices results', async () => {
       const args = { topic: 'component-usage' };
-      
+
       mockResourceAnalyzer.getBestPractices.mockResolvedValue({
         topic: 'component-usage',
         practices: []
@@ -361,7 +327,7 @@ describe('MCPServer Resource Query Tools', () => {
 
     it('should handle null category in query metadata', async () => {
       const args = { name: 'yb-avatar' }; // No category
-      
+
       mockResourceAnalyzer.queryComponent.mockResolvedValue({
         found: true,
         name: 'yb-avatar'

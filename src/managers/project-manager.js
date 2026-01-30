@@ -71,6 +71,14 @@ export class ProjectManager {
       );
     }
 
+    // Validate project name format (should be valid for npm package names)
+    if (!/^[a-z0-9-_]+$/.test(name)) {
+      throw new BalmSharedMCPError(
+        ErrorCodes.VALIDATION_FAILED,
+        'Project name must contain only lowercase letters, numbers, hyphens, and underscores'
+      );
+    }
+
     if (!type || !['frontend', 'backend'].includes(type)) {
       throw new BalmSharedMCPError(
         ErrorCodes.VALIDATION_FAILED,
@@ -89,7 +97,8 @@ export class ProjectManager {
     if (this.fileSystemHandler.exists(projectPath)) {
       throw new BalmSharedMCPError(
         ErrorCodes.PROJECT_CREATION_FAILED,
-        `Target directory already exists: ${projectPath}`
+        `Target directory already exists: ${projectPath}. Please choose a different name or remove the existing directory.`,
+        { projectPath }
       );
     }
 
@@ -212,12 +221,13 @@ export class ProjectManager {
 
     // Check if balm-cli is installed
     try {
-      await execAsync('balm --version');
+      const { stdout: versionOutput } = await execAsync('balm --version');
+      logger.info(`balm-cli version: ${versionOutput.trim()}`);
     } catch (error) {
       throw new BalmSharedMCPError(
         ErrorCodes.PROJECT_CREATION_FAILED,
         'balm-cli is not installed. Please install it globally using: npm install -g balm-cli',
-        { originalError: error }
+        { originalError: error.message }
       );
     }
 
@@ -227,35 +237,103 @@ export class ProjectManager {
       // Ensure target directory exists
       if (!this.fileSystemHandler.exists(targetDir)) {
         await this.fileSystemHandler.mkdir(targetDir, { recursive: true });
+        logger.info(`Created target directory: ${targetDir}`);
       }
 
-      const { stdout, stderr } = await execAsync(`balm init ${templateName} ${projectName}`, {
+      // Run balm init command with better error handling
+      const command = `balm init ${templateName} ${projectName}`;
+      logger.info(`Executing command: ${command}`);
+
+      const { stdout, stderr } = await execAsync(command, {
         cwd: targetDir,
-        timeout: 60000, // 60 second timeout
-        // Use CI=true for non-interactive mode if supported, or ensure commands don't prompt
-        env: { ...process.env, CI: 'true' }
+        timeout: 120000, // 120 second timeout (increased for slow networks)
+        maxBuffer: 1024 * 1024 * 10, // 10MB buffer for large outputs
+        env: {
+          ...process.env,
+          CI: 'true',
+          // Ensure npm/yarn doesn't prompt for input
+          npm_config_yes: 'true'
+        }
       });
 
-      if (stderr && !stderr.includes('npm WARN')) {
-        logger.warn(`balm init stderr: ${stderr}`);
+      // Log output for debugging
+      if (stdout) {
+        logger.info(`balm init stdout: ${stdout}`);
+      }
+      if (stderr) {
+        // Only warn if stderr contains actual errors (not just npm warnings)
+        if (stderr.includes('error') || stderr.includes('Error') || stderr.includes('failed')) {
+          logger.warn(`balm init stderr: ${stderr}`);
+        } else {
+          logger.debug(`balm init stderr (non-error): ${stderr}`);
+        }
       }
 
-      logger.info(`balm init completed: ${stdout}`);
-      return { success: true, output: stdout };
+      // Verify that the project was actually created
+      const projectPath = path.join(targetDir, projectName);
+      if (!this.fileSystemHandler.exists(projectPath)) {
+        throw new BalmSharedMCPError(
+          ErrorCodes.PROJECT_CREATION_FAILED,
+          `Project directory was not created: ${projectPath}. The balm init command may have failed silently.`,
+          {
+            templateName,
+            projectName,
+            targetDir,
+            stdout: stdout || 'No output',
+            stderr: stderr || 'No errors'
+          }
+        );
+      }
+
+      // Verify package.json exists
+      const packageJsonPath = path.join(projectPath, 'package.json');
+      if (!this.fileSystemHandler.exists(packageJsonPath)) {
+        throw new BalmSharedMCPError(
+          ErrorCodes.PROJECT_CREATION_FAILED,
+          `Project was created but package.json is missing: ${packageJsonPath}`,
+          { templateName, projectName, projectPath }
+        );
+      }
+
+      logger.info(`balm init completed successfully. Project created at: ${projectPath}`);
+      return {
+        success: true,
+        output: stdout,
+        projectPath
+      };
     } catch (error) {
-      // Enhance error message if it looks like a missing command issue (double check)
+      // Enhance error message if it looks like a missing command issue
       if (error.message.includes('command not found') || error.code === 127) {
         throw new BalmSharedMCPError(
           ErrorCodes.PROJECT_CREATION_FAILED,
           'Failed to run "balm init". Please ensure balm-cli is installed globally: npm install -g balm-cli',
-          { originalError: error }
+          { originalError: error.message }
         );
       }
 
+      // If it's already a BalmSharedMCPError, re-throw it
+      if (error instanceof BalmSharedMCPError) {
+        throw error;
+      }
+
+      // Provide detailed error information
+      const errorDetails = {
+        templateName,
+        projectName,
+        targetDir,
+        command: `balm init ${templateName} ${projectName}`,
+        errorMessage: error.message,
+        errorCode: error.code,
+        stdout: error.stdout || 'No output',
+        stderr: error.stderr || 'No errors'
+      };
+
+      logger.error('balm init failed with details:', errorDetails);
+
       throw new BalmSharedMCPError(
         ErrorCodes.PROJECT_CREATION_FAILED,
-        `Failed to run balm init: ${error.message}`,
-        { templateName, projectName, targetDir, originalError: error }
+        `Failed to run balm init: ${error.message}. Check that the template '${templateName}' exists and is accessible.`,
+        errorDetails
       );
     }
   }
@@ -523,11 +601,28 @@ export class ProjectManager {
       if (templateInfo.mode === 'balm-init') {
         // Use balm init command to create project
         const targetDir = path.dirname(projectPath);
-        await this.runBalmInit(templateInfo.command, name, targetDir);
+        const initResult = await this.runBalmInit(templateInfo.command, name, targetDir);
         templateName = templateInfo.command;
 
-        // After balm init, the project is created, but we may still need to configure it
-        // Note: balm init already sets up the project, so some steps may be skipped
+        // Verify the project was created at the expected path
+        if (!this.fileSystemHandler.exists(projectPath)) {
+          throw new BalmSharedMCPError(
+            ErrorCodes.PROJECT_CREATION_FAILED,
+            `Project was not created at expected path: ${projectPath}`,
+            {
+              expectedPath: projectPath,
+              actualPath: initResult.projectPath,
+              targetDir,
+              projectName: name
+            }
+          );
+        }
+
+        logger.info(`Project created successfully via balm init at: ${projectPath}`);
+
+        // After balm init, the project is created with basic setup
+        // We can optionally apply additional configurations if needed
+        // Note: balm init already sets up the project structure, dependencies, etc.
       } else {
         // Copy mode: use reference project as template
         const variables = this.prepareTemplateVariables(options);

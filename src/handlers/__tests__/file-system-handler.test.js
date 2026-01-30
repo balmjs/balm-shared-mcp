@@ -3,7 +3,7 @@ import { FileSystemHandler } from '../file-system-handler.js';
 import { BalmSharedMCPError } from '../../utils/errors.js';
 import { existsSync, statSync } from 'fs';
 import path from 'path';
-import { 
+import {
   createMockFileStats,
   createMockDirectoryEntry,
   createMockError,
@@ -35,7 +35,18 @@ describe('FileSystemHandler', () => {
     const fsModule = await import('fs');
     mockFsPromises = fsModule.promises;
     handler = new FileSystemHandler({
-      allowedExtensions: ['.js', '.vue', '.json', '.md', '.scss', '.css', '.html', '.ts', '.txt', '.bin']
+      allowedExtensions: [
+        '.js',
+        '.vue',
+        '.json',
+        '.md',
+        '.scss',
+        '.css',
+        '.html',
+        '.ts',
+        '.txt',
+        '.bin'
+      ]
     });
   });
 
@@ -82,8 +93,7 @@ describe('FileSystemHandler', () => {
       existsSync.mockReturnValue(true);
       mockFsPromises.readFile.mockRejectedValue(new Error('File not found'));
 
-      await expect(handler.readFile('/test/nonexistent.txt'))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(handler.readFile('/test/nonexistent.txt')).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should support different encodings', async () => {
@@ -94,7 +104,10 @@ describe('FileSystemHandler', () => {
       const result = await handler.readFile('/test/binary.bin');
 
       expect(result).toBe(content);
-      expect(mockFsPromises.readFile).toHaveBeenCalledWith(path.resolve('/test/binary.bin'), 'utf-8');
+      expect(mockFsPromises.readFile).toHaveBeenCalledWith(
+        path.resolve('/test/binary.bin'),
+        'utf-8'
+      );
     });
   });
 
@@ -106,8 +119,14 @@ describe('FileSystemHandler', () => {
 
       await handler.writeFile('/test/dir/file.txt', 'content');
 
-      expect(mockFsPromises.mkdir).toHaveBeenCalledWith(path.resolve('/test/dir'), { recursive: true });
-      expect(mockFsPromises.writeFile).toHaveBeenCalledWith(path.resolve('/test/dir/file.txt'), 'content', 'utf-8');
+      expect(mockFsPromises.mkdir).toHaveBeenCalledWith(path.resolve('/test/dir'), {
+        recursive: true
+      });
+      expect(mockFsPromises.writeFile).toHaveBeenCalledWith(
+        path.resolve('/test/dir/file.txt'),
+        'content',
+        'utf-8'
+      );
     });
 
     it('should handle write errors', async () => {
@@ -115,8 +134,9 @@ describe('FileSystemHandler', () => {
       mockFsPromises.mkdir.mockResolvedValue();
       mockFsPromises.writeFile.mockRejectedValue(new Error('Permission denied'));
 
-      await expect(handler.writeFile('/test/file.txt', 'content'))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(handler.writeFile('/test/file.txt', 'content')).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should create directories recursively', async () => {
@@ -126,7 +146,9 @@ describe('FileSystemHandler', () => {
 
       await handler.writeFile('/deep/nested/dir/file.txt', 'content');
 
-      expect(mockFsPromises.mkdir).toHaveBeenCalledWith(path.resolve('/deep/nested/dir'), { recursive: true });
+      expect(mockFsPromises.mkdir).toHaveBeenCalledWith(path.resolve('/deep/nested/dir'), {
+        recursive: true
+      });
     });
 
     it('should support different encodings', async () => {
@@ -136,13 +158,17 @@ describe('FileSystemHandler', () => {
 
       await handler.writeFile('/test/file.txt', 'content');
 
-      expect(mockFsPromises.writeFile).toHaveBeenCalledWith(path.resolve('/test/file.txt'), 'content', 'utf-8');
+      expect(mockFsPromises.writeFile).toHaveBeenCalledWith(
+        path.resolve('/test/file.txt'),
+        'content',
+        'utf-8'
+      );
     });
   });
 
   describe('copyFile', () => {
     it('should copy file successfully', async () => {
-      existsSync.mockImplementation((filePath) => {
+      existsSync.mockImplementation(filePath => {
         // Source file exists, but target directory doesn't
         return filePath === '/source/file.txt';
       });
@@ -160,8 +186,9 @@ describe('FileSystemHandler', () => {
       mockFsPromises.mkdir.mockResolvedValue();
       mockFsPromises.copyFile.mockRejectedValue(new Error('Source not found'));
 
-      await expect(handler.copyFile('/source/file.txt', '/dest/file.txt'))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(handler.copyFile('/source/file.txt', '/dest/file.txt')).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
   });
 
@@ -179,8 +206,7 @@ describe('FileSystemHandler', () => {
       existsSync.mockReturnValue(true);
       mockFsPromises.unlink.mockRejectedValue(new Error('File not found'));
 
-      await expect(handler.deleteFile('/test/nonexistent.txt'))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(handler.deleteFile('/test/nonexistent.txt')).rejects.toThrow(BalmSharedMCPError);
     });
   });
 
@@ -205,8 +231,7 @@ describe('FileSystemHandler', () => {
     it('should handle directory read errors', async () => {
       existsSync.mockReturnValue(false);
 
-      await expect(handler.listDirectory('/test/nonexistent'))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(handler.listDirectory('/test/nonexistent')).rejects.toThrow(BalmSharedMCPError);
     });
   });
 
@@ -239,8 +264,7 @@ describe('FileSystemHandler', () => {
     it('should handle directory read errors', async () => {
       existsSync.mockReturnValue(false);
 
-      await expect(handler.readDirectory('/test/nonexistent'))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(handler.readDirectory('/test/nonexistent')).rejects.toThrow(BalmSharedMCPError);
     });
   });
 
@@ -272,8 +296,7 @@ describe('FileSystemHandler', () => {
     it('should handle directory creation errors', async () => {
       mockFsPromises.mkdir.mockRejectedValue(new Error('Permission denied'));
 
-      await expect(handler.createDirectory('/test/restricted'))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(handler.createDirectory('/test/restricted')).rejects.toThrow(BalmSharedMCPError);
     });
   });
 
@@ -308,8 +331,7 @@ describe('FileSystemHandler', () => {
       existsSync.mockReturnValue(true);
       mockFsPromises.rmdir.mockRejectedValue(new Error('Directory not empty'));
 
-      await expect(handler.deleteDirectory('/test/dir'))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(handler.deleteDirectory('/test/dir')).rejects.toThrow(BalmSharedMCPError);
     });
   });
 
@@ -327,8 +349,7 @@ describe('FileSystemHandler', () => {
       existsSync.mockReturnValue(false);
       mockFsPromises.mkdir.mockRejectedValue(new Error('Permission denied'));
 
-      await expect(handler.ensureDirectory('/test/restricted'))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(handler.ensureDirectory('/test/restricted')).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should not create directory if it already exists', async () => {
@@ -341,28 +362,36 @@ describe('FileSystemHandler', () => {
     });
   });
 
-
-
   describe('copyDirectory', () => {
     it('should copy directory recursively', async () => {
       // Mock directory structure
-      existsSync.mockImplementation((dirPath) => {
+      existsSync.mockImplementation(dirPath => {
         return dirPath === '/source' || dirPath.startsWith('/source/');
       });
-      statSync.mockImplementation((dirPath) => ({
+      statSync.mockImplementation(dirPath => ({
         isDirectory: () => dirPath === '/source' || dirPath === '/source/subdir'
       }));
-      
-      mockFsPromises.readdir.mockImplementation((dirPath) => {
+
+      mockFsPromises.readdir.mockImplementation(dirPath => {
         if (dirPath === '/source') {
           return Promise.resolve([
-            { name: 'file1.txt', isDirectory: () => false, isFile: () => true, path: '/source/file1.txt' },
+            {
+              name: 'file1.txt',
+              isDirectory: () => false,
+              isFile: () => true,
+              path: '/source/file1.txt'
+            },
             { name: 'subdir', isDirectory: () => true, isFile: () => false, path: '/source/subdir' }
           ]);
         }
         if (dirPath === '/source/subdir') {
           return Promise.resolve([
-            { name: 'file2.txt', isDirectory: () => false, isFile: () => true, path: '/source/subdir/file2.txt' }
+            {
+              name: 'file2.txt',
+              isDirectory: () => false,
+              isFile: () => true,
+              path: '/source/subdir/file2.txt'
+            }
           ]);
         }
         return Promise.resolve([]);
@@ -379,8 +408,9 @@ describe('FileSystemHandler', () => {
     it('should handle copy directory errors when source does not exist', async () => {
       existsSync.mockReturnValue(false);
 
-      await expect(handler.copyDirectory('/nonexistent', '/dest'))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(handler.copyDirectory('/nonexistent', '/dest')).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should handle copy directory errors when source is not a directory', async () => {
@@ -390,8 +420,9 @@ describe('FileSystemHandler', () => {
         isFile: () => true
       });
 
-      await expect(handler.copyDirectory('/source/file.txt', '/dest'))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(handler.copyDirectory('/source/file.txt', '/dest')).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
   });
 
@@ -487,8 +518,7 @@ describe('FileSystemHandler', () => {
       existsSync.mockReturnValue(true);
       mockFsPromises.stat.mockRejectedValue(new Error('File not found'));
 
-      await expect(handler.getStats('/test/nonexistent'))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(handler.getStats('/test/nonexistent')).rejects.toThrow(BalmSharedMCPError);
     });
   });
 
@@ -541,8 +571,9 @@ describe('FileSystemHandler', () => {
       existsSync.mockReturnValue(true);
       mockFsPromises.readFile.mockResolvedValue('invalid json');
 
-      await expect(handler.updateJsonFile('/test/invalid.json', { key: 'value' }))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(handler.updateJsonFile('/test/invalid.json', { key: 'value' })).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should create new JSON file if it does not exist', async () => {
@@ -562,6 +593,4 @@ describe('FileSystemHandler', () => {
       );
     });
   });
-
-
 });

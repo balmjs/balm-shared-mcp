@@ -55,19 +55,26 @@
   "message": "Project my-webapp created successfully",
   "projectPath": "/Users/dev/company/my-webapp",
   "type": "frontend",
-  "template": "/path/to/examples/frontend-project",
+  "template": "vue-ui-front",
+  "mode": "balm-init",
   "referenceProject": null,
   "features": [
     "Vue.js 2.7",
     "Vue Router",
     "BalmUI components",
     "BalmUI Pro",
-    "shared-project integration"
+    "shared-project integration",
+    "ESLint configuration",
+    "Jest testing setup",
+    "Mock server with MirageJS",
+    "Basic routing structure",
+    "Component examples"
   ],
   "nextSteps": [
     "cd /Users/dev/company/my-webapp",
     "npm install",
-    "npm run dev"
+    "npm run dev",
+    "Open http://localhost:3000 in your browser"
   ]
 }
 ```

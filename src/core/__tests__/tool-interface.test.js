@@ -1,10 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ToolInterface } from '../tool-interface.js';
 import { BalmSharedMCPError } from '../../utils/errors.js';
-import { 
-  createMockLogger,
-  createMockTool
-} from '../../../tests/utils/mock-utilities.js';
+import { createMockLogger, createMockTool } from '../../../tests/utils/mock-utilities.js';
 
 describe('ToolInterface', () => {
   let toolInterface;
@@ -21,7 +18,7 @@ describe('ToolInterface', () => {
     vi.clearAllMocks();
     mockLogger = createMockLogger();
     mockTool = createMockTool();
-    
+
     toolInterface = new ToolInterface(
       mockTool.name,
       mockTool.description,
@@ -55,7 +52,7 @@ describe('ToolInterface', () => {
   describe('getDefinition', () => {
     it('should return tool definition', () => {
       const definition = toolInterface.getDefinition();
-      
+
       expect(definition.name).toBe('test_tool');
       expect(definition.description).toBe('Test tool for mocking');
       expect(definition.inputSchema).toEqual(mockTool.inputSchema);
@@ -131,12 +128,7 @@ describe('ToolInterface', () => {
         required: ['name']
       };
 
-      const testTool = new ToolInterface(
-        'test_tool',
-        'Test tool',
-        schema,
-        vi.fn()
-      );
+      const testTool = new ToolInterface('test_tool', 'Test tool', schema, vi.fn());
 
       const input = { name: 'John', age: 30 };
 
@@ -154,12 +146,7 @@ describe('ToolInterface', () => {
         required: ['name']
       };
 
-      const testTool = new ToolInterface(
-        'test_tool',
-        'Test tool',
-        schema,
-        vi.fn()
-      );
+      const testTool = new ToolInterface('test_tool', 'Test tool', schema, vi.fn());
 
       const input = { age: 30 }; // missing required 'name'
 
@@ -187,12 +174,7 @@ describe('ToolInterface', () => {
         required: ['user']
       };
 
-      const testTool = new ToolInterface(
-        'test_tool',
-        'Test tool',
-        schema,
-        vi.fn()
-      );
+      const testTool = new ToolInterface('test_tool', 'Test tool', schema, vi.fn());
 
       const input = {
         user: {
@@ -210,7 +192,7 @@ describe('ToolInterface', () => {
   describe('formatResponse', () => {
     it('should format string response', () => {
       const result = toolInterface.formatResponse('test result', 'test-123');
-      
+
       expect(result.content).toHaveLength(1);
       expect(result.content[0].type).toBe('text');
       expect(result.content[0].text).toBe('test result');
@@ -218,7 +200,7 @@ describe('ToolInterface', () => {
 
     it('should format object response', () => {
       const result = toolInterface.formatResponse({ success: true, data: 'test' }, 'test-123');
-      
+
       expect(result.content).toHaveLength(1);
       expect(result.content[0].type).toBe('text');
       expect(result.content[0].text).toContain('"success": true');
@@ -226,7 +208,7 @@ describe('ToolInterface', () => {
 
     it('should handle null/undefined response', () => {
       const result = toolInterface.formatResponse(null, 'test-123');
-      
+
       expect(result.content).toHaveLength(1);
       expect(result.content[0].type).toBe('text');
       expect(result.content[0].text).toBe('Operation completed successfully');
@@ -234,11 +216,9 @@ describe('ToolInterface', () => {
 
     it('should preserve MCP format response', () => {
       const mcpResponse = {
-        content: [
-          { type: 'text', text: 'Already formatted' }
-        ]
+        content: [{ type: 'text', text: 'Already formatted' }]
       };
-      
+
       const result = toolInterface.formatResponse(mcpResponse, 'test-123');
       expect(result).toEqual(mcpResponse);
     });

@@ -66,7 +66,12 @@ export class MCPServer {
         properties: {
           name: { type: 'string', description: '项目名称' },
           type: { type: 'string', enum: ['frontend', 'backend'], description: '项目类型' },
-          path: { type: 'string', description: '项目路径' }
+          path: { type: 'string', description: '项目路径' },
+          referenceProject: {
+            type: 'string',
+            description:
+              '参考项目路径（可选，相对于 WORKSPACE_ROOT 或绝对路径）。如果提供，将使用复制模式而非 balm init'
+          }
         },
         required: ['name', 'type', 'path']
       },

@@ -17,7 +17,7 @@ export async function configWizard(options) {
     logger.info('Starting configuration wizard...');
 
     const configPath = resolve(options.output);
-    
+
     // Check if config already exists
     if (existsSync(configPath) && !options.force) {
       const overwrite = await askQuestion(
@@ -30,7 +30,7 @@ export async function configWizard(options) {
     }
 
     const config = await collectConfiguration();
-    
+
     // Validate configuration
     const validation = validateConfiguration(config);
     if (!validation.valid) {
@@ -47,7 +47,6 @@ export async function configWizard(options) {
     if (!testConfig.toLowerCase().startsWith('n')) {
       await testConfiguration(config);
     }
-
   } catch (error) {
     logger.error('Configuration wizard failed', { error: error.message });
     process.exit(1);
@@ -69,22 +68,22 @@ async function collectConfiguration() {
 
   // Server configuration
   console.log('📡 Server Configuration:');
-  config.server.mode = await askQuestion('Server mode (stdio/http) [stdio]: ') || 'stdio';
-  
+  config.server.mode = (await askQuestion('Server mode (stdio/http) [stdio]: ')) || 'stdio';
+
   if (config.server.mode === 'http') {
     config.server.port = parseInt(await askQuestion('HTTP port [3000]: ')) || 3000;
-    config.server.host = await askQuestion('Host [localhost]: ') || 'localhost';
+    config.server.host = (await askQuestion('Host [localhost]: ')) || 'localhost';
   }
 
   // BalmShared library configuration
   console.log('\n📚 BalmShared Library Configuration:');
   config.sharedProject.path = await askQuestion('BalmShared library path: ');
-  
+
   if (!config.sharedProject.path) {
     throw new Error('BalmShared library path is required');
   }
 
-  config.sharedProject.version = await askQuestion('BalmShared version [latest]: ') || 'latest';
+  config.sharedProject.version = (await askQuestion('BalmShared version [latest]: ')) || 'latest';
   config.sharedProject.components = await askMultipleChoice(
     'Select components to enable:',
     ['ui', 'utils', 'directives', 'plugins'],
@@ -95,7 +94,11 @@ async function collectConfiguration() {
   console.log('\n🏗️ Project Configuration:');
   config.project = {
     framework: await askChoice('Frontend framework:', ['vue2', 'vue3'], 'vue3'),
-    uiLibrary: await askChoice('UI library:', ['balm-ui', 'element-ui', 'ant-design-vue'], 'balm-ui'),
+    uiLibrary: await askChoice(
+      'UI library:',
+      ['balm-ui', 'element-ui', 'ant-design-vue'],
+      'balm-ui'
+    ),
     buildTool: await askChoice('Build tool:', ['webpack', 'vite', 'rollup'], 'vite'),
     typescript: await askYesNo('Enable TypeScript support? [Y/n]: ', true)
   };
@@ -127,7 +130,7 @@ async function collectConfiguration() {
  */
 async function collectAdvancedConfiguration() {
   console.log('\n⚙️ Advanced Configuration:');
-  
+
   const advanced = {};
 
   // Cache configuration
@@ -218,14 +221,14 @@ async function testConfiguration(config) {
       // Simple port availability check
       const net = await import('net');
       const server = net.createServer();
-      
+
       await new Promise((resolve, reject) => {
         server.listen(config.server.port, config.server.host || 'localhost', () => {
           console.log(`✅ Port ${config.server.port} is available`);
           server.close(resolve);
         });
-        
-        server.on('error', (error) => {
+
+        server.on('error', error => {
           if (error.code === 'EADDRINUSE') {
             console.log(`⚠️  Port ${config.server.port} is already in use`);
           } else {
@@ -237,7 +240,6 @@ async function testConfiguration(config) {
     }
 
     console.log('✅ Configuration test completed successfully');
-
   } catch (error) {
     console.log(`❌ Configuration test failed: ${error.message}`);
   }
@@ -252,8 +254,8 @@ function askQuestion(question) {
     output: process.stdout
   });
 
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
+  return new Promise(resolve => {
+    rl.question(question, answer => {
       rl.close();
       resolve(answer.trim());
     });
@@ -262,7 +264,9 @@ function askQuestion(question) {
 
 async function askYesNo(question, defaultValue = false) {
   const answer = await askQuestion(question);
-  if (!answer) return defaultValue;
+  if (!answer) {
+    return defaultValue;
+  }
   return answer.toLowerCase().startsWith('y');
 }
 
@@ -273,13 +277,15 @@ async function askChoice(question, choices, defaultChoice) {
     console.log(`  ${marker} ${index + 1}. ${choice}`);
   });
 
-  const answer = await askQuestion(`Select (1-${choices.length}) [${choices.indexOf(defaultChoice) + 1}]: `);
+  const answer = await askQuestion(
+    `Select (1-${choices.length}) [${choices.indexOf(defaultChoice) + 1}]: `
+  );
   const index = parseInt(answer) - 1;
-  
+
   if (isNaN(index) || index < 0 || index >= choices.length) {
     return defaultChoice;
   }
-  
+
   return choices[index];
 }
 
@@ -290,8 +296,10 @@ async function askMultipleChoice(question, choices, defaultChoices = []) {
     console.log(`  ${marker} ${index + 1}. ${choice}`);
   });
 
-  const answer = await askQuestion(`Select multiple (comma-separated, e.g., 1,3,4): `);
-  if (!answer) return defaultChoices;
+  const answer = await askQuestion('Select multiple (comma-separated, e.g., 1,3,4): ');
+  if (!answer) {
+    return defaultChoices;
+  }
 
   const indices = answer.split(',').map(s => parseInt(s.trim()) - 1);
   const selected = indices

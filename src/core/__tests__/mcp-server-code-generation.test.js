@@ -77,24 +77,21 @@ describe('MCPServer Code Generation Tools', () => {
     it('should throw error for missing required parameters', async () => {
       const invalidArgs = { module: 'user' }; // Missing model, fields, projectPath
 
-      await expect(mcpServer.generateCrudModule(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
-      
+      await expect(mcpServer.generateCrudModule(invalidArgs)).rejects.toThrow(BalmSharedMCPError);
+
       expect(mockCodeGenerator.generateCrudModule).not.toHaveBeenCalled();
     });
 
     it('should throw error for invalid fields parameter', async () => {
       const invalidArgs = { ...validArgs, fields: 'not-an-array' };
 
-      await expect(mcpServer.generateCrudModule(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generateCrudModule(invalidArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should throw error for empty fields array', async () => {
       const invalidArgs = { ...validArgs, fields: [] };
 
-      await expect(mcpServer.generateCrudModule(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generateCrudModule(invalidArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should throw error for invalid field structure', async () => {
@@ -106,24 +103,19 @@ describe('MCPServer Code Generation Tools', () => {
         ]
       };
 
-      await expect(mcpServer.generateCrudModule(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generateCrudModule(invalidArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should throw error for invalid project path', async () => {
       const invalidArgs = { ...validArgs, projectPath: '' };
 
-      await expect(mcpServer.generateCrudModule(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generateCrudModule(invalidArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should handle code generator errors gracefully', async () => {
-      mockCodeGenerator.generateCrudModule.mockRejectedValue(
-        new Error('Template not found')
-      );
+      mockCodeGenerator.generateCrudModule.mockRejectedValue(new Error('Template not found'));
 
-      await expect(mcpServer.generateCrudModule(validArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generateCrudModule(validArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should preserve BalmSharedMCPError from code generator', async () => {
@@ -133,8 +125,7 @@ describe('MCPServer Code Generation Tools', () => {
       );
       mockCodeGenerator.generateCrudModule.mockRejectedValue(originalError);
 
-      await expect(mcpServer.generateCrudModule(validArgs))
-        .rejects.toThrow(originalError);
+      await expect(mcpServer.generateCrudModule(validArgs)).rejects.toThrow(originalError);
     });
   });
 
@@ -151,9 +142,7 @@ describe('MCPServer Code Generation Tools', () => {
         success: true,
         message: 'Page component generated successfully',
         componentPath: '/test/project/src/pages/user-list.vue',
-        generatedFiles: [
-          { path: '/test/project/src/pages/user-list.vue', type: 'vue-component' }
-        ]
+        generatedFiles: [{ path: '/test/project/src/pages/user-list.vue', type: 'vue-component' }]
       });
     });
 
@@ -171,7 +160,7 @@ describe('MCPServer Code Generation Tools', () => {
 
     it('should generate detail page component', async () => {
       const detailArgs = { ...validArgs, type: 'detail' };
-      
+
       const result = await mcpServer.generatePageComponent(detailArgs);
 
       expect(result.success).toBe(true);
@@ -181,83 +170,79 @@ describe('MCPServer Code Generation Tools', () => {
     it('should throw error for missing required parameters', async () => {
       const invalidArgs = { name: 'user' }; // Missing type, model, projectPath
 
-      await expect(mcpServer.generatePageComponent(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generatePageComponent(invalidArgs)).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should throw error for invalid component type', async () => {
       const invalidArgs = { ...validArgs, type: 'invalid' };
 
-      await expect(mcpServer.generatePageComponent(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generatePageComponent(invalidArgs)).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should throw error for invalid component name format', async () => {
       const invalidArgs = { ...validArgs, name: '123invalid' };
 
-      await expect(mcpServer.generatePageComponent(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generatePageComponent(invalidArgs)).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should throw error for invalid model name format', async () => {
       const invalidArgs = { ...validArgs, model: '123Invalid' };
 
-      await expect(mcpServer.generatePageComponent(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generatePageComponent(invalidArgs)).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should throw error for invalid project path', async () => {
       const invalidArgs = { ...validArgs, projectPath: '' };
 
-      await expect(mcpServer.generatePageComponent(invalidArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generatePageComponent(invalidArgs)).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should handle code generator errors gracefully', async () => {
-      mockCodeGenerator.generatePageComponent.mockRejectedValue(
-        new Error('File write failed')
-      );
+      mockCodeGenerator.generatePageComponent.mockRejectedValue(new Error('File write failed'));
 
-      await expect(mcpServer.generatePageComponent(validArgs))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generatePageComponent(validArgs)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should accept valid component names with hyphens and underscores', async () => {
       const validNames = ['user-profile', 'user_profile', 'userProfile'];
-      
+
       for (const name of validNames) {
         const args = { ...validArgs, name };
-        await expect(mcpServer.generatePageComponent(args))
-          .resolves.toBeDefined();
+        await expect(mcpServer.generatePageComponent(args)).resolves.toBeDefined();
       }
     });
 
     it('should accept valid model names with underscores', async () => {
       const validModels = ['User', 'UserProfile', 'User_Profile'];
-      
+
       for (const model of validModels) {
         const args = { ...validArgs, model };
-        await expect(mcpServer.generatePageComponent(args))
-          .resolves.toBeDefined();
+        await expect(mcpServer.generatePageComponent(args)).resolves.toBeDefined();
       }
     });
   });
 
   describe('parameter validation edge cases', () => {
     it('should handle null and undefined parameters', async () => {
-      await expect(mcpServer.generateCrudModule(null))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generateCrudModule(null)).rejects.toThrow(BalmSharedMCPError);
 
-      await expect(mcpServer.generatePageComponent(undefined))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generatePageComponent(undefined)).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should handle empty object parameters', async () => {
-      await expect(mcpServer.generateCrudModule({}))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generateCrudModule({})).rejects.toThrow(BalmSharedMCPError);
 
-      await expect(mcpServer.generatePageComponent({}))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(mcpServer.generatePageComponent({})).rejects.toThrow(BalmSharedMCPError);
     });
 
     it('should provide helpful error messages for validation failures', async () => {

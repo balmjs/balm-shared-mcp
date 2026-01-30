@@ -26,7 +26,6 @@ export async function monitor(options) {
     // Initialize monitoring
     const monitor = new ServerMonitor(options);
     await monitor.start(interval, outputFormat);
-
   } catch (error) {
     logger.error('Monitoring failed', { error: error.message });
     process.exit(1);
@@ -70,7 +69,7 @@ class ServerMonitor {
         const stats = await this.collectStats();
         this.outputStats(stats, outputFormat);
         this.previousStats = stats;
-        
+
         await this.sleep(interval);
       } catch (error) {
         logger.error('Error collecting stats', { error: error.message });
@@ -120,7 +119,6 @@ class ServerMonitor {
           const processStats = await this.getProcessStats(pid);
           serverStats.memory = processStats.memory;
           serverStats.cpu = processStats.cpu;
-
         } catch (error) {
           serverStats.status = 'stopped';
         }
@@ -187,7 +185,7 @@ class ServerMonitor {
     try {
       if (existsSync(this.logFile)) {
         logStats.exists = true;
-        
+
         const fs = await import('fs');
         const stats = await fs.promises.stat(this.logFile);
         logStats.size = stats.size;
@@ -214,11 +212,8 @@ class ServerMonitor {
 
     try {
       const { execSync } = await import('child_process');
-      const psOutput = execSync(
-        `ps -p ${pid} -o pid,pcpu,pmem,rss,vsz`, 
-        { encoding: 'utf8' }
-      );
-      
+      const psOutput = execSync(`ps -p ${pid} -o pid,pcpu,pmem,rss,vsz`, { encoding: 'utf8' });
+
       const lines = psOutput.trim().split('\n');
       if (lines.length > 1) {
         const parts = lines[1].trim().split(/\s+/);
@@ -243,18 +238,17 @@ class ServerMonitor {
     try {
       const oneMinuteAgo = Date.now() - 60000;
       const { execSync } = await import('child_process');
-      
+
       // Use grep to find recent error lines
       const grepOutput = execSync(
         `grep -i "error\\|failed\\|exception" "${this.logFile}" | tail -100`,
         { encoding: 'utf8' }
       );
-      
+
       const errorLines = grepOutput.split('\n').filter(line => line.trim());
-      
+
       // Simple heuristic: count errors in recent lines
       return Math.min(errorLines.length, 10);
-      
     } catch (error) {
       return 0;
     }
@@ -282,13 +276,16 @@ class ServerMonitor {
    * Print console header
    */
   printConsoleHeader() {
-    console.log('Time'.padEnd(12) + 
-                'Status'.padEnd(10) + 
-                'PID'.padEnd(8) + 
-                'CPU%'.padEnd(8) + 
-                'Memory'.padEnd(12) + 
-                'Errors'.padEnd(8) + 
-                'Load Avg');
+    console.log(
+      `${
+        'Time'.padEnd(12) +
+        'Status'.padEnd(10) +
+        'PID'.padEnd(8) +
+        'CPU%'.padEnd(8) +
+        'Memory'.padEnd(12) +
+        'Errors'.padEnd(8)
+      }Load Avg`
+    );
     console.log('-'.repeat(70));
   }
 
@@ -300,20 +297,22 @@ class ServerMonitor {
     const status = this.getStatusEmoji(stats.server.status);
     const pid = stats.server.pid || 'N/A';
     const cpu = stats.server.cpu ? `${stats.server.cpu.toFixed(1)}%` : 'N/A';
-    const memory = stats.server.memory ? 
-      `${(stats.server.memory.rss / 1024 / 1024).toFixed(0)}MB` : 'N/A';
+    const memory = stats.server.memory
+      ? `${(stats.server.memory.rss / 1024 / 1024).toFixed(0)}MB`
+      : 'N/A';
     const errors = stats.logs.recentErrors || 0;
-    const loadAvg = stats.system.loadAverage ? 
-      stats.system.loadAverage.map(l => l.toFixed(2)).join(',') : 'N/A';
+    const loadAvg = stats.system.loadAverage
+      ? stats.system.loadAverage.map(l => l.toFixed(2)).join(',')
+      : 'N/A';
 
     console.log(
       time.padEnd(12) +
-      status.padEnd(10) +
-      pid.toString().padEnd(8) +
-      cpu.padEnd(8) +
-      memory.padEnd(12) +
-      errors.toString().padEnd(8) +
-      loadAvg
+        status.padEnd(10) +
+        pid.toString().padEnd(8) +
+        cpu.padEnd(8) +
+        memory.padEnd(12) +
+        errors.toString().padEnd(8) +
+        loadAvg
     );
   }
 

@@ -24,9 +24,15 @@ describe('ProjectStructureAnalyzer', () => {
     beforeEach(() => {
       // Default successful setup
       mockFileSystemHandler.exists.mockImplementation(path => {
-        if (path === projectPath) return true;
-        if (path.includes('package.json')) return true;
-        if (path.includes('src')) return true;
+        if (path === projectPath) {
+          return true;
+        }
+        if (path.includes('package.json')) {
+          return true;
+        }
+        if (path.includes('src')) {
+          return true;
+        }
         return false;
       });
 
@@ -77,9 +83,15 @@ describe('ProjectStructureAnalyzer', () => {
 
     it('should detect yiban-shared integration', async () => {
       mockFileSystemHandler.exists.mockImplementation(path => {
-        if (path === projectPath) return true;
-        if (path.includes('package.json')) return true;
-        if (path.includes('balm.alias.js')) return true;
+        if (path === projectPath) {
+          return true;
+        }
+        if (path.includes('package.json')) {
+          return true;
+        }
+        if (path.includes('balm.alias.js')) {
+          return true;
+        }
         return false;
       });
 

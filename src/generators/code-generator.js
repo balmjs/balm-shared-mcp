@@ -107,15 +107,15 @@ export default {
           this.$router.push({ name: '{{camelCase name}}-create' });
           break;
         case 'view':
-          this.$router.push({ 
-            name: '{{camelCase name}}-detail', 
-            params: { id: data.id } 
+          this.$router.push({
+            name: '{{camelCase name}}-detail',
+            params: { id: data.id }
           });
           break;
         case 'edit':
-          this.$router.push({ 
-            name: '{{camelCase name}}-edit', 
-            params: { id: data.id } 
+          this.$router.push({
+            name: '{{camelCase name}}-edit',
+            params: { id: data.id }
           });
           break;
         case 'delete':
@@ -360,13 +360,13 @@ export function get{{pascalCase name}}Apis(server) {
   server.post('{{endpoint}}/index', (schema, request) => {
     const requestData = JSON.parse(request.requestBody);
     const { page = 1, pageSize = 10, ...filters } = requestData;
-    
+
     let filteredData = {{camelCase name}}Data;
 
     // Apply filters
     Object.keys(filters).forEach(key => {
       if (filters[key]) {
-        filteredData = filteredData.filter(item => 
+        filteredData = filteredData.filter(item =>
           String(item[key]).toLowerCase().includes(String(filters[key]).toLowerCase())
         );
       }
@@ -387,7 +387,7 @@ export function get{{pascalCase name}}Apis(server) {
   server.post('{{endpoint}}/info', (schema, request) => {
     const data = JSON.parse(request.requestBody);
     const item = {{camelCase name}}Data.find(item => item.id == data.id);
-    
+
     return item ? responseHandler(item) : errorHandler('{{title}}不存在');
   });
 
@@ -400,9 +400,9 @@ export function get{{pascalCase name}}Apis(server) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    
+
     {{camelCase name}}Data.push(newItem);
-    
+
     return responseHandler(newItem);
   });
 
@@ -410,14 +410,14 @@ export function get{{pascalCase name}}Apis(server) {
   server.post('{{endpoint}}/edit', (schema, request) => {
     const data = JSON.parse(request.requestBody);
     const index = {{camelCase name}}Data.findIndex(item => item.id == data.id);
-    
+
     if (index !== -1) {
       {{camelCase name}}Data[index] = {
         ...{{camelCase name}}Data[index],
         ...data,
         updatedAt: new Date().toISOString()
       };
-      
+
       return responseHandler({{camelCase name}}Data[index]);
     } else {
       return errorHandler('{{title}}不存在');
@@ -428,7 +428,7 @@ export function get{{pascalCase name}}Apis(server) {
   server.post('{{endpoint}}/delete', (schema, request) => {
     const data = JSON.parse(request.requestBody);
     const index = {{camelCase name}}Data.findIndex(item => item.id == data.id);
-    
+
     if (index !== -1) {
       {{camelCase name}}Data.splice(index, 1);
       return responseHandler();

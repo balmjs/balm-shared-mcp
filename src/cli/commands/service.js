@@ -63,15 +63,13 @@ async function showServiceStatus(options) {
     try {
       process.kill(pid, 0);
       console.log('Status: ✅ Running');
-      
+
       // Get process information
       await getProcessInfo(pid);
-      
     } catch (error) {
       console.log('Status: ❌ Not running (stale PID file)');
       console.log('Note: PID file exists but process is not running');
     }
-
   } catch (error) {
     console.log('Status: ❌ Error reading PID file');
     console.log(`Error: ${error.message}`);
@@ -95,11 +93,12 @@ async function getProcessInfo(pid) {
   try {
     // Get process info using ps command (Unix-like systems)
     const { execSync } = await import('child_process');
-    
+
     try {
-      const psOutput = execSync(`ps -p ${pid} -o pid,ppid,cpu,pmem,time,command`, 
-        { encoding: 'utf8' });
-      
+      const psOutput = execSync(`ps -p ${pid} -o pid,ppid,cpu,pmem,time,command`, {
+        encoding: 'utf8'
+      });
+
       const lines = psOutput.trim().split('\n');
       if (lines.length > 1) {
         console.log('\nProcess Information:');
@@ -117,7 +116,6 @@ async function getProcessInfo(pid) {
     console.log(`  RSS: ${(memUsage.rss / 1024 / 1024).toFixed(2)} MB`);
     console.log(`  Heap Used: ${(memUsage.heapUsed / 1024 / 1024).toFixed(2)} MB`);
     console.log(`  Heap Total: ${(memUsage.heapTotal / 1024 / 1024).toFixed(2)} MB`);
-
   } catch (error) {
     console.log('Process info: Unable to retrieve detailed information');
   }
@@ -147,15 +145,14 @@ async function stopService(options) {
 
       // Wait for process to exit
       await waitForProcessExit(pid, 10000); // 10 second timeout
-      
-      console.log('✅ Service stopped gracefully');
 
+      console.log('✅ Service stopped gracefully');
     } catch (error) {
       if (error.code === 'ESRCH') {
         console.log('⚠️  Process was already stopped');
       } else {
         console.log('⚠️  Graceful shutdown failed, forcing termination...');
-        
+
         try {
           process.kill(pid, 'SIGKILL');
           console.log('✅ Service force stopped');
@@ -174,7 +171,6 @@ async function stopService(options) {
       unlinkSync(pidFile);
       console.log('Cleaned up PID file');
     }
-
   } catch (error) {
     console.log(`❌ Failed to stop service: ${error.message}`);
     throw error;
@@ -195,7 +191,7 @@ async function restartService(options) {
 
   // Start the service
   console.log('Starting service...');
-  
+
   const { startServer } = await import('./start.js');
   await startServer({
     ...options,
@@ -218,7 +214,7 @@ async function showServiceLogs(options, parentOptions) {
   }
 
   const lines = parseInt(options.lines) || 100;
-  const follow = options.follow;
+  const { follow } = options;
 
   console.log(`=== BalmSharedMCP Service Logs (last ${lines} lines) ===\n`);
 
@@ -262,15 +258,15 @@ async function followLogFile(logFile) {
     const { spawn } = await import('child_process');
     const tail = spawn('tail', ['-f', logFile]);
 
-    tail.stdout.on('data', (data) => {
+    tail.stdout.on('data', data => {
       process.stdout.write(data);
     });
 
-    tail.stderr.on('data', (data) => {
+    tail.stderr.on('data', data => {
       process.stderr.write(data);
     });
 
-    tail.on('error', (error) => {
+    tail.on('error', error => {
       console.log(`❌ Failed to follow log file: ${error.message}`);
     });
 
@@ -280,7 +276,6 @@ async function followLogFile(logFile) {
       tail.kill();
       process.exit(0);
     });
-
   } catch (error) {
     console.log(`❌ Failed to follow log file: ${error.message}`);
   }
@@ -292,11 +287,11 @@ async function followLogFile(logFile) {
 function waitForProcessExit(pid, timeout = 5000) {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
-    
+
     const checkProcess = () => {
       try {
         process.kill(pid, 0);
-        
+
         // Process still exists
         if (Date.now() - startTime > timeout) {
           reject(new Error('Timeout waiting for process to exit'));

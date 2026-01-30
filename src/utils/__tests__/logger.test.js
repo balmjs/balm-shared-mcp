@@ -34,7 +34,7 @@ describe('Logger', () => {
       enableFileLogging: false, // Disable file logging for tests
       level: 'debug'
     });
-    
+
     consoleSpy = {
       log: vi.spyOn(console, 'log').mockImplementation(() => {}),
       warn: vi.spyOn(console, 'warn').mockImplementation(() => {}),
@@ -49,10 +49,8 @@ describe('Logger', () => {
   describe('Basic Logging', () => {
     it('should log debug messages', async () => {
       await testLogger.debug('Debug message', { test: true });
-      
-      expect(consoleSpy.log).toHaveBeenCalledWith(
-        expect.stringContaining('"level":"DEBUG"')
-      );
+
+      expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('"level":"DEBUG"'));
       expect(consoleSpy.log).toHaveBeenCalledWith(
         expect.stringContaining('"message":"Debug message"')
       );
@@ -60,29 +58,21 @@ describe('Logger', () => {
 
     it('should log info messages', async () => {
       await testLogger.info('Info message', { category: LogCategory.SYSTEM });
-      
-      expect(consoleSpy.log).toHaveBeenCalledWith(
-        expect.stringContaining('"level":"INFO"')
-      );
-      expect(consoleSpy.log).toHaveBeenCalledWith(
-        expect.stringContaining('"category":"system"')
-      );
+
+      expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('"level":"INFO"'));
+      expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('"category":"system"'));
     });
 
     it('should log warning messages', async () => {
       await testLogger.warn('Warning message');
-      
-      expect(consoleSpy.warn).toHaveBeenCalledWith(
-        expect.stringContaining('"level":"WARN"')
-      );
+
+      expect(consoleSpy.warn).toHaveBeenCalledWith(expect.stringContaining('"level":"WARN"'));
     });
 
     it('should log error messages', async () => {
       await testLogger.error('Error message', { errorCode: 'TEST_ERROR' });
-      
-      expect(consoleSpy.error).toHaveBeenCalledWith(
-        expect.stringContaining('"level":"ERROR"')
-      );
+
+      expect(consoleSpy.error).toHaveBeenCalledWith(expect.stringContaining('"level":"ERROR"'));
       expect(consoleSpy.error).toHaveBeenCalledWith(
         expect.stringContaining('"errorCode":"TEST_ERROR"')
       );
@@ -92,12 +82,12 @@ describe('Logger', () => {
   describe('Log Levels', () => {
     it('should respect log level filtering', async () => {
       testLogger.setLevel('warn');
-      
+
       await testLogger.debug('Debug message');
       await testLogger.info('Info message');
       await testLogger.warn('Warning message');
       await testLogger.error('Error message');
-      
+
       expect(consoleSpy.log).not.toHaveBeenCalled();
       expect(consoleSpy.warn).toHaveBeenCalledTimes(1);
       expect(consoleSpy.error).toHaveBeenCalledTimes(1);
@@ -105,7 +95,7 @@ describe('Logger', () => {
 
     it('should check if level should be logged', () => {
       testLogger.setLevel('info');
-      
+
       expect(testLogger.shouldLog('debug')).toBe(false);
       expect(testLogger.shouldLog('info')).toBe(true);
       expect(testLogger.shouldLog('warn')).toBe(true);
@@ -119,7 +109,7 @@ describe('Logger', () => {
         category: LogCategory.USER_ACTION,
         userId: 'user123'
       });
-      
+
       expect(formatted).toMatchObject({
         level: 'INFO',
         message: 'Test message',
@@ -133,7 +123,7 @@ describe('Logger', () => {
     it('should generate unique request IDs', () => {
       const id1 = testLogger.generateRequestId();
       const id2 = testLogger.generateRequestId();
-      
+
       expect(id1).not.toBe(id2);
       expect(id1).toMatch(/^req_\d+_[a-z0-9]+$/);
     });
@@ -145,16 +135,10 @@ describe('Logger', () => {
         userId: 'user123',
         ip: '192.168.1.1'
       });
-      
-      expect(consoleSpy.log).toHaveBeenCalledWith(
-        expect.stringContaining('"level":"AUDIT"')
-      );
-      expect(consoleSpy.log).toHaveBeenCalledWith(
-        expect.stringContaining('"action":"user_login"')
-      );
-      expect(consoleSpy.log).toHaveBeenCalledWith(
-        expect.stringContaining('"category":"audit"')
-      );
+
+      expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('"level":"AUDIT"'));
+      expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('"action":"user_login"'));
+      expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('"category":"audit"'));
     });
 
     it('should log user actions', async () => {
@@ -162,7 +146,7 @@ describe('Logger', () => {
         projectName: 'test-project',
         userId: 'user123'
       });
-      
+
       expect(consoleSpy.log).toHaveBeenCalledWith(
         expect.stringContaining('"auditType":"user_action"')
       );
@@ -172,7 +156,7 @@ describe('Logger', () => {
       await testLogger.logSystemEvent('server_start', {
         version: '1.0.0'
       });
-      
+
       expect(consoleSpy.log).toHaveBeenCalledWith(
         expect.stringContaining('"auditType":"system_event"')
       );
@@ -185,26 +169,22 @@ describe('Logger', () => {
         endpoint: '/api/projects',
         unit: 'ms'
       });
-      
-      expect(consoleSpy.log).toHaveBeenCalledWith(
-        expect.stringContaining('"level":"PERFORMANCE"')
-      );
+
+      expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('"level":"PERFORMANCE"'));
       expect(consoleSpy.log).toHaveBeenCalledWith(
         expect.stringContaining('"metric":"api_response_time"')
       );
-      expect(consoleSpy.log).toHaveBeenCalledWith(
-        expect.stringContaining('"value":150')
-      );
+      expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('"value":150'));
     });
 
     it('should handle performance timers', async () => {
       testLogger.startTimer('test_operation', { operation: 'test' });
-      
+
       // Simulate some delay
       await new Promise(resolve => setTimeout(resolve, 10));
-      
+
       const duration = await testLogger.endTimer('test_operation');
-      
+
       expect(duration).toBeGreaterThan(0);
       expect(consoleSpy.log).toHaveBeenCalledWith(
         expect.stringContaining('"metric":"test_operation"')
@@ -213,7 +193,7 @@ describe('Logger', () => {
 
     it('should warn when ending non-existent timer', async () => {
       await testLogger.endTimer('non_existent_timer');
-      
+
       expect(consoleSpy.warn).toHaveBeenCalledWith(
         expect.stringContaining("Timer 'non_existent_timer' not found")
       );
@@ -227,16 +207,14 @@ describe('Logger', () => {
         duration: 250,
         data: { componentName: 'TestComponent' }
       });
-      
+
       expect(consoleSpy.log).toHaveBeenCalledWith(
         expect.stringContaining('"category":"tool_execution"')
       );
       expect(consoleSpy.log).toHaveBeenCalledWith(
         expect.stringContaining('"toolName":"create-component"')
       );
-      expect(consoleSpy.log).toHaveBeenCalledWith(
-        expect.stringContaining('"success":true')
-      );
+      expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('"success":true'));
     });
 
     it('should log project operations', async () => {
@@ -244,13 +222,11 @@ describe('Logger', () => {
         success: true,
         duration: 500
       });
-      
+
       expect(consoleSpy.log).toHaveBeenCalledWith(
         expect.stringContaining('"category":"project_operation"')
       );
-      expect(consoleSpy.log).toHaveBeenCalledWith(
-        expect.stringContaining('"operation":"analyze"')
-      );
+      expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('"operation":"analyze"'));
     });
 
     it('should log file operations', async () => {
@@ -258,13 +234,11 @@ describe('Logger', () => {
         success: true,
         fileSize: 1024
       });
-      
+
       expect(consoleSpy.log).toHaveBeenCalledWith(
         expect.stringContaining('"category":"file_operation"')
       );
-      expect(consoleSpy.log).toHaveBeenCalledWith(
-        expect.stringContaining('"fileSize":1024')
-      );
+      expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('"fileSize":1024'));
     });
   });
 
@@ -274,12 +248,10 @@ describe('Logger', () => {
         userId: 'user123',
         sessionId: 'session456'
       });
-      
+
       await childLogger.info('Child logger message');
-      
-      expect(consoleSpy.log).toHaveBeenCalledWith(
-        expect.stringContaining('"userId":"user123"')
-      );
+
+      expect(consoleSpy.log).toHaveBeenCalledWith(expect.stringContaining('"userId":"user123"'));
       expect(consoleSpy.log).toHaveBeenCalledWith(
         expect.stringContaining('"sessionId":"session456"')
       );
@@ -292,7 +264,7 @@ describe('Logger', () => {
         enableFileLogging: true,
         logDirectory: '/tmp/test-logs'
       });
-      
+
       expect(fileLogger.enableFileLogging).toBe(true);
       expect(fileLogger.logDirectory).toBe('/tmp/test-logs');
     });
@@ -301,7 +273,7 @@ describe('Logger', () => {
       const fileLogger = new Logger({
         enableFileLogging: false
       });
-      
+
       expect(fileLogger.enableFileLogging).toBe(false);
     });
   });
@@ -317,10 +289,10 @@ describe('Logger', () => {
         enableFileLogging: true,
         logDirectory: '/tmp/test-logs'
       });
-      
+
       // Test that getLogStats method exists and can be called
       expect(typeof fileLogger.getLogStats).toBe('function');
-      
+
       // For now, just test that it doesn't throw
       const stats = await fileLogger.getLogStats();
       expect(stats).toBeDefined();

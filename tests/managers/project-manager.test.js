@@ -191,10 +191,17 @@ describe('ProjectManager', () => {
         path: '/test/test-project'
       };
 
-      mockFileSystemHandler.exists.mockReturnValueOnce(false); // Target directory doesn't exist
+      // Mock exists: first call checks if target exists (false), second call verifies creation (true)
+      mockFileSystemHandler.exists
+        .mockReturnValueOnce(false) // Target directory doesn't exist initially
+        .mockReturnValueOnce(true); // Project was created successfully
 
       // Mock runBalmInit
-      projectManager.runBalmInit = vi.fn().mockResolvedValue({ success: true, output: 'done' });
+      projectManager.runBalmInit = vi.fn().mockResolvedValue({
+        success: true,
+        output: 'done',
+        projectPath: '/test/test-project'
+      });
 
       const result = await projectManager.createProject(options);
 
