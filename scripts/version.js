@@ -30,7 +30,7 @@ function updateVersion(newVersion) {
   const packagePath = join(rootDir, 'package.json');
   const packageInfo = JSON.parse(readFileSync(packagePath, 'utf8'));
   packageInfo.version = newVersion;
-  writeFileSync(packagePath, JSON.stringify(packageInfo, null, 2) + '\n');
+  writeFileSync(packagePath, `${JSON.stringify(packageInfo, null, 2)}\n`);
   console.log(`✅ Updated version to ${newVersion}`);
 }
 
@@ -38,25 +38,29 @@ function updateVersion(newVersion) {
  * Generate changelog entry
  */
 function generateChangelogEntry(version, type) {
-  const date = new Date().toISOString().split('T')[0];
+  const [date] = new Date().toISOString().split('T');
   const changelogPath = join(rootDir, 'CHANGELOG.md');
-  
+
   let changelog = '';
   if (existsSync(changelogPath)) {
     changelog = readFileSync(changelogPath, 'utf8');
   } else {
-    changelog = '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n';
+    changelog =
+      '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n';
   }
 
   // Get git commits since last tag
   let commits = [];
   try {
-    const gitLog = execSync('git log --oneline --since="1 month ago"', { 
-      cwd: rootDir, 
-      encoding: 'utf8' 
+    const gitLog = execSync('git log --oneline --since="1 month ago"', {
+      cwd: rootDir,
+      encoding: 'utf8'
     });
-    commits = gitLog.trim().split('\n').filter(line => line.trim());
-  } catch (error) {
+    commits = gitLog
+      .trim()
+      .split('\n')
+      .filter(line => line.trim());
+  } catch {
     console.log('⚠️  Could not retrieve git commits');
   }
 
@@ -65,9 +69,10 @@ function generateChangelogEntry(version, type) {
 
 ### ${getChangeTypeTitle(type)}
 
-${commits.length > 0 ? 
-  commits.map(commit => `- ${commit.substring(8)}`).join('\n') : 
-  '- Version bump'
+${
+  commits.length > 0
+    ? commits.map(commit => `- ${commit.substring(8)}`).join('\n')
+    : '- Version bump'
 }
 
 `;
@@ -75,10 +80,10 @@ ${commits.length > 0 ?
   // Insert at the beginning (after header)
   const lines = changelog.split('\n');
   const headerEndIndex = lines.findIndex(line => line.startsWith('## '));
-  
+
   if (headerEndIndex === -1) {
     // No previous entries
-    changelog += '\n' + entry;
+    changelog += `\n${entry}`;
   } else {
     // Insert before first entry
     lines.splice(headerEndIndex, 0, entry);
@@ -86,7 +91,7 @@ ${commits.length > 0 ?
   }
 
   writeFileSync(changelogPath, changelog);
-  console.log(`✅ Updated CHANGELOG.md`);
+  console.log('✅ Updated CHANGELOG.md');
 }
 
 /**
@@ -110,7 +115,7 @@ function getChangeTypeTitle(type) {
  */
 function incrementVersion(currentVersion, type) {
   const parts = currentVersion.split('.').map(Number);
-  
+
   switch (type) {
     case 'patch':
       parts[2]++;
@@ -127,7 +132,7 @@ function incrementVersion(currentVersion, type) {
     default:
       throw new Error(`Invalid version type: ${type}`);
   }
-  
+
   return parts.join('.');
 }
 
@@ -180,40 +185,40 @@ try {
  */
 function main() {
   const args = process.argv.slice(2);
-  const command = args[0];
+  const [command] = args;
 
   switch (command) {
     case 'bump': {
       const type = args[1] || 'patch';
       const currentVersion = getCurrentVersion();
       const newVersion = incrementVersion(currentVersion, type);
-      
+
       console.log(`Current version: ${currentVersion}`);
       console.log(`New version: ${newVersion}`);
-      
+
       updateVersion(newVersion);
       generateChangelogEntry(newVersion, type);
       break;
     }
-    
+
     case 'current': {
       const version = getCurrentVersion();
       console.log(version);
       break;
     }
-    
+
     case 'changelog': {
       const version = args[1] || getCurrentVersion();
       const type = args[2] || 'patch';
       generateChangelogEntry(version, type);
       break;
     }
-    
+
     case 'setup-updates': {
       createVersionUpdateMechanism();
       break;
     }
-    
+
     default: {
       console.log('BalmSharedMCP Version Management');
       console.log('');

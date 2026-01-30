@@ -26,8 +26,8 @@ function askQuestion(question) {
     output: process.stdout
   });
 
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
+  return new Promise(resolve => {
+    rl.question(question, answer => {
       rl.close();
       resolve(answer.trim());
     });
@@ -50,7 +50,7 @@ function updateVersion(newVersion) {
   const packagePath = join(rootDir, 'package.json');
   const packageInfo = JSON.parse(readFileSync(packagePath, 'utf8'));
   packageInfo.version = newVersion;
-  writeFileSync(packagePath, JSON.stringify(packageInfo, null, 2) + '\n');
+  writeFileSync(packagePath, `${JSON.stringify(packageInfo, null, 2)}\n`);
   return newVersion;
 }
 
@@ -59,7 +59,7 @@ function updateVersion(newVersion) {
  */
 function incrementVersion(currentVersion, type) {
   const parts = currentVersion.split('.').map(Number);
-  
+
   switch (type) {
     case 'patch':
       parts[2]++;
@@ -76,7 +76,7 @@ function incrementVersion(currentVersion, type) {
     default:
       throw new Error(`Invalid version type: ${type}`);
   }
-  
+
   return parts.join('.');
 }
 
@@ -126,7 +126,7 @@ async function main() {
 
     console.log(`\nNew version will be: ${newVersion}`);
     const confirm = await askQuestion('Continue with publishing? (y/N): ');
-    
+
     if (!confirm.toLowerCase().startsWith('y')) {
       console.log('Publishing cancelled');
       process.exit(0);
@@ -147,9 +147,7 @@ async function main() {
 
     // Publish to npm
     console.log('\n4. Publishing to npm...');
-    const publishCommand = isDryRun ? 
-      'npm publish --dry-run' : 
-      'npm publish';
+    const publishCommand = isDryRun ? 'npm publish --dry-run' : 'npm publish';
 
     if (!isDryRun) {
       const npmConfirm = await askQuestion('Publish to npm registry? (y/N): ');
@@ -160,7 +158,7 @@ async function main() {
     }
 
     execSync(publishCommand, { cwd: rootDir, stdio: 'inherit' });
-    
+
     if (isDryRun) {
       console.log('🔍 Dry run completed - no actual publishing performed');
     } else {
@@ -169,12 +167,11 @@ async function main() {
 
     console.log('\n🎉 Quick publishing workflow completed!');
     console.log(`📦 Package: balm-shared-mcp@${newVersion}`);
-    
+
     if (!isDryRun) {
       console.log('🔗 Install with: npm install balm-shared-mcp');
       console.log('⚠️  This was a quick publish - consider running full tests later');
     }
-
   } catch (error) {
     console.error('\n❌ Publishing failed:', error.message);
     process.exit(1);

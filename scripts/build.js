@@ -28,7 +28,7 @@ try {
   console.log('2. Running tests...');
   try {
     execSync('npm run test:publish', { cwd: rootDir, stdio: 'inherit' });
-  } catch (error) {
+  } catch {
     console.log('⚠️  Some tests failed, but continuing build...');
   }
 
@@ -57,7 +57,7 @@ try {
   console.log('7. Updating package.json for distribution...');
   const packagePath = join(rootDir, 'dist', 'package.json');
   const packageInfo = JSON.parse(readFileSync(packagePath, 'utf8'));
-  
+
   // Remove dev dependencies and scripts not needed in production
   delete packageInfo.devDependencies;
   delete packageInfo.scripts.dev;
@@ -87,16 +87,12 @@ try {
     platform: process.platform,
     arch: process.arch
   };
-  
-  writeFileSync(
-    join(rootDir, 'dist', 'build-info.json'), 
-    JSON.stringify(buildInfo, null, 2)
-  );
+
+  writeFileSync(join(rootDir, 'dist', 'build-info.json'), JSON.stringify(buildInfo, null, 2));
 
   console.log('\n✅ Build completed successfully!');
   console.log(`📦 Package ready in: ${join(rootDir, 'dist')}`);
   console.log(`🏷️  Version: ${packageInfo.version}`);
-
 } catch (error) {
   console.error('\n❌ Build failed:', error.message);
   process.exit(1);

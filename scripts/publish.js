@@ -6,7 +6,7 @@
  */
 
 import { execSync } from 'child_process';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createInterface } from 'readline';
@@ -26,8 +26,8 @@ function askQuestion(question) {
     output: process.stdout
   });
 
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
+  return new Promise(resolve => {
+    rl.question(question, answer => {
       rl.close();
       resolve(answer.trim());
     });
@@ -50,7 +50,7 @@ function updateVersion(newVersion) {
   const packagePath = join(rootDir, 'package.json');
   const packageInfo = JSON.parse(readFileSync(packagePath, 'utf8'));
   packageInfo.version = newVersion;
-  writeFileSync(packagePath, JSON.stringify(packageInfo, null, 2) + '\n');
+  writeFileSync(packagePath, `${JSON.stringify(packageInfo, null, 2)}\n`);
   return newVersion;
 }
 
@@ -59,7 +59,7 @@ function updateVersion(newVersion) {
  */
 function incrementVersion(currentVersion, type) {
   const parts = currentVersion.split('.').map(Number);
-  
+
   switch (type) {
     case 'patch':
       parts[2]++;
@@ -76,7 +76,7 @@ function incrementVersion(currentVersion, type) {
     default:
       throw new Error(`Invalid version type: ${type}`);
   }
-  
+
   return parts.join('.');
 }
 
@@ -85,12 +85,12 @@ function incrementVersion(currentVersion, type) {
  */
 function checkWorkingDirectory() {
   try {
-    const status = execSync('git status --porcelain', { 
-      cwd: rootDir, 
-      encoding: 'utf8' 
+    const status = execSync('git status --porcelain', {
+      cwd: rootDir,
+      encoding: 'utf8'
     });
     return status.trim() === '';
-  } catch (error) {
+  } catch {
     console.log('⚠️  Git not available, skipping working directory check');
     return true;
   }
@@ -101,7 +101,7 @@ function checkWorkingDirectory() {
  */
 function createGitTag(version) {
   try {
-    execSync(`git add .`, { cwd: rootDir });
+    execSync('git add .', { cwd: rootDir });
     execSync(`git commit -m "Release v${version}"`, { cwd: rootDir });
     execSync(`git tag -a v${version} -m "Release v${version}"`, { cwd: rootDir });
     console.log(`✅ Created git tag: v${version}`);
@@ -164,7 +164,7 @@ async function main() {
 
     console.log(`\nNew version will be: ${newVersion}`);
     const confirm = await askQuestion('Continue with publishing? (y/N): ');
-    
+
     if (!confirm.toLowerCase().startsWith('y')) {
       console.log('Publishing cancelled');
       process.exit(0);
@@ -181,10 +181,12 @@ async function main() {
       try {
         execSync('npm run test:publish', { cwd: rootDir, stdio: 'inherit' });
         console.log('✅ Tests passed');
-      } catch (error) {
+      } catch {
         console.log('⚠️  Tests failed, but continuing with publish...');
         console.log('   Use --skip-tests to skip tests entirely');
-        const continueAnyway = await askQuestion('Continue publishing despite test failures? (y/N): ');
+        const continueAnyway = await askQuestion(
+          'Continue publishing despite test failures? (y/N): '
+        );
         if (!continueAnyway.toLowerCase().startsWith('y')) {
           console.log('Publishing cancelled due to test failures');
           process.exit(1);
@@ -208,14 +210,12 @@ async function main() {
     if (!isDryRun) {
       createGitTag(newVersion);
     } else {
-      console.log('🔍 Dry run: Would create git tag v' + newVersion);
+      console.log(`🔍 Dry run: Would create git tag v${newVersion}`);
     }
 
     // Publish to npm
     console.log('\n5. Publishing to npm...');
-    const publishCommand = isDryRun ? 
-      'npm publish --dry-run' : 
-      'npm publish';
+    const publishCommand = isDryRun ? 'npm publish --dry-run' : 'npm publish';
 
     if (!isDryRun) {
       const npmConfirm = await askQuestion('Publish to npm registry? (y/N): ');
@@ -226,7 +226,7 @@ async function main() {
     }
 
     execSync(publishCommand, { cwd: rootDir, stdio: 'inherit' });
-    
+
     if (isDryRun) {
       console.log('🔍 Dry run completed - no actual publishing performed');
     } else {
@@ -247,11 +247,10 @@ async function main() {
 
     console.log('\n🎉 Publishing workflow completed!');
     console.log(`📦 Package: balm-shared-mcp@${newVersion}`);
-    
+
     if (!isDryRun) {
       console.log('🔗 Install with: npm install balm-shared-mcp');
     }
-
   } catch (error) {
     console.error('\n❌ Publishing failed:', error.message);
     process.exit(1);
