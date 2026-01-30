@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ProjectManager } from '../../src/managers/project-manager.js';
-import { BalmSharedMCPError, ErrorCodes } from '../../src/utils/errors.js';
+import { BalmSharedMCPError } from '../../src/utils/errors.js';
 
 describe('ProjectManager', () => {
   let projectManager;
@@ -83,22 +83,38 @@ describe('ProjectManager', () => {
     });
   });
 
-  describe('getTemplatePath', () => {
-    it('should return template path for valid type', () => {
-      mockFileSystemHandler.exists.mockReturnValue(true);
-
+  describe('getTemplatePath and resolveTemplateInfo', () => {
+    it('should return template command for valid type (balm-init mode)', () => {
+      // In the new implementation, getTemplatePath returns the command name
       const templatePath = projectManager.getTemplatePath('frontend');
-      expect(templatePath).toContain('frontend-project');
+      expect(templatePath).toBe('vue-ui-front');
     });
 
     it('should throw error for invalid type', () => {
       expect(() => projectManager.getTemplatePath('invalid')).toThrow(BalmSharedMCPError);
     });
 
-    it('should throw error if template directory does not exist', () => {
+    it('should return template info with command for balm-init mode', () => {
+      const info = projectManager.resolveTemplateInfo('frontend');
+      expect(info.mode).toBe('balm-init');
+      expect(info.command).toBe('vue-ui-front');
+    });
+
+    it('should return template info with path for copy mode (referenceProject)', () => {
+      mockFileSystemHandler.exists.mockReturnValue(true);
+      projectManager.workspaceRoot = '/workspace';
+
+      const info = projectManager.resolveTemplateInfo('frontend', '/some/reference/project');
+      expect(info.mode).toBe('copy');
+      expect(info.path).toBe('/some/reference/project');
+    });
+
+    it('should throw error if reference project does not exist', () => {
       mockFileSystemHandler.exists.mockReturnValue(false);
 
-      expect(() => projectManager.getTemplatePath('frontend')).toThrow(BalmSharedMCPError);
+      expect(() => projectManager.resolveTemplateInfo('frontend', '/non/existent/project')).toThrow(
+        BalmSharedMCPError
+      );
     });
   });
 
@@ -138,24 +154,25 @@ describe('ProjectManager', () => {
   });
 
   describe('createProject', () => {
-    it('should create project successfully', async () => {
+    it('should create project successfully with referenceProject (copy mode)', async () => {
       const options = {
         name: 'test-project',
         type: 'frontend',
-        path: '/test/project'
+        path: '/test/project',
+        referenceProject: '/reference/project'
       };
 
-      mockFileSystemHandler.exists
-        .mockReturnValueOnce(false) // Target directory doesn't exist
-        .mockReturnValueOnce(true) // Template directory exists
-        .mockReturnValueOnce(true) // env.js exists
-        .mockReturnValueOnce(true); // balm.alias.js exists
+      mockFileSystemHandler.exists.mockReturnValue(true);
+      mockFileSystemHandler.exists.mockReturnValueOnce(false); // Target directory doesn't exist first
 
       mockFileSystemHandler.copyDirectory.mockResolvedValue();
       mockFileSystemHandler.updateJsonFile.mockResolvedValue();
-      mockFileSystemHandler.readFile.mockResolvedValue(
-        "const globalWorkspace = path.join(localWorkspace, '..');"
-      );
+      mockFileSystemHandler.readFile.mockImplementation(filePath => {
+        if (filePath.includes('package.json')) {
+          return Promise.resolve(JSON.stringify({ name: 'test', dependencies: {} }));
+        }
+        return Promise.resolve("const globalWorkspace = path.join(localWorkspace, '..');");
+      });
       mockFileSystemHandler.writeFile.mockResolvedValue();
 
       const result = await projectManager.createProject(options);
@@ -163,8 +180,34 @@ describe('ProjectManager', () => {
       expect(result.success).toBe(true);
       expect(result.projectPath).toBe('/test/project');
       expect(result.type).toBe('frontend');
+      expect(result.mode).toBe('copy');
       expect(mockFileSystemHandler.copyDirectory).toHaveBeenCalled();
-      expect(mockFileSystemHandler.updateJsonFile).toHaveBeenCalled();
+    });
+
+    it('should create project successfully with balm init mode', async () => {
+      const options = {
+        name: 'test-project',
+        type: 'frontend',
+        path: '/test/test-project'
+      };
+
+      mockFileSystemHandler.exists.mockReturnValueOnce(false); // Target directory doesn't exist
+
+      // Mock runBalmInit
+      projectManager.runBalmInit = vi.fn().mockResolvedValue({ success: true, output: 'done' });
+
+      const result = await projectManager.createProject(options);
+
+      expect(result.success).toBe(true);
+      expect(result.projectPath).toBe('/test/test-project');
+      expect(result.type).toBe('frontend');
+      expect(result.mode).toBe('balm-init');
+      expect(result.template).toBe('vue-ui-front');
+      expect(projectManager.runBalmInit).toHaveBeenCalledWith(
+        'vue-ui-front',
+        'test-project',
+        '/test'
+      );
     });
 
     it('should handle project creation errors', async () => {

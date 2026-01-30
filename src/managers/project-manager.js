@@ -28,20 +28,20 @@ export class ProjectManager {
   }
 
   /**
-   * Get built-in project templates (used when no referenceProject is specified)
+   * Get built-in project templates (maps to balm init template names)
    */
   getBuiltInTemplates() {
     return {
       frontend: {
-        name: 'Frontend Project',
+        name: 'vue-ui-front',
         description: 'Vue.js frontend project with router and basic components',
-        path: path.join(this.builtInTemplatesPath, 'frontend-project'),
+        command: 'vue-ui-front',
         type: 'frontend'
       },
       backend: {
-        name: 'Backend Project',
+        name: 'vue-ui-back',
         description: 'Vue.js backend project with authentication, menu, and CRUD functionality',
-        path: path.join(this.builtInTemplatesPath, 'backend-project'),
+        command: 'vue-ui-back',
         type: 'backend'
       }
     };
@@ -97,13 +97,15 @@ export class ProjectManager {
   }
 
   /**
-   * Resolve reference project path
+   * Resolve template info for project creation
    * Priority:
-   * 1. referenceProject (absolute path or relative to workspaceRoot)
-   * 2. Built-in template for the specified type
+   * 1. referenceProject (absolute path or relative to workspaceRoot) - copy mode
+   * 2. Built-in template for the specified type - balm init mode
+   *
+   * @returns {Object} Template info with either 'path' (copy mode) or 'command' (balm init mode)
    */
-  resolveTemplatePath(type, referenceProject) {
-    // If referenceProject is specified, use it
+  resolveTemplateInfo(type, referenceProject) {
+    // If referenceProject is specified, use copy mode
     if (referenceProject) {
       let refPath = referenceProject;
 
@@ -119,37 +121,41 @@ export class ProjectManager {
         );
       }
 
-      logger.info(`Using reference project: ${refPath}`);
-      return refPath;
+      logger.info(`Using reference project (copy mode): ${refPath}`);
+      return {
+        mode: 'copy',
+        path: refPath,
+        name: path.basename(refPath)
+      };
     }
 
-    // Fall back to built-in template
+    // Use built-in template via balm init
     const templates = this.getBuiltInTemplates();
     const template = templates[type];
 
     if (!template) {
       throw new BalmSharedMCPError(
         ErrorCodes.TEMPLATE_NOT_FOUND,
-        `Template not found for project type: ${type}`
+        `Template not found for project type: ${type}. Available types: frontend, backend`
       );
     }
 
-    if (!this.fileSystemHandler.exists(template.path)) {
-      throw new BalmSharedMCPError(
-        ErrorCodes.TEMPLATE_NOT_FOUND,
-        `Built-in template directory not found: ${template.path}. Consider specifying a referenceProject.`
-      );
-    }
-
-    logger.info(`Using built-in template: ${template.path}`);
-    return template.path;
+    logger.info(`Using balm init template: ${template.command}`);
+    return {
+      mode: 'balm-init',
+      command: template.command,
+      name: template.name,
+      description: template.description
+    };
   }
 
   /**
    * Get template path for project type (legacy compatibility)
+   * @deprecated Use resolveTemplateInfo instead
    */
   getTemplatePath(type, referenceProject = null) {
-    return this.resolveTemplatePath(type, referenceProject);
+    const info = this.resolveTemplateInfo(type, referenceProject);
+    return info.path || info.command;
   }
 
   /**
@@ -189,6 +195,67 @@ export class ProjectManager {
         ErrorCodes.PROJECT_CREATION_FAILED,
         `Failed to copy template: ${error.message}`,
         { templatePath, targetPath, originalError: error }
+      );
+    }
+  }
+
+  /**
+   * Run balm init command to create project from official template
+   * @param {string} templateName - Template name (e.g., 'vue-ui-front', 'vue-ui-back')
+   * @param {string} projectName - Project name
+   * @param {string} targetDir - Directory to create project in (parent directory)
+   */
+  async runBalmInit(templateName, projectName, targetDir) {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+
+    // Check if balm-cli is installed
+    try {
+      await execAsync('balm --version');
+    } catch (error) {
+      throw new BalmSharedMCPError(
+        ErrorCodes.PROJECT_CREATION_FAILED,
+        'balm-cli is not installed. Please install it globally using: npm install -g balm-cli',
+        { originalError: error }
+      );
+    }
+
+    try {
+      logger.info(`Running: balm init ${templateName} ${projectName} in ${targetDir}`);
+
+      // Ensure target directory exists
+      if (!this.fileSystemHandler.exists(targetDir)) {
+        await this.fileSystemHandler.mkdir(targetDir, { recursive: true });
+      }
+
+      const { stdout, stderr } = await execAsync(`balm init ${templateName} ${projectName}`, {
+        cwd: targetDir,
+        timeout: 60000, // 60 second timeout
+        // Use CI=true for non-interactive mode if supported, or ensure commands don't prompt
+        env: { ...process.env, CI: 'true' }
+      });
+
+      if (stderr && !stderr.includes('npm WARN')) {
+        logger.warn(`balm init stderr: ${stderr}`);
+      }
+
+      logger.info(`balm init completed: ${stdout}`);
+      return { success: true, output: stdout };
+    } catch (error) {
+      // Enhance error message if it looks like a missing command issue (double check)
+      if (error.message.includes('command not found') || error.code === 127) {
+        throw new BalmSharedMCPError(
+          ErrorCodes.PROJECT_CREATION_FAILED,
+          'Failed to run "balm init". Please ensure balm-cli is installed globally: npm install -g balm-cli',
+          { originalError: error }
+        );
+      }
+
+      throw new BalmSharedMCPError(
+        ErrorCodes.PROJECT_CREATION_FAILED,
+        `Failed to run balm init: ${error.message}`,
+        { templateName, projectName, targetDir, originalError: error }
       );
     }
   }
@@ -448,30 +515,42 @@ export class ProjectManager {
       // Validate input options
       this.validateProjectOptions(options);
 
-      // Get template path (from referenceProject or built-in template)
-      const templatePath = this.getTemplatePath(type, referenceProject);
+      // Resolve template info (determines mode: balm-init or copy)
+      const templateInfo = this.resolveTemplateInfo(type, referenceProject);
 
-      // Prepare template variables
-      const variables = this.prepareTemplateVariables(options);
+      let templateName;
 
-      // Copy template files with variable substitution
-      await this.copyTemplate(templatePath, projectPath, variables);
+      if (templateInfo.mode === 'balm-init') {
+        // Use balm init command to create project
+        const targetDir = path.dirname(projectPath);
+        await this.runBalmInit(templateInfo.command, name, targetDir);
+        templateName = templateInfo.command;
 
-      // Update package.json with project-specific information
-      await this.updatePackageJson(projectPath, options);
+        // After balm init, the project is created, but we may still need to configure it
+        // Note: balm init already sets up the project, so some steps may be skipped
+      } else {
+        // Copy mode: use reference project as template
+        const variables = this.prepareTemplateVariables(options);
+        await this.copyTemplate(templateInfo.path, projectPath, variables);
+        templateName = templateInfo.name;
 
-      // Configure shared-project integration
-      await this.configureSharedProjectIntegration(projectPath, options);
+        // Update package.json with project-specific information
+        await this.updatePackageJson(projectPath, options);
 
-      // Generate additional project configuration
-      await this.generateProjectConfiguration(projectPath, options);
+        // Configure shared-project integration
+        await this.configureSharedProjectIntegration(projectPath, options);
+
+        // Generate additional project configuration
+        await this.generateProjectConfiguration(projectPath, options);
+      }
 
       const result = {
         success: true,
         message: `Project ${name} created successfully`,
         projectPath,
         type,
-        template: templatePath,
+        template: templateName,
+        mode: templateInfo.mode,
         referenceProject: referenceProject || null,
         features: this.getProjectFeatures(type),
         nextSteps: this.getNextSteps(projectPath)
