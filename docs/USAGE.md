@@ -8,17 +8,19 @@ MCP (Model Context Protocol) 是一种协议，让 AI 助手能够调用本地�
 
 ## 📦 安装方式
 
-### 方式一：从 npm 安装（推荐）
+### 方式一：全局安装（推荐）
 
 ```bash
-# 全局安装
 npm install -g balm-shared-mcp
-
-# 或使用 npx 直接运行（无需安装）
-npx balm-shared-mcp
 ```
 
-### 方式二：从源码安装
+安装后 `balm-shared-mcp` 即可作为命令直接使用，**配置最简单**。
+
+### 方式二：npx 运行（无需安装）
+
+无需安装，AI 客户端会自动通过 npx 运行。但启动较慢，某些 IDE 可能超时。
+
+### 方式三：从源码运行（开发者）
 
 ```bash
 git clone <repository-url>
@@ -30,19 +32,18 @@ npm install
 
 ## ⚙️ MCP 配置说明
 
-### ⚠️ 重要：CLI vs IDE 配置差异
+### 三种配置方式对比
 
-| 项目 | CLI 工具 | IDE/插件 |
-|------|----------|----------|
-| **配置位置** | 全局配置文件 | 项目级或用户级配置 |
-| **路径解析** | 相对于 HOME 目录 | 相对于工作区或配置文件 |
-| **进程管理** | CLI 直接管理 | IDE 管理（可能有超时） |
-| **常见问题** | 较少 | 路径、权限、启动超时 |
+| 方式 | command | args | 优点 | 缺点 |
+|------|---------|------|------|------|
+| **全局安装** | `balm-shared-mcp` | 无需 | 配置简单、启动快 | 需要先安装 |
+| **npx 运行** | `npx` | `["-y", "balm-shared-mcp"]` | 无需安装 | 启动慢，可能超时 |
+| **源码运行** | `node` | `["/path/to/src/index.js"]` | 可修改源码 | 需克隆仓库 |
 
 ### 关键配置要点
 
-1. **使用绝对路径**：在 IDE 中配置时，全部使用绝对路径
-2. **node 优于 npx**：npx 启动慢，IDE 可能超时，建议用 node 直接运行
+1. **推荐全局安装**：配置最简单，只需 `"command": "balm-shared-mcp"`
+2. **使用绝对路径**：在 IDE 中配置时，全部使用绝对路径
 3. **环境变量要完整**：确保 `PATH` 等环境变量正确传递
 4. **日志排查**：设置 `LOG_LEVEL=debug` 排查问题
 
@@ -50,27 +51,11 @@ npm install
 
 ## 🖥️ CLI 工具配置
 
+> 💡 **首次配置？** 全局安装后只需设置 `command` 和 `env`，**无需配置 `args`**！
+
 ### Gemini CLI
 
 配置文件位置：`~/.gemini/settings.json`
-
-```json
-{
-  "mcpServers": {
-    "balm-shared-mcp": {
-      "command": "node",
-      "args": ["/absolute/path/to/balm-shared-mcp/src/index.js"],
-      "env": {
-        "WORKSPACE_ROOT": "/Users/yourname/workspace",
-        "SHARED_LIBRARY_NAME": "my-shared",
-        "LOG_LEVEL": "info"
-      }
-    }
-  }
-}
-```
-
-**或使用全局安装版本：**
 
 ```json
 {
@@ -94,8 +79,7 @@ npm install
 {
   "mcpServers": {
     "balm-shared-mcp": {
-      "command": "node",
-      "args": ["/absolute/path/to/balm-shared-mcp/src/index.js"],
+      "command": "balm-shared-mcp",
       "env": {
         "WORKSPACE_ROOT": "/Users/yourname/workspace",
         "SHARED_LIBRARY_NAME": "my-shared"
@@ -107,7 +91,26 @@ npm install
 
 ### Codex CLI (OpenAI)
 
-Codex CLI 目前使用 `agents.json` 配置：
+配置文件位置：`~/.codex/agents.json`
+
+```json
+{
+  "mcpServers": {
+    "balm-shared-mcp": {
+      "command": "balm-shared-mcp",
+      "env": {
+        "WORKSPACE_ROOT": "/Users/yourname/workspace",
+        "SHARED_LIBRARY_NAME": "my-shared"
+      }
+    }
+  }
+}
+```
+
+<details>
+<summary>📦 从源码运行（开发者/贡献者）</summary>
+
+如果你需要修改 MCP 服务器源码，可以使用 `node` + `args` 方式：
 
 ```json
 {
@@ -123,6 +126,34 @@ Codex CLI 目前使用 `agents.json` 配置：
   }
 }
 ```
+
+将 `/absolute/path/to/balm-shared-mcp` 替换为你克隆仓库的实际路径。
+
+</details>
+
+<details>
+<summary>🚀 使用 npx 运行（无需安装）</summary>
+
+如果不想全局安装，可以使用 npx 方式：
+
+```json
+{
+  "mcpServers": {
+    "balm-shared-mcp": {
+      "command": "npx",
+      "args": ["-y", "balm-shared-mcp"],
+      "env": {
+        "WORKSPACE_ROOT": "/Users/yourname/workspace",
+        "SHARED_LIBRARY_NAME": "my-shared"
+      }
+    }
+  }
+}
+```
+
+> ⚠️ **注意**：npx 启动较慢，某些 IDE/桌面应用可能超时。如遇问题请改用全局安装。
+
+</details>
 
 ---
 
@@ -139,8 +170,7 @@ Codex CLI 目前使用 `agents.json` 配置：
 {
   "mcpServers": {
     "balm-shared-mcp": {
-      "command": "node",
-      "args": ["/Users/yourname/path/to/balm-shared-mcp/src/index.js"],
+      "command": "balm-shared-mcp",
       "env": {
         "WORKSPACE_ROOT": "/Users/yourname/workspace",
         "SHARED_LIBRARY_NAME": "my-shared",
@@ -151,25 +181,7 @@ Codex CLI 目前使用 `agents.json` 配置：
 }
 ```
 
-> ⚠️ **注意**：Claude Desktop 需要显式设置 `PATH` 环境变量，否则可能找不到 node。
-
-**使用 npx 的备选配置：**
-
-```json
-{
-  "mcpServers": {
-    "balm-shared-mcp": {
-      "command": "/usr/local/bin/npx",
-      "args": ["-y", "balm-shared-mcp"],
-      "env": {
-        "WORKSPACE_ROOT": "/Users/yourname/workspace",
-        "SHARED_LIBRARY_NAME": "my-shared",
-        "PATH": "/usr/local/bin:/usr/bin:/bin"
-      }
-    }
-  }
-}
-```
+> ⚠️ **注意**：Claude Desktop 需要显式设置 `PATH` 环境变量，否则可能找不到 balm-shared-mcp 命令。
 
 ---
 
@@ -189,8 +201,7 @@ Cursor 支持 MCP，配置入口：
 {
   "mcpServers": {
     "balm-shared-mcp": {
-      "command": "node",
-      "args": ["/Users/yourname/path/to/balm-shared-mcp/src/index.js"],
+      "command": "balm-shared-mcp",
       "env": {
         "WORKSPACE_ROOT": "/Users/yourname/workspace",
         "SHARED_LIBRARY_NAME": "my-shared"
@@ -203,7 +214,6 @@ Cursor 支持 MCP，配置入口：
 > ⚠️ **Cursor 常见问题**：
 > - 如果工具列表为空，检查 MCP 服务器是否成功启动
 > - 尝试重启 Cursor
-> - 使用 `node` 而非 `npx`（避免启动超时）
 
 ### VS Code
 
@@ -227,8 +237,7 @@ JetBrains 系列目前需要通过第三方插件支持 MCP。
   "mcpServers": [
     {
       "name": "balm-shared-mcp",
-      "command": "node",
-      "args": ["/Users/yourname/path/to/balm-shared-mcp/src/index.js"],
+      "command": "balm-shared-mcp",
       "env": {
         "WORKSPACE_ROOT": "/Users/yourname/workspace",
         "SHARED_LIBRARY_NAME": "my-shared"
@@ -253,8 +262,7 @@ JetBrains 系列目前需要通过第三方插件支持 MCP。
 {
   "mcpServers": {
     "balm-shared-mcp": {
-      "command": "node",
-      "args": ["/Users/yourname/path/to/balm-shared-mcp/src/index.js"],
+      "command": "balm-shared-mcp",
       "env": {
         "WORKSPACE_ROOT": "/Users/yourname/workspace",
         "SHARED_LIBRARY_NAME": "my-shared"
@@ -278,8 +286,7 @@ JetBrains 系列目前需要通过第三方插件支持 MCP。
 {
   "mcpServers": {
     "balm-shared-mcp": {
-      "command": "node",
-      "args": ["/Users/yourname/path/to/balm-shared-mcp/src/index.js"],
+      "command": "balm-shared-mcp",
       "env": {
         "WORKSPACE_ROOT": "/Users/yourname/workspace",
         "SHARED_LIBRARY_NAME": "my-shared"
@@ -303,8 +310,7 @@ JetBrains 系列目前需要通过第三方插件支持 MCP。
 {
   "mcpServers": {
     "balm-shared-mcp": {
-      "command": "node",
-      "args": ["/Users/yourname/path/to/balm-shared-mcp/src/index.js"],
+      "command": "balm-shared-mcp",
       "env": {
         "WORKSPACE_ROOT": "/Users/yourname/workspace",
         "SHARED_LIBRARY_NAME": "my-shared"
