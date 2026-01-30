@@ -30,7 +30,7 @@ async function main() {
 
     // Initialize core components
     const fileSystemHandler = new FileSystemHandler();
-    const resourceAnalyzer = new ResourceAnalyzer(config.sharedLibraryPath, config);
+    const resourceAnalyzer = new ResourceAnalyzer(config.resolvedSharedLibraryPath, config);
     const projectManager = new ProjectManager(fileSystemHandler, config);
     const codeGenerator = new CodeGenerator(fileSystemHandler, config);
 

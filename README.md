@@ -72,9 +72,15 @@ Create a `config.json` file in the project root:
 
 ### Environment Variables
 
-- `SHARED_LIBRARY_PATH`: Path to shared library
-- `TEMPLATES_PATH`: Path to code templates
-- `LOG_LEVEL`: Logging level (debug, info, warn, error)
+| Variable | Required | Description | Default |
+|----------|----------|-------------|---------|
+| `WORKSPACE_ROOT` | ✅ | Root directory of your workspace | `./` |
+| `SHARED_LIBRARY_NAME` | ❌ | Name of the shared library | `my-shared` |
+| `SHARED_LIBRARY_PATH` | ❌ | Override full path (takes priority) | - |
+| `TEMPLATES_PATH` | ❌ | Path to code templates | `./templates` |
+| `LOG_LEVEL` | ❌ | Logging level | `info` |
+
+**Path Resolution**: `SHARED_LIBRARY_PATH || (WORKSPACE_ROOT + SHARED_LIBRARY_NAME)`
 
 ## Available Tools
 

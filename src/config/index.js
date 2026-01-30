@@ -14,8 +14,11 @@ import { BalmSharedMCPError } from '../utils/errors.js';
 
 // Configuration schema
 const ConfigSchema = z.object({
-  sharedLibraryPath: z.string().default('./'),
+  workspaceRoot: z.string().default('./'),
+  sharedLibraryPath: z.string().optional(),
   sharedLibraryName: z.string().default('my-shared'),
+  // Computed field: resolvedSharedLibraryPath = sharedLibraryPath || (workspaceRoot + sharedLibraryName)
+  resolvedSharedLibraryPath: z.string().optional(),
   templatesPath: z.string().default('./templates'),
   defaultProjectConfig: z
     .object({
@@ -103,7 +106,9 @@ class ConfigurationManager extends EventEmitter {
     }
 
     logger.info('Configuration loaded successfully', {
-      sharedLibraryPath: validatedConfig.sharedLibraryPath,
+      workspaceRoot: validatedConfig.workspaceRoot,
+      sharedLibraryName: validatedConfig.sharedLibraryName,
+      resolvedSharedLibraryPath: validatedConfig.resolvedSharedLibraryPath,
       templatesPath: validatedConfig.templatesPath,
       logLevel: validatedConfig.logging.level,
       hotReload: validatedConfig.hotReload
@@ -115,17 +120,39 @@ class ConfigurationManager extends EventEmitter {
 
   /**
    * Load environment variables into configuration
+   *
+   * Path resolution priority:
+   * 1. SHARED_LIBRARY_PATH (explicit full path, highest priority)
+   * 2. WORKSPACE_ROOT + SHARED_LIBRARY_NAME (computed path)
+   * 3. Default: './' + 'my-shared'
    */
   _loadEnvironmentConfig() {
     const envConfig = {};
 
+    // Load workspace root
+    if (process.env.WORKSPACE_ROOT) {
+      envConfig.workspaceRoot = process.env.WORKSPACE_ROOT;
+    }
+
+    // Load shared library name
+    if (process.env.SHARED_LIBRARY_NAME) {
+      envConfig.sharedLibraryName = process.env.SHARED_LIBRARY_NAME;
+    }
+
+    // Load explicit shared library path (overrides computed path)
     if (process.env.SHARED_LIBRARY_PATH) {
       envConfig.sharedLibraryPath = process.env.SHARED_LIBRARY_PATH;
     }
 
-    if (process.env.SHARED_LIBRARY_NAME) {
-      envConfig.sharedLibraryName = process.env.SHARED_LIBRARY_NAME;
-    }
+    // Compute resolved shared library path
+    // Priority: SHARED_LIBRARY_PATH > (WORKSPACE_ROOT + SHARED_LIBRARY_NAME)
+    const workspaceRoot = envConfig.workspaceRoot || './';
+    const libraryName = envConfig.sharedLibraryName || 'my-shared';
+    const explicitPath = envConfig.sharedLibraryPath;
+
+    envConfig.resolvedSharedLibraryPath = explicitPath
+      ? explicitPath
+      : path.join(workspaceRoot, libraryName);
 
     if (process.env.TEMPLATES_PATH) {
       envConfig.templatesPath = process.env.TEMPLATES_PATH;
@@ -344,8 +371,10 @@ class ConfigurationManager extends EventEmitter {
  * Default configuration
  */
 export const defaultConfig = {
-  sharedLibraryPath: './',
+  workspaceRoot: './',
+  sharedLibraryPath: undefined, // Optional: explicit override path
   sharedLibraryName: 'my-shared',
+  resolvedSharedLibraryPath: 'my-shared', // Computed: sharedLibraryPath || path.join(workspaceRoot, sharedLibraryName)
   templatesPath: './templates',
   defaultProjectConfig: {
     apiEndpoint: '/api',

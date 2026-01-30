@@ -44,7 +44,7 @@ npm install
       "command": "npx",
       "args": ["-y", "balm-shared-mcp"],
       "env": {
-        "SHARED_LIBRARY_PATH": "/path/to/my-shared",
+        "WORKSPACE_ROOT": "/path/to/user-workspace",
         "SHARED_LIBRARY_NAME": "my-shared"
       }
     }
@@ -61,7 +61,8 @@ npm install
       "command": "node",
       "args": ["/path/to/balm-shared-mcp/src/index.js"],
       "env": {
-        "SHARED_LIBRARY_PATH": "/path/to/my-shared"
+        "WORKSPACE_ROOT": "/path/to/user-workspace",
+        "SHARED_LIBRARY_NAME": "my-shared"
       }
     }
   }
@@ -78,7 +79,8 @@ npm install
     "command": "npx",
     "args": ["-y", "balm-shared-mcp"],
     "env": {
-      "SHARED_LIBRARY_PATH": "/path/to/my-shared"
+      "WORKSPACE_ROOT": "/path/to/user-workspace",
+      "SHARED_LIBRARY_NAME": "my-shared"
     }
   }
 }
@@ -96,7 +98,8 @@ npm install
       "command": "npx",
       "args": ["-y", "balm-shared-mcp"],
       "env": {
-        "SHARED_LIBRARY_PATH": "/path/to/my-shared"
+        "WORKSPACE_ROOT": "/path/to/user-workspace",
+        "SHARED_LIBRARY_NAME": "my-shared"
       }
     }
   ]
@@ -109,26 +112,37 @@ npm install
 
 | 变量 | 必需 | 说明 | 默认值 |
 |------|------|------|--------|
-| `SHARED_LIBRARY_PATH` | ✅ | 共享库的本地路径 | - |
+| `WORKSPACE_ROOT` | ✅ | 公司项目工作区根目录 | `./` |
 | `SHARED_LIBRARY_NAME` | ❌ | 共享库名称（不同公司可自定义） | `my-shared` |
+| `SHARED_LIBRARY_PATH` | ❌ | 共享库完整路径（覆盖计算路径） | - |
 | `LOG_LEVEL` | ❌ | 日志级别 | `info` |
+
+### 路径计算规则
+
+```
+最终共享库路径 = SHARED_LIBRARY_PATH || (WORKSPACE_ROOT + SHARED_LIBRARY_NAME)
+```
 
 ### 公司自定义示例
 
 不同公司可以有不同的共享库名称：
 
 ```bash
-# A 公司
+# A 公司 - 共享库在工作区内
+WORKSPACE_ROOT=/Users/dev/a-company
 SHARED_LIBRARY_NAME=a-shared
-SHARED_LIBRARY_PATH=/path/to/a-shared
+# => 共享库路径：/Users/dev/a-company/a-shared
 
-# B 公司
+# B 公司 - 共享库在工作区内
+WORKSPACE_ROOT=/Users/dev/b-company
 SHARED_LIBRARY_NAME=test-shared-pro
-SHARED_LIBRARY_PATH=/path/to/test-shared-pro
+# => 共享库路径：/Users/dev/b-company/test-shared-pro
 
-# 默认
+# C 公司 - 共享库在其他位置（使用 SHARED_LIBRARY_PATH 覆盖）
+WORKSPACE_ROOT=/Users/dev/c-company
 SHARED_LIBRARY_NAME=my-shared
-SHARED_LIBRARY_PATH=/path/to/my-shared
+SHARED_LIBRARY_PATH=/opt/company/shared-libs/my-shared-v2
+# => 共享库路径：/opt/company/shared-libs/my-shared-v2（覆盖）
 ```
 
 ---
@@ -213,8 +227,9 @@ AI 将生成：
 
 1. 发布 npm 包：`npm publish`
 2. 团队成员配置 AI 客户端（见上方配置示例）
-3. 确保每个成员本地有对应的共享库项目（名称通过 `SHARED_LIBRARY_NAME` 配置）
-4. 设置 `SHARED_LIBRARY_NAME` 为公司自定义的名称（如 `a-shared`）
+3. 每个成员设置自己的 `WORKSPACE_ROOT`（工作区根目录）
+4. 确保每个成员本地有对应的共享库项目（名称通过 `SHARED_LIBRARY_NAME` 配置）
+5. 如果共享库不在工作区内，使用 `SHARED_LIBRARY_PATH` 覆盖路径
 
 ### Q: 没有网络能用吗？
 
@@ -233,4 +248,4 @@ AI 将生成：
 
 ---
 
-*最后更新：2026-01-29*
+*最后更新：2026-01-30*

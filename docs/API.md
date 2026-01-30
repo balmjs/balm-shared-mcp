@@ -58,12 +58,16 @@ npm run prepare
 
 ### 环境变量
 
-| 变量名 | 描述 | 默认值 |
-|--------|------|--------|
-| `SHARED_LIBRARY_PATH` | 共享库路径 | `./my-shared` |
-| `TEMPLATES_PATH` | 代码模板路径 | `./templates` |
-| `LOG_LEVEL` | 日志级别 (debug, info, warn, error) | `info` |
-| `CONFIG_PATH` | 配置文件路径 | `./config.json` |
+| 变量名 | 必需 | 描述 | 默认值 |
+|--------|------|------|--------|
+| `WORKSPACE_ROOT` | ✅ | 公司项目工作区根目录 | `./` |
+| `SHARED_LIBRARY_NAME` | ❌ | 共享库名称 | `my-shared` |
+| `SHARED_LIBRARY_PATH` | ❌ | 共享库完整路径（覆盖计算路径） | - |
+| `TEMPLATES_PATH` | ❌ | 代码模板路径 | `./templates` |
+| `LOG_LEVEL` | ❌ | 日志级别 (debug, info, warn, error) | `info` |
+| `CONFIG_PATH` | ❌ | 配置文件路径 | `./config.json` |
+
+**路径计算规则**：`最终共享库路径 = SHARED_LIBRARY_PATH || (WORKSPACE_ROOT + SHARED_LIBRARY_NAME)`
 
 ### 启动服务器
 

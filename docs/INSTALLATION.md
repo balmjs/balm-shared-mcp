@@ -173,8 +173,15 @@ npm run test:run
 创建 `.env` 文件（可选）：
 
 ```bash
-# 共享库路径
-SHARED_LIBRARY_PATH=./my-shared
+# 公司项目工作区根目录（必需）
+WORKSPACE_ROOT=/path/to/company-workspace
+
+# 共享库名称（可选，默认 my-shared）
+SHARED_LIBRARY_NAME=my-shared
+
+# 共享库完整路径（可选，覆盖计算路径）
+# 如果设置，会覆盖 WORKSPACE_ROOT + SHARED_LIBRARY_NAME 的计算结果
+# SHARED_LIBRARY_PATH=/opt/company/shared-libs/my-shared-v2
 
 # 模板路径
 TEMPLATES_PATH=./templates
@@ -191,6 +198,8 @@ PORT=3000
 # 环境类型
 NODE_ENV=production
 ```
+
+路径计算规则：`最终共享库路径 = SHARED_LIBRARY_PATH || (WORKSPACE_ROOT + SHARED_LIBRARY_NAME)`
 
 ### 4. 高级配置
 
