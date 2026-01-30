@@ -1,40 +1,44 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// Mock the MCP SDK
+// Mock the MCP SDK - use class for Vitest 4.0 compatibility
 vi.mock('@modelcontextprotocol/sdk/server/index.js', () => ({
-  Server: vi.fn().mockImplementation(() => ({
-    setRequestHandler: vi.fn(),
-    connect: vi.fn().mockResolvedValue(),
-    close: vi.fn()
-  }))
+  Server: class MockServer {
+    constructor() {
+      this.setRequestHandler = vi.fn();
+      this.connect = vi.fn().mockResolvedValue();
+      this.close = vi.fn();
+    }
+  }
 }));
 
 vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
-  StdioServerTransport: vi.fn()
+  StdioServerTransport: class MockStdioServerTransport {}
 }));
 
-// Mock other dependencies
+// Mock other dependencies - use class for Vitest 4.0 compatibility
 vi.mock('../core/mcp-server.js', () => ({
-  MCPServer: vi.fn().mockImplementation(() => ({
-    listTools: vi.fn().mockReturnValue({ tools: [] }),
-    callTool: vi.fn().mockResolvedValue({ content: [] })
-  }))
+  MCPServer: class MockMCPServer {
+    constructor() {
+      this.listTools = vi.fn().mockReturnValue({ tools: [] });
+      this.callTool = vi.fn().mockResolvedValue({ content: [] });
+    }
+  }
 }));
 
 vi.mock('../managers/project-manager.js', () => ({
-  ProjectManager: vi.fn().mockImplementation(() => ({}))
+  ProjectManager: class MockProjectManager {}
 }));
 
 vi.mock('../generators/code-generator.js', () => ({
-  CodeGenerator: vi.fn().mockImplementation(() => ({}))
+  CodeGenerator: class MockCodeGenerator {}
 }));
 
 vi.mock('../analyzers/resource-analyzer.js', () => ({
-  ResourceAnalyzer: vi.fn().mockImplementation(() => ({}))
+  ResourceAnalyzer: class MockResourceAnalyzer {}
 }));
 
 vi.mock('../handlers/file-system-handler.js', () => ({
-  FileSystemHandler: vi.fn().mockImplementation(() => ({}))
+  FileSystemHandler: class MockFileSystemHandler {}
 }));
 
 vi.mock('../config/index.js', () => ({
@@ -54,7 +58,11 @@ vi.mock('../utils/logger.js', () => {
   };
   return {
     logger: mockLogger,
-    Logger: vi.fn().mockImplementation(() => mockLogger)
+    Logger: class MockLogger {
+      constructor() {
+        Object.assign(this, mockLogger);
+      }
+    }
   };
 });
 

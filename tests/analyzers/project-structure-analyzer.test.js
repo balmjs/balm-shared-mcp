@@ -4,27 +4,33 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ProjectStructureAnalyzer } from '../../src/analyzers/project-structure-analyzer.js';
-import { FileSystemHandler } from '../../src/handlers/file-system-handler.js';
 import { BalmSharedMCPError } from '../../src/utils/errors.js';
 
-// Mock FileSystemHandler
-vi.mock('../../src/handlers/file-system-handler.js');
+// Create mock file handler methods
+const mockFileHandler = {
+  validatePath: vi.fn(),
+  exists: vi.fn(),
+  isDirectory: vi.fn(),
+  readFile: vi.fn(),
+  listDirectory: vi.fn(),
+  getStats: vi.fn()
+};
+
+// Mock FileSystemHandler with class syntax for Vitest 4.0
+vi.mock('../../src/handlers/file-system-handler.js', () => ({
+  FileSystemHandler: class MockFileSystemHandler {
+    constructor() {
+      Object.assign(this, mockFileHandler);
+    }
+  }
+}));
 
 describe('ProjectStructureAnalyzer', () => {
   let analyzer;
-  let mockFileHandler;
 
   beforeEach(() => {
-    mockFileHandler = {
-      validatePath: vi.fn(),
-      exists: vi.fn(),
-      isDirectory: vi.fn(),
-      readFile: vi.fn(),
-      listDirectory: vi.fn(),
-      getStats: vi.fn()
-    };
-
-    vi.mocked(FileSystemHandler).mockImplementation(() => mockFileHandler);
+    // Reset all mocks
+    vi.clearAllMocks();
     analyzer = new ProjectStructureAnalyzer(undefined, { sharedLibraryName: 'yiban-shared' });
   });
 
