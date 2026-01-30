@@ -1,6 +1,6 @@
 {
   "name": "balm-shared-mcp",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Model Context Protocol server for balm-shared library integration",
   "main": "src/index.js",
   "type": "module",
