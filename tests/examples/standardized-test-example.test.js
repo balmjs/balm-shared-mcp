@@ -1,12 +1,12 @@
 /**
  * Example Test File - Demonstrates Standardized Mock Patterns
- * 
+ *
  * This file serves as an example of how to use the standardized mock utilities
  * and testing patterns across the project.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { 
+import {
   createMockLogger,
   createMockFileSystemHandler,
   createMockTool,
@@ -27,7 +27,7 @@ class ExampleService {
   async processFile(filePath, content) {
     try {
       this.logger.info(`Processing file: ${filePath}`);
-      
+
       if (!this.fileSystemHandler.exists(filePath)) {
         await this.fileSystemHandler.writeFile(filePath, content);
         this.logger.info(`File created: ${filePath}`);
@@ -35,7 +35,7 @@ class ExampleService {
         await this.fileSystemHandler.writeFile(filePath, content);
         this.logger.info(`File updated: ${filePath}`);
       }
-      
+
       return { success: true, path: filePath };
     } catch (error) {
       this.logger.error('Failed to process file', { error: error.message });
@@ -56,14 +56,14 @@ describe('ExampleService - Standardized Mock Patterns', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Use factory functions for consistent mock creation
     mockLogger = createMockLogger();
     mockFileSystemHandler = createMockFileSystemHandler();
-    
+
     // Use setup helpers for common scenarios
     mockSetups.setupSuccessfulFileOperations(mockFileSystemHandler);
-    
+
     service = new ExampleService(mockFileSystemHandler, mockLogger);
   });
 
@@ -80,7 +80,7 @@ describe('ExampleService - Standardized Mock Patterns', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.path).toBe(filePath);
-      
+
       // Use assertion helpers for common patterns
       mockAssertions.assertFileWritten(mockFileSystemHandler, filePath, content);
       mockAssertions.assertLoggerCalled(mockLogger, 'info', 'Processing file');
@@ -109,9 +109,8 @@ describe('ExampleService - Standardized Mock Patterns', () => {
       mockSetups.setupPermissionDenied(mockFileSystemHandler);
 
       // Act & Assert
-      await expect(service.processFile(filePath, content))
-        .rejects.toThrow('Permission denied');
-      
+      await expect(service.processFile(filePath, content)).rejects.toThrow('Permission denied');
+
       mockAssertions.assertLoggerCalled(mockLogger, 'error', 'Failed to process file');
     });
   });
@@ -124,7 +123,7 @@ describe('ExampleService - Standardized Mock Patterns', () => {
         name: 'test-config',
         version: '2.0.0'
       });
-      
+
       mockSetups.setupJsonFileOperations(mockFileSystemHandler, configData);
 
       // Act
@@ -142,8 +141,7 @@ describe('ExampleService - Standardized Mock Patterns', () => {
       mockSetups.setupFileNotFound(mockFileSystemHandler);
 
       // Act & Assert
-      await expect(service.readConfig(configPath))
-        .rejects.toThrow('File not found');
+      await expect(service.readConfig(configPath)).rejects.toThrow('File not found');
     });
 
     it('should handle invalid JSON gracefully', async () => {
@@ -152,8 +150,7 @@ describe('ExampleService - Standardized Mock Patterns', () => {
       mockFileSystemHandler.readFile.mockResolvedValue('invalid json content');
 
       // Act & Assert
-      await expect(service.readConfig(configPath))
-        .rejects.toThrow();
+      await expect(service.readConfig(configPath)).rejects.toThrow();
     });
   });
 });
@@ -164,14 +161,14 @@ describe('Tool Testing Examples', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Create standardized tool and context mocks
     mockTool = createMockTool({
       name: 'example_tool',
       category: 'examples',
       handler: vi.fn().mockResolvedValue({ success: true, data: 'example result' })
     });
-    
+
     mockContext = createMockMCPContext({
       toolName: 'example_tool',
       category: 'examples'

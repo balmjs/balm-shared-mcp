@@ -429,7 +429,10 @@ export class ModelConfigManager {
         filePath:
           filePath ||
           (projectPath
-            ? `${projectPath}/src/model-config/${this.toKebabCase(modelName)}.js`
+            ? path.join(
+              await this.fileSystemHandler.getScriptsDir(projectPath),
+              `pages/${this.toKebabCase(modelName)}/model-config/${this.toKebabCase(modelName)}.js`
+            )
             : undefined)
       };
     } catch (error) {
@@ -534,11 +537,12 @@ export default () => [
       content = content.replace(/\{\{#each fields\}\}[\s\S]*?\{\{\/each\}\}/g, fieldsContent);
 
       // Determine output path
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
       const finalOutputPath =
         outputPath ||
         path.join(
-          projectPath,
-          'src/scripts/pages',
+          scriptsDir,
+          'pages',
           this.toKebabCase(modelName),
           'model-config',
           `${this.toKebabCase(modelName)}.js`

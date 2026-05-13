@@ -2,9 +2,9 @@
 
 /**
  * BalmSharedMCP Demo Project
- * 
+ *
  * 这个示例展示了如何使用 BalmSharedMCP 的各种工具来创建一个完整的管理系统项目。
- * 
+ *
  * 运行方式：
  * node examples/demo-project.js
  */
@@ -38,15 +38,15 @@ class MCPClient {
         }
       };
 
-      child.stdin.write(JSON.stringify(request) + '\n');
+      child.stdin.write(`${JSON.stringify(request)}\n`);
       child.stdin.end();
 
       let output = '';
-      child.stdout.on('data', (data) => {
+      child.stdout.on('data', data => {
         output += data.toString();
       });
 
-      child.on('close', (code) => {
+      child.on('close', code => {
         if (code === 0) {
           try {
             const response = JSON.parse(output);
@@ -108,51 +108,51 @@ const DEMO_CONFIG = {
 // 主演示函数
 async function runDemo() {
   const client = new MCPClient();
-  
+
   console.log('🚀 BalmSharedMCP 演示项目开始');
-  console.log('=' .repeat(50));
+  console.log('='.repeat(50));
 
   try {
     // 步骤 1: 创建项目
     console.log('\n📁 步骤 1: 创建项目结构');
     console.log('-'.repeat(30));
-    
+
     const projectResult = await client.callTool('create_project', {
       name: DEMO_CONFIG.projectName,
       type: 'frontend',
       path: DEMO_CONFIG.projectPath
     });
-    
+
     console.log('✅ 项目创建成功');
-    console.log(projectResult.content[0].text.substring(0, 200) + '...');
+    console.log(`${projectResult.content[0].text.substring(0, 200)}...`);
 
     // 步骤 2: 分析项目结构
     console.log('\n🔍 步骤 2: 分析项目结构');
     console.log('-'.repeat(30));
-    
+
     const analysisResult = await client.callTool('analyze_project', {
       path: DEMO_CONFIG.projectPath
     });
-    
+
     console.log('✅ 项目分析完成');
-    console.log(analysisResult.content[0].text.substring(0, 200) + '...');
+    console.log(`${analysisResult.content[0].text.substring(0, 200)}...`);
 
     // 步骤 3: 生成业务模块
     console.log('\n⚙️ 步骤 3: 生成业务模块');
     console.log('-'.repeat(30));
-    
+
     for (const module of DEMO_CONFIG.modules) {
       console.log(`\n正在生成 ${module.name} 模块...`);
-      
-      const moduleResult = await client.callTool('generate_crud_module', {
+
+      await client.callTool('generate_crud_module', {
         module: module.name,
         model: module.model,
         fields: module.fields,
         projectPath: DEMO_CONFIG.projectPath
       });
-      
+
       console.log(`✅ ${module.name} 模块生成成功`);
-      
+
       // 添加延迟避免过载
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
@@ -160,29 +160,29 @@ async function runDemo() {
     // 步骤 4: 查询组件信息
     console.log('\n📚 步骤 4: 查询组件使用信息');
     console.log('-'.repeat(30));
-    
+
     const componentInfo = await client.callTool('query_component', {
       name: 'ui-list-view',
       category: 'pro-views'
     });
-    
+
     console.log('✅ 组件信息查询成功');
-    console.log(componentInfo.content[0].text.substring(0, 200) + '...');
+    console.log(`${componentInfo.content[0].text.substring(0, 200)}...`);
 
     // 步骤 5: 获取最佳实践
     console.log('\n💡 步骤 5: 获取开发最佳实践');
     console.log('-'.repeat(30));
-    
+
     const bestPractices = await client.callTool('get_best_practices', {
       topic: 'component-usage'
     });
-    
+
     console.log('✅ 最佳实践获取成功');
-    console.log(bestPractices.content[0].text.substring(0, 200) + '...');
+    console.log(`${bestPractices.content[0].text.substring(0, 200)}...`);
 
     // 演示完成
     console.log('\n🎉 演示完成！');
-    console.log('=' .repeat(50));
+    console.log('='.repeat(50));
     console.log(`项目已创建在: ${DEMO_CONFIG.projectPath}`);
     console.log('生成的文件包括:');
     console.log('  - 用户管理模块 (user)');
@@ -191,12 +191,11 @@ async function runDemo() {
     console.log('  - API 配置文件');
     console.log('  - Mock 数据文件');
     console.log('  - 表单配置文件');
-    
+
     console.log('\n下一步:');
-    console.log('  1. cd ' + DEMO_CONFIG.projectPath);
+    console.log(`  1. cd ${DEMO_CONFIG.projectPath}`);
     console.log('  2. npm install');
     console.log('  3. npm run dev');
-
   } catch (error) {
     console.error('\n❌ 演示过程中出现错误:', error.message);
     console.error('\n请检查:');

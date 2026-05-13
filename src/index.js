@@ -29,7 +29,7 @@ async function main() {
     logger.info('BalmSharedMCP server starting...', { config });
 
     // Initialize core components
-    const fileSystemHandler = new FileSystemHandler();
+    const fileSystemHandler = new FileSystemHandler({ workspaceRoot: config.workspaceRoot });
     const resourceAnalyzer = new ResourceAnalyzer(config.resolvedSharedLibraryPath, config);
     const projectManager = new ProjectManager(fileSystemHandler, config);
     const codeGenerator = new CodeGenerator(fileSystemHandler, config);

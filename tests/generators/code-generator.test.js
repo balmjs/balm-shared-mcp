@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import path from 'path';
 import { CodeGenerator } from '../../src/generators/code-generator.js';
 import { BalmSharedMCPError, ErrorCodes } from '../../src/utils/errors.js';
 
@@ -16,7 +17,10 @@ describe('CodeGenerator', () => {
       ensureDirectory: vi.fn().mockResolvedValue(true),
       writeFile: vi.fn().mockResolvedValue(true),
       readFile: vi.fn().mockResolvedValue('mock content'),
-      exists: vi.fn().mockResolvedValue(true)
+      exists: vi.fn().mockResolvedValue(true),
+      getScriptsDir: vi
+        .fn()
+        .mockImplementation(projectPath => Promise.resolve(path.join(projectPath, 'src/scripts')))
     };
 
     mockConfig = {
@@ -53,9 +57,9 @@ describe('CodeGenerator', () => {
     });
 
     it('should register custom helpers', () => {
-      const customHelper = (str) => str.toUpperCase();
+      const customHelper = str => str.toUpperCase();
       codeGenerator.registerHelper('upperCase', customHelper);
-      
+
       expect(codeGenerator.templateHelpers.has('upperCase')).toBe(true);
       expect(codeGenerator.templateHelpers.get('upperCase')('test')).toBe('TEST');
     });
@@ -89,15 +93,15 @@ describe('CodeGenerator', () => {
         template: '{{#if showMessage}}Message: {{message}}{{/if}}'
       });
 
-      const resultTrue = codeGenerator.renderTemplate('conditional-test', { 
-        showMessage: true, 
-        message: 'Hello' 
+      const resultTrue = codeGenerator.renderTemplate('conditional-test', {
+        showMessage: true,
+        message: 'Hello'
       });
       expect(resultTrue.content).toBe('Message: Hello');
 
-      const resultFalse = codeGenerator.renderTemplate('conditional-test', { 
-        showMessage: false, 
-        message: 'Hello' 
+      const resultFalse = codeGenerator.renderTemplate('conditional-test', {
+        showMessage: false,
+        message: 'Hello'
       });
       expect(resultFalse.content).toBe('');
     });
@@ -109,10 +113,7 @@ describe('CodeGenerator', () => {
       });
 
       const result = codeGenerator.renderTemplate('iteration-test', {
-        items: [
-          { name: 'First' },
-          { name: 'Second' }
-        ]
+        items: [{ name: 'First' }, { name: 'Second' }]
       });
       expect(result.content).toBe('Item 0: First\nItem 1: Second\n');
     });
@@ -153,7 +154,7 @@ describe('CodeGenerator', () => {
   describe('Mock Value Generation', () => {
     it('should generate appropriate mock values', () => {
       const helper = codeGenerator.templateHelpers.get('mockValue');
-      
+
       expect(helper('string', 0)).toBe("'示例文本1'");
       expect(typeof helper('number', 0)).toBe('number');
       expect(typeof helper('boolean', 0)).toBe('boolean');
@@ -207,7 +208,7 @@ describe('CodeGenerator', () => {
       
       return "hello";
       }`;
-      
+
       const formatted = codeGenerator.formatCode(unformatted, 'javascript');
       expect(formatted).not.toContain('\n\n\n');
     });
@@ -273,7 +274,9 @@ describe('CodeGenerator', () => {
         projectPath: '/test/project'
       };
 
-      await expect(codeGenerator.generatePageComponent(options)).rejects.toThrow(BalmSharedMCPError);
+      await expect(codeGenerator.generatePageComponent(options)).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should throw error for missing required parameters', async () => {
@@ -283,7 +286,9 @@ describe('CodeGenerator', () => {
         // missing model and projectPath
       };
 
-      await expect(codeGenerator.generatePageComponent(options)).rejects.toThrow(BalmSharedMCPError);
+      await expect(codeGenerator.generatePageComponent(options)).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
 
     it('should throw error for non-existent project path', async () => {
@@ -296,7 +301,9 @@ describe('CodeGenerator', () => {
         projectPath: '/non/existent/project'
       };
 
-      await expect(codeGenerator.generatePageComponent(options)).rejects.toThrow(BalmSharedMCPError);
+      await expect(codeGenerator.generatePageComponent(options)).rejects.toThrow(
+        BalmSharedMCPError
+      );
     });
   });
 
@@ -321,14 +328,14 @@ describe('CodeGenerator', () => {
       expect(result.success).toBe(true);
       expect(result.components).toHaveLength(2);
       expect(result.indexFile).toContain('index.js');
-      expect(result.generatedFiles).toHaveLength(3); // list, detail, index
+      expect(result.generatedFiles).toHaveLength(5); // list.vue, list.scss, detail.vue, detail.scss, index.js
     });
   });
 
   describe('Module Index Generation', () => {
     it('should generate module index content', () => {
       const content = codeGenerator.generateModuleIndex('user-management', ['list', 'detail']);
-      
+
       expect(content).toContain('import UserManagementList');
       expect(content).toContain('import UserManagementDetail');
       expect(content).toContain('export {');
@@ -454,9 +461,9 @@ describe('CodeGenerator', () => {
     it('should create main routes index', async () => {
       // Mock file doesn't exist so it creates a new one
       mockFileSystemHandler.exists.mockResolvedValueOnce(false);
-      
+
       const indexPath = '/test/routes/index.js';
-      
+
       await codeGenerator.createMainRoutesIndex(indexPath, 'user-management', 'userManagement');
 
       expect(mockFileSystemHandler.writeFile).toHaveBeenCalledWith(

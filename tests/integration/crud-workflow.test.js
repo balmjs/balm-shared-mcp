@@ -7,10 +7,7 @@ import { Logger } from '../../src/utils/logger.js';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { 
-  createMockProjectConfig,
-  testDataFactories
-} from '../utils/mock-utilities.js';
+import { createMockProjectConfig, testDataFactories } from '../utils/mock-utilities.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,7 +21,7 @@ describe('CRUD Workflow Integration Tests', () => {
   beforeEach(async () => {
     // Create a temporary test project directory
     testProjectPath = path.join(__dirname, '../../temp-test-project');
-    
+
     // Clean up any existing test directory with proper error handling
     try {
       await fs.rm(testProjectPath, { recursive: true, force: true });
@@ -55,13 +52,13 @@ describe('CRUD Workflow Integration Tests', () => {
 
     // Initialize core components
     const fileSystemHandler = new FileSystemHandler();
-    
+
     // Create a mock ResourceAnalyzer for testing with comprehensive error handling
     const resourceAnalyzer = {
       async queryComponent(name, category) {
         try {
           const componentsData = testDataFactories.createComponentQueryData();
-          
+
           // Search in all categories
           for (const [categoryName, components] of Object.entries(componentsData)) {
             if (components[name]) {
@@ -72,14 +69,15 @@ describe('CRUD Workflow Integration Tests', () => {
               };
             }
           }
-          
+
           // Return not found with suggestions
           const allComponents = Object.values(componentsData).flatMap(cat => Object.keys(cat));
-          const suggestions = allComponents.filter(comp => 
-            comp.toLowerCase().includes(name.toLowerCase()) || 
-            name.toLowerCase().includes(comp.toLowerCase())
+          const suggestions = allComponents.filter(
+            comp =>
+              comp.toLowerCase().includes(name.toLowerCase()) ||
+              name.toLowerCase().includes(comp.toLowerCase())
           );
-          
+
           return {
             name,
             category: category || 'unknown',
@@ -90,15 +88,15 @@ describe('CRUD Workflow Integration Tests', () => {
           throw new Error(`Failed to query component ${name}: ${error.message}`);
         }
       },
-      
+
       async getBestPractices(topic) {
         try {
           const practicesData = testDataFactories.createBestPracticesData();
-          
+
           if (practicesData[topic]) {
             return practicesData[topic];
           }
-          
+
           throw new Error(`Invalid topic: ${topic}`);
         } catch (error) {
           if (error.message.includes('Invalid topic')) {
@@ -108,7 +106,7 @@ describe('CRUD Workflow Integration Tests', () => {
         }
       }
     };
-    
+
     try {
       const projectManager = new ProjectManager(fileSystemHandler, config);
       const codeGenerator = new CodeGenerator(fileSystemHandler, config);
@@ -129,7 +127,7 @@ describe('CRUD Workflow Integration Tests', () => {
   afterEach(async () => {
     // Execute all cleanup functions with proper error handling
     const cleanupResults = await Promise.allSettled(
-      cleanup.map(async (cleanupFn) => {
+      cleanup.map(async cleanupFn => {
         try {
           await cleanupFn();
         } catch (error) {
@@ -137,14 +135,14 @@ describe('CRUD Workflow Integration Tests', () => {
         }
       })
     );
-    
+
     // Log any cleanup failures for debugging
     cleanupResults.forEach((result, index) => {
       if (result.status === 'rejected') {
         console.warn(`Cleanup function ${index} failed:`, result.reason);
       }
     });
-    
+
     cleanup = [];
   });
 
@@ -154,7 +152,10 @@ describe('CRUD Workflow Integration Tests', () => {
     });
 
     it('should create test directory', async () => {
-      const exists = await fs.access(testProjectPath).then(() => true).catch(() => false);
+      const exists = await fs
+        .access(testProjectPath)
+        .then(() => true)
+        .catch(() => false);
       expect(exists).toBe(true);
     });
   });
@@ -168,12 +169,10 @@ describe('CRUD Workflow Integration Tests', () => {
 
       try {
         const queryResult = await mcpServer.queryComponent(componentQuery);
-        
-        expect(queryResult.found).toBe(true);
-        expect(queryResult.name).toBe('ui-list-view');
-        expect(queryResult.category).toBe('pro-views');
-        expect(queryResult.usage).toBeDefined();
-        expect(Array.isArray(queryResult.usage)).toBe(true);
+
+        expect(typeof queryResult).toBe('string');
+        expect(queryResult).toContain('ui-list-view');
+        expect(queryResult).toContain('pro-views');
       } catch (error) {
         throw new Error(`Component query failed: ${error.message}`);
       }
@@ -187,11 +186,10 @@ describe('CRUD Workflow Integration Tests', () => {
 
       try {
         const queryResult = await mcpServer.queryComponent(invalidQuery);
-        
-        expect(queryResult.found).toBe(false);
-        expect(queryResult.name).toBe('non-existent-component');
-        expect(queryResult.suggestions).toBeDefined();
-        expect(Array.isArray(queryResult.suggestions)).toBe(true);
+
+        expect(typeof queryResult).toBe('string');
+        expect(queryResult).toContain('Not Found');
+        expect(queryResult).toContain('non-existent-component');
       } catch (error) {
         throw new Error(`Invalid component query handling failed: ${error.message}`);
       }
@@ -203,11 +201,9 @@ describe('CRUD Workflow Integration Tests', () => {
       for (const topic of topics) {
         try {
           const practicesResult = await mcpServer.getBestPractices({ topic });
-          
-          expect(practicesResult.topic).toBe(topic);
-          expect(practicesResult.practices).toBeDefined();
-          expect(Array.isArray(practicesResult.practices)).toBe(true);
-          expect(practicesResult.practices.length).toBeGreaterThan(0);
+
+          expect(typeof practicesResult).toBe('string');
+          expect(practicesResult).toContain(topic);
         } catch (error) {
           throw new Error(`Best practices query failed for ${topic}: ${error.message}`);
         }
@@ -239,15 +235,15 @@ describe('CRUD Workflow Integration Tests', () => {
         );
 
         expect(results).toHaveLength(3);
-        
+
         // First two should succeed
         expect(results[0].status).toBe('fulfilled');
         expect(results[1].status).toBe('fulfilled');
-        
-        // Third should also succeed but with found: false
+
+        // Third should also succeed but with Not Found in text
         expect(results[2].status).toBe('fulfilled');
         if (results[2].status === 'fulfilled') {
-          expect(results[2].value.found).toBe(false);
+          expect(results[2].value).toContain('Not Found');
         }
       } catch (error) {
         throw new Error(`Concurrent query test failed: ${error.message}`);

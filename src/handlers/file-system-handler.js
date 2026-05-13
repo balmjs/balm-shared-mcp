@@ -24,6 +24,7 @@ export class FileSystemHandler {
       '.ts'
     ];
     this.restrictedPaths = options.restrictedPaths || ['node_modules', '.git', '.env'];
+    this.workspaceRoot = options.workspaceRoot ? path.resolve(options.workspaceRoot) : null;
   }
 
   /**
@@ -46,6 +47,14 @@ export class FileSystemHandler {
           `Access to restricted path not allowed: ${restricted}`
         );
       }
+    }
+
+    // Enforce workspace root restriction if configured
+    if (this.workspaceRoot && !resolvedPath.startsWith(this.workspaceRoot)) {
+      throw new BalmSharedMCPError(
+        ErrorCodes.RESTRICTED_PATH,
+        `Access denied: Path must be within workspace root (${this.workspaceRoot})`
+      );
     }
 
     return resolvedPath;
@@ -573,17 +582,55 @@ export class FileSystemHandler {
   }
 
   /**
+   * Get scripts directory for a project
+   * Detects source root from config/balmrc.js or defaults to app/src
+   */
+  async getScriptsDir(projectPath) {
+    // Try to detect from config/balmrc.js
+    const balmrcPath = path.join(projectPath, 'config', 'balmrc.js');
+    if (this.exists(balmrcPath)) {
+      try {
+        const content = await this.readFile(balmrcPath);
+        // Look for roots: { source: '...' }
+        const match = content.match(/source:\s*['"]([^'"]+)['"]/);
+        if (match && match[1]) {
+          const scriptsDir = path.join(projectPath, match[1], 'scripts');
+          logger.debug(`Detected scripts directory from balmrc.js: ${scriptsDir}`);
+          return scriptsDir;
+        }
+      } catch (error) {
+        logger.warn(`Failed to read balmrc.js at ${balmrcPath}:`, error.message);
+      }
+    }
+
+    // Fallback: check directory existence
+    const appScripts = path.join(projectPath, 'app', 'scripts');
+    if (this.exists(appScripts)) {
+      return appScripts;
+    }
+
+    const srcScripts = path.join(projectPath, 'src', 'scripts');
+    if (this.exists(srcScripts)) {
+      return srcScripts;
+    }
+
+    // Default to app/scripts (BalmJS standard)
+    return appScripts;
+  }
+
+  /**
    * Ensure module directory structure exists
    */
   async ensureModuleStructure(projectPath, moduleName) {
     try {
       const validatedProjectPath = this.validatePath(projectPath);
+      const scriptsDir = await this.getScriptsDir(validatedProjectPath);
 
       const directories = [
-        path.join(validatedProjectPath, 'app', 'scripts', 'pages', moduleName),
-        path.join(validatedProjectPath, 'app', 'scripts', 'apis'),
-        path.join(validatedProjectPath, 'app', 'scripts', 'routes'),
-        path.join(validatedProjectPath, 'app', 'scripts', 'store', 'model'),
+        path.join(scriptsDir, 'pages', moduleName),
+        path.join(scriptsDir, 'apis'),
+        path.join(scriptsDir, 'routes'),
+        path.join(scriptsDir, 'store', 'model'),
         path.join(validatedProjectPath, 'mock-server', 'modules')
       ];
 
@@ -592,7 +639,8 @@ export class FileSystemHandler {
       }
 
       logger.debug(`Module structure ensured for: ${moduleName}`, {
-        directories: directories.length
+        directories: directories.length,
+        scriptsDir
       });
     } catch (error) {
       throw new BalmSharedMCPError(

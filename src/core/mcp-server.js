@@ -7,6 +7,7 @@
 import { logger } from '../utils/logger.js';
 import { BalmSharedMCPError, ErrorCodes } from '../utils/errors.js';
 import { ToolRegistry } from './tool-registry.js';
+import { ASTHandler } from '../handlers/ast-handler.js';
 
 export class MCPServer {
   constructor(components) {
@@ -15,6 +16,7 @@ export class MCPServer {
     this.resourceAnalyzer = components.resourceAnalyzer;
     this.fileSystemHandler = components.fileSystemHandler;
     this.config = components.config;
+    this.astHandler = new ASTHandler(this.fileSystemHandler);
 
     this.toolRegistry = new ToolRegistry();
     this.requestCount = 0;
@@ -213,10 +215,91 @@ export class MCPServer {
       { category: 'resource-query', tags: ['best-practices', 'documentation'] }
     );
 
+    this.toolRegistry.register(
+      'extract_local_pattern',
+      '提取项目中已有的代码范例 (Few-shot)',
+      {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: '目标项目或具体文件的路径'
+          }
+        },
+        required: ['path']
+      },
+      this.extractLocalPattern.bind(this),
+      { category: 'resource-query', tags: ['pattern', 'example'] }
+    );
+
+    this.toolRegistry.register(
+      'analyze_project_context',
+      '智能分析当前项目的元数据 (如源码目录、别名映射等)',
+      {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: '项目根目录路径'
+          }
+        },
+        required: ['path']
+      },
+      this.analyzeProjectContext.bind(this),
+      { category: 'resource-query', tags: ['context', 'analyze'] }
+    );
+
+    // --- Action Tools (Phase 3) ---
+    this.toolRegistry.register(
+      'scaffold_module_structure',
+      '创建模块的基础空目录结构 (如 apis/, pages/, routes/)',
+      {
+        type: 'object',
+        properties: {
+          projectPath: { type: 'string', description: '项目根目录路径' },
+          moduleName: { type: 'string', description: '模块名称' }
+        },
+        required: ['projectPath', 'moduleName']
+      },
+      this.scaffoldModuleStructure.bind(this),
+      { category: 'code-generation', tags: ['scaffold', 'directory'] }
+    );
+
+    this.toolRegistry.register(
+      'ast_insert_import',
+      '安全地向 JS/SCSS 索引文件中插入 import 语句或扩展数组',
+      {
+        type: 'object',
+        properties: {
+          filePath: { type: 'string', description: '目标文件路径' },
+          importStatement: { type: 'string', description: '要插入的 import 语句' },
+          arrayName: { type: 'string', description: '(可选) 要扩展的数组名称，如 apis 或 routes' },
+          arrayElement: { type: 'string', description: '(可选) 要追加到数组中的元素' }
+        },
+        required: ['filePath']
+      },
+      this.astInsertImport.bind(this),
+      { category: 'code-generation', tags: ['ast', 'import', 'injection'] }
+    );
+
+    this.toolRegistry.register(
+      'write_component',
+      '写入组件代码并进行基础格式化',
+      {
+        type: 'object',
+        properties: {
+          filePath: { type: 'string', description: '目标文件路径' },
+          content: { type: 'string', description: '完整的代码内容文本' }
+        },
+        required: ['filePath', 'content']
+      },
+      this.writeComponent.bind(this),
+      { category: 'code-generation', tags: ['write', 'component'] }
+    );
+
     const stats = this.toolRegistry.getStatistics();
     logger.info(`Registered ${stats.totalTools} tools across ${stats.categories} categories`);
   }
-
   /**
    * Register a tool with the server (legacy method for backward compatibility)
    */
@@ -271,20 +354,32 @@ export class MCPServer {
         stack: error.stack
       });
 
-      // Re-throw MCP errors as-is, wrap others
-      if (error instanceof BalmSharedMCPError) {
-        throw error;
-      }
+      // Return error as MCP content instead of throwing
+      // Throwing causes generic "MCP ERROR" in clients with no useful info
+      const errorMessage =
+        error instanceof BalmSharedMCPError
+          ? `[${error.code}] ${error.message}`
+          : `Tool execution failed: ${error.message}`;
 
-      throw new BalmSharedMCPError(
-        ErrorCodes.TOOL_EXECUTION_FAILED,
-        `Tool execution failed: ${error.message}`,
-        {
-          toolName: name,
-          requestId,
-          originalError: error.message
-        }
-      );
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                error: true,
+                message: errorMessage,
+                toolName: name,
+                requestId,
+                details: error.details || null
+              },
+              null,
+              2
+            )
+          }
+        ],
+        isError: true
+      };
     }
   }
 
@@ -391,7 +486,36 @@ export class MCPServer {
         projectPath: args.projectPath
       });
 
-      const result = await this.codeGenerator.generateCrudModule(args);
+      // Extract idiomatic patterns from current project and shared project
+      let patterns = {};
+      try {
+        const currentProjectPatterns = await this.resourceAnalyzer.extractProjectPatterns(
+          args.projectPath
+        );
+        const sharedProjectPath = await this.projectManager.getSharedProjectPath(args.projectPath);
+        const sharedProjectPatterns =
+          await this.resourceAnalyzer.extractProjectPatterns(sharedProjectPath);
+
+        // Merge patterns: current project takes priority
+        patterns = {
+          topActionConfig:
+            currentProjectPatterns.topActionConfig || sharedProjectPatterns.topActionConfig,
+          rowActionConfig:
+            currentProjectPatterns.rowActionConfig || sharedProjectPatterns.rowActionConfig,
+          handleAction: currentProjectPatterns.handleAction || sharedProjectPatterns.handleAction
+        };
+
+        if (patterns.topActionConfig || patterns.rowActionConfig || patterns.handleAction) {
+          logger.info('Idiomatic patterns extracted successfully');
+        }
+      } catch (error) {
+        logger.warn('Failed to extract idiomatic patterns:', error.message);
+      }
+
+      const result = await this.codeGenerator.generateCrudModule({
+        ...args,
+        patterns
+      });
 
       // Add generation summary to result
       result.summary = {
@@ -490,7 +614,36 @@ export class MCPServer {
         projectPath: args.projectPath
       });
 
-      const result = await this.codeGenerator.generatePageComponent(args);
+      // Extract idiomatic patterns from current project and shared project
+      let patterns = {};
+      try {
+        const currentProjectPatterns = await this.resourceAnalyzer.extractProjectPatterns(
+          args.projectPath
+        );
+        const sharedProjectPath = await this.projectManager.getSharedProjectPath(args.projectPath);
+        const sharedProjectPatterns =
+          await this.resourceAnalyzer.extractProjectPatterns(sharedProjectPath);
+
+        // Merge patterns: current project takes priority
+        patterns = {
+          topActionConfig:
+            currentProjectPatterns.topActionConfig || sharedProjectPatterns.topActionConfig,
+          rowActionConfig:
+            currentProjectPatterns.rowActionConfig || sharedProjectPatterns.rowActionConfig,
+          handleAction: currentProjectPatterns.handleAction || sharedProjectPatterns.handleAction
+        };
+
+        if (patterns.topActionConfig || patterns.rowActionConfig || patterns.handleAction) {
+          logger.info('Idiomatic patterns extracted successfully');
+        }
+      } catch (error) {
+        logger.warn('Failed to extract idiomatic patterns:', error.message);
+      }
+
+      const result = await this.codeGenerator.generatePageComponent({
+        ...args,
+        patterns
+      });
 
       // Add generation summary to result
       result.summary = {
@@ -574,22 +727,52 @@ export class MCPServer {
         category: args.category || 'all'
       });
 
-      const result = await this.resourceAnalyzer.queryComponent(args.name, args.category);
+      const rawResult = await this.resourceAnalyzer.queryComponent(args.name, args.category);
 
-      // Add query summary to result
-      result.query = {
-        name: args.name,
-        category: args.category || null,
-        timestamp: new Date().toISOString()
-      };
+      // Format the result as Markdown for better LLM comprehension
+      let markdownOutput = `# Component Query: ${args.name}\n\n`;
+
+      if (!rawResult.found) {
+        markdownOutput += `❌ **Not Found**\n\nCould not find component '${args.name}'.\n`;
+        if (rawResult.suggestions && rawResult.suggestions.length > 0) {
+          markdownOutput += `**Did you mean?**\n${rawResult.suggestions.map(s => `- \`${s.name}\` (${s.category})`).join('\n')}\n`;
+        }
+        return markdownOutput;
+      }
+
+      markdownOutput += `✅ **Found** in category: \`${rawResult.category}\`\n\n`;
+
+      if (rawResult.documentation) {
+        markdownOutput += `## Description\n${rawResult.documentation}\n\n`;
+      }
+
+      if (rawResult.props && rawResult.props.length > 0) {
+        markdownOutput += '## Props\n| Name | Type | Default | Description |\n|---|---|---|---|\n';
+        rawResult.props.forEach(p => {
+          markdownOutput += `| \`${p.name}\` | \`${p.type}\` | \`${p.default || '-'}\` | ${p.description || '-'} |\n`;
+        });
+        markdownOutput += '\n';
+      }
+
+      if (rawResult.events && rawResult.events.length > 0) {
+        markdownOutput += '## Events\n| Name | Description |\n|---|---|\n';
+        rawResult.events.forEach(e => {
+          markdownOutput += `| \`${e.name}\` | ${e.description || '-'} |\n`;
+        });
+        markdownOutput += '\n';
+      }
+
+      if (rawResult.usage) {
+        markdownOutput += `## Usage Example\n\`\`\`vue\n${rawResult.usage}\n\`\`\`\n\n`;
+      }
 
       logger.info('Component query completed', {
         name: args.name,
-        found: result.found,
-        category: result.category
+        found: rawResult.found,
+        category: rawResult.category
       });
 
-      return result;
+      return markdownOutput;
     } catch (error) {
       logger.error('Failed to query component', {
         name: args?.name,
@@ -651,21 +834,37 @@ export class MCPServer {
         topic: args.topic
       });
 
-      const result = await this.resourceAnalyzer.getBestPractices(args.topic);
+      const rawResult = await this.resourceAnalyzer.getBestPractices(args.topic);
 
-      // Add query summary to result
-      result.query = {
-        topic: args.topic,
-        timestamp: new Date().toISOString()
-      };
+      // Format the result as Markdown for better LLM comprehension
+      let markdownOutput = `# Best Practices: ${args.topic}\n\n`;
+
+      if (!rawResult.practices || rawResult.practices.length === 0) {
+        return `${markdownOutput}No specific best practices found for topic '${args.topic}'.\n`;
+      }
+
+      rawResult.practices.forEach(p => {
+        if (p.practice) {
+          markdownOutput += `## ${p.name || 'General Practice'}\n`;
+          markdownOutput += `${p.practice}\n\n`;
+        }
+      });
+
+      if (rawResult.examples && rawResult.examples.length > 0) {
+        markdownOutput += '## Examples\n\n';
+        rawResult.examples.forEach(ex => {
+          markdownOutput += `### ${ex.title || 'Example'}\n`;
+          markdownOutput += `\`\`\`javascript\n${ex.code}\n\`\`\`\n\n`;
+        });
+      }
 
       logger.info('Best practices query completed', {
         topic: args.topic,
-        practicesCount: result.practices?.length || 0,
-        examplesCount: result.examples?.length || 0
+        practicesCount: rawResult.practices?.length || 0,
+        examplesCount: rawResult.examples?.length || 0
       });
 
-      return result;
+      return markdownOutput;
     } catch (error) {
       logger.error('Failed to get best practices', {
         topic: args?.topic,
@@ -687,5 +886,148 @@ export class MCPServer {
 
   async generateModelConfig(args) {
     return this.codeGenerator.generateModelConfig(args);
+  }
+
+  async extractLocalPattern(args) {
+    try {
+      if (!args || !args.path) {
+        throw new BalmSharedMCPError(ErrorCodes.VALIDATION_FAILED, 'Path is required');
+      }
+
+      logger.info('Extracting local pattern', { path: args.path });
+      const patterns = await this.resourceAnalyzer.extractProjectPatterns(args.path);
+
+      let markdownOutput = '# Local Patterns Extracted\n\n';
+
+      if (patterns.topActionConfig) {
+        markdownOutput += `## Top Action Config\n\`\`\`javascript\n${patterns.topActionConfig}\n\`\`\`\n\n`;
+      }
+      if (patterns.rowActionConfig) {
+        markdownOutput += `## Row Action Config\n\`\`\`javascript\n${patterns.rowActionConfig}\n\`\`\`\n\n`;
+      }
+      if (patterns.handleAction) {
+        markdownOutput += `## Handle Action Method\n\`\`\`javascript\n${patterns.handleAction}\n\`\`\`\n\n`;
+      }
+
+      if (!patterns.topActionConfig && !patterns.rowActionConfig && !patterns.handleAction) {
+        markdownOutput += 'No standard patterns found at the specified path.\n';
+      }
+
+      return markdownOutput;
+    } catch (error) {
+      logger.error('Failed to extract pattern', { error: error.message });
+      throw error;
+    }
+  }
+
+  async analyzeProjectContext(args) {
+    try {
+      if (!args || !args.path) {
+        throw new BalmSharedMCPError(ErrorCodes.VALIDATION_FAILED, 'Path is required');
+      }
+
+      logger.info('Analyzing project context', { path: args.path });
+
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(args.path);
+      const sharedProjectPath = await this.projectManager.getSharedProjectPath(args.path);
+
+      let markdownOutput = '# Project Context Analysis\n\n';
+      markdownOutput += `- **Target Project Path:** \`${args.path}\`\n`;
+      markdownOutput += `- **Detected Scripts Directory:** \`${scriptsDir}\`\n`;
+      markdownOutput += `- **Resolved Shared Project Path:** \`${sharedProjectPath}\`\n\n`;
+      markdownOutput += '## Structural Assumptions\n';
+      markdownOutput += `- API Index: \`${scriptsDir}/apis/index.js\`\n`;
+      markdownOutput += `- Routes Config: \`${scriptsDir}/routes/config.js\`\n`;
+      markdownOutput += `- Styles Index: \`${scriptsDir.replace('/scripts', '/styles')}/pages/_index.scss\`\n`;
+      markdownOutput += `- Mock Server: \`${args.path}/mock-server/apis/index.js\`\n`;
+
+      return markdownOutput;
+    } catch (error) {
+      logger.error('Failed to analyze project context', { error: error.message });
+      throw error;
+    }
+  }
+
+  async scaffoldModuleStructure(args) {
+    try {
+      if (!args || !args.projectPath || !args.moduleName) {
+        throw new BalmSharedMCPError(
+          ErrorCodes.VALIDATION_FAILED,
+          'projectPath and moduleName are required'
+        );
+      }
+
+      await this.fileSystemHandler.ensureModuleStructure(args.projectPath, args.moduleName);
+
+      return {
+        success: true,
+        message: `Module structure scaffolded for ${args.moduleName}`,
+        projectPath: args.projectPath,
+        moduleName: args.moduleName
+      };
+    } catch (error) {
+      logger.error('Failed to scaffold module structure', { error: error.message });
+      throw error;
+    }
+  }
+
+  async astInsertImport(args) {
+    try {
+      if (!args || !args.filePath) {
+        throw new BalmSharedMCPError(ErrorCodes.VALIDATION_FAILED, 'filePath is required');
+      }
+
+      let importSuccess = false;
+      let arraySuccess = false;
+
+      if (args.importStatement) {
+        importSuccess = await this.astHandler.insertImport(args.filePath, args.importStatement);
+      }
+
+      if (args.arrayName && args.arrayElement) {
+        arraySuccess = await this.astHandler.expandArray(
+          args.filePath,
+          args.arrayName,
+          args.arrayElement
+        );
+      }
+
+      return {
+        success: importSuccess || arraySuccess,
+        message: `AST injection completed. Import inserted: ${importSuccess}, Array expanded: ${arraySuccess}`,
+        filePath: args.filePath
+      };
+    } catch (error) {
+      logger.error('Failed to execute AST injection', { error: error.message });
+      throw error;
+    }
+  }
+
+  async writeComponent(args) {
+    try {
+      if (!args || !args.filePath || !args.content) {
+        throw new BalmSharedMCPError(
+          ErrorCodes.VALIDATION_FAILED,
+          'filePath and content are required'
+        );
+      }
+
+      // Basic formatting based on file extension
+      let formattedContent = args.content;
+      if (args.filePath.endsWith('.js') || args.filePath.endsWith('.vue')) {
+        formattedContent = this.codeGenerator.formatJavaScript(args.content);
+      }
+
+      await this.fileSystemHandler.writeFile(args.filePath, formattedContent);
+
+      return {
+        success: true,
+        message: `Successfully wrote formatted content to ${args.filePath}`,
+        filePath: args.filePath
+      };
+    } catch (error) {
+      logger.error('Failed to write component', { error: error.message });
+      throw error;
+    }
   }
 }

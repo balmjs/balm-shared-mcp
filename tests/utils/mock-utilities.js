@@ -4,7 +4,7 @@
  * Standardized mock patterns and utilities for consistent testing across the project.
  */
 
-import { vi } from 'vitest';
+import { vi, expect } from 'vitest';
 
 /**
  * Logger Mock Factory
@@ -47,6 +47,7 @@ export const createMockFileSystemHandler = () => ({
   // Path utilities
   resolvePath: vi.fn(),
   joinPath: vi.fn(),
+  getScriptsDir: vi.fn(),
 
   // JSON operations
   updateJsonFile: vi.fn()
@@ -191,6 +192,9 @@ export const mockSetups = {
     mockHandler.createDirectory.mockResolvedValue();
     mockHandler.copyFile.mockResolvedValue();
     mockHandler.deleteFile.mockResolvedValue();
+    if (mockHandler.getScriptsDir) {
+      mockHandler.getScriptsDir.mockImplementation(p => Promise.resolve(`${p}/src/scripts`));
+    }
   },
 
   /**
@@ -248,7 +252,7 @@ export const mockAssertions = {
    */
   assertFileWritten: (mockHandler, expectedPath, expectedContent = null) => {
     expect(mockHandler.writeFile).toHaveBeenCalled();
-    const calls = mockHandler.writeFile.mock.calls;
+    const { calls } = mockHandler.writeFile.mock;
     const matchingCall = calls.find(
       call => call[0].includes(expectedPath) || call[0] === expectedPath
     );
@@ -264,7 +268,7 @@ export const mockAssertions = {
    */
   assertDirectoryCreated: (mockHandler, expectedPath) => {
     expect(mockHandler.createDirectory).toHaveBeenCalled();
-    const calls = mockHandler.createDirectory.mock.calls;
+    const { calls } = mockHandler.createDirectory.mock;
     const matchingCall = calls.find(
       call => call[0].includes(expectedPath) || call[0] === expectedPath
     );
@@ -276,7 +280,7 @@ export const mockAssertions = {
    */
   assertFileRead: (mockHandler, expectedPath) => {
     expect(mockHandler.readFile).toHaveBeenCalled();
-    const calls = mockHandler.readFile.mock.calls;
+    const { calls } = mockHandler.readFile.mock;
     const matchingCall = calls.find(
       call => call[0].includes(expectedPath) || call[0] === expectedPath
     );
@@ -290,7 +294,7 @@ export const mockAssertions = {
     expect(mockLogger[level]).toHaveBeenCalled();
 
     if (expectedMessage !== null) {
-      const calls = mockLogger[level].mock.calls;
+      const { calls } = mockLogger[level].mock;
       const matchingCall = calls.find(
         call =>
           call[0].includes(expectedMessage) ||

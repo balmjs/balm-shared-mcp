@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import path from 'path';
 import { ApiManager } from '../api-manager.js';
 import { BalmSharedMCPError } from '../../utils/errors.js';
 
@@ -9,7 +10,10 @@ describe('ApiManager', () => {
     readFile: vi.fn(),
     writeFile: vi.fn(),
     readDirectory: vi.fn(),
-    createDirectory: vi.fn()
+    createDirectory: vi.fn(),
+    getScriptsDir: vi
+      .fn()
+      .mockImplementation(projectPath => Promise.resolve(path.join(projectPath, 'src/scripts')))
   };
 
   const mockCodeGenerator = {

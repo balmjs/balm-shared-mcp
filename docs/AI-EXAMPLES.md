@@ -1,522 +1,73 @@
-# AI 使用示例
+# AI Agent 智能体使用示例 (Agentic Workflow)
 
-本文档展示 AI 助手（如 Claude、Cursor）如何使用 BalmSharedMCP 提供的工具来完成各种开发任务。
+本文档展示 AI 助手（如 Claude、Cursor、Gemini CLI）在加载了 `balm-developer-skill.md` (Agent Skill) 后，如何以智能体（Agentic）的方式配合 BalmSharedMCP 完成复杂的业务开发任务。
 
-## 目录
+## 核心理念：从“工具调用”到“工作流编排”
 
-- [项目管理工具](#项目管理工具)
-  - [create_project](#create_project---创建项目)
-  - [analyze_project](#analyze_project---分析项目)
-- [代码生成工具](#代码生成工具)
-  - [generate_crud_module](#generate_crud_module---生成-crud-模块)
-  - [generate_page_component](#generate_page_component---生成页面组件)
-  - [generate_model_config](#generate_model_config---生成表单配置)
-- [资源查询工具](#资源查询工具)
-  - [query_component](#query_component---查询组件)
-  - [get_best_practices](#get_best_practices---获取最佳实践)
+在传统的代码生成器模式下，用户需要手动调用一个“大而全”的生成工具。而在 Agentic 架构下，用户只需发出自然语言指令，AI 会作为“大脑”，通过组合调用多个原子化的 MCP 工具（作为“手眼”）来完成任务。
 
 ---
 
-## 项目管理工具
+## 典型开发工作流示例
 
-### create_project - 创建项目
+### 场景 1：按照团队规范生成商品列表页
 
-创建基于 shared-project 的新项目。
+**用户请求 (User Prompt)：**
+> "我需要在 my-shop 项目中开发一个商品（Product）列表页面。请参考当前的团队规范和已有的订单列表页写法帮我生成。"
 
-#### 参数说明
+**AI 智能体的思考与操作过程 (Agent Trajectory)：**
 
-| 参数 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `name` | string | ✅ | 项目名称 |
-| `type` | string | ✅ | 项目类型：`frontend` 或 `backend` |
-| `path` | string | ✅ | 项目创建路径 |
-| `referenceProject` | string | ❌ | 参考项目路径（相对于 WORKSPACE_ROOT 或绝对路径） |
+1.  **阶段一：侦测环境与规范 (Context Gathering)**
+    *   **AI 思考**："首先，我需要知道这个项目的根目录在哪里，以及它的标准代码规范是什么。"
+    *   *AI 调用工具：* `analyze_project_context(path: "/Users/dev/company/my-shop")`
+    *   *AI 调用工具：* `get_best_practices(topic: "component-usage")`
+    *   **AI 思考**："用户让我参考订单列表页，我需要去拉取那个页面的代码切片学习它的 Action 配置。"
+    *   *AI 调用工具：* `extract_local_pattern(path: "/Users/dev/company/my-shop/app/scripts/pages/order/order-list.vue")`
 
-#### 示例 1：创建前端项目（使用内置脚手架）
+2.  **阶段二：规划与生成代码 (LLM Generation)**
+    *   **AI 思考**："我已经获取了 BalmUI Pro 的最新组件用法，也看到了本地项目的 `topActionConfig` 喜欢使用特定的图标，且没有使用 `style scoped`。现在我在大脑中生成完整的 Vue 代码文本。"
 
-**用户请求：** "调用 create_project 工具，帮我创建一个名为 my-webapp 的前端项目"
+3.  **阶段三：安全写入 (Safe Execution)**
+    *   **AI 思考**："代码生成完毕，现在我要将代码写入文件，并更新路由索引。"
+    *   *AI 调用工具：* `write_component(path: ".../pages/product/product-list.vue", content: "<template>...")`
+    *   *AI 调用工具：* `ast_insert_import(path: ".../routes/config.js", importStatement: "import { productRoutes } from './product';")`
 
-**AI 调用：**
-```json
-{
-  "name": "create_project",
-  "arguments": {
-    "name": "my-webapp",
-    "type": "frontend",
-    "path": "/Users/dev/company/my-webapp"
-  }
-}
-```
-
-**返回结果：**
-```json
-{
-  "success": true,
-  "message": "Project my-webapp created successfully",
-  "projectPath": "/Users/dev/company/my-webapp",
-  "type": "frontend",
-  "template": "vue-ui-front",
-  "mode": "balm-init",
-  "referenceProject": null,
-  "features": [
-    "Vue.js 2.7",
-    "Vue Router",
-    "BalmUI components",
-    "BalmUI Pro",
-    "shared-project integration",
-    "ESLint configuration",
-    "Jest testing setup",
-    "Mock server with MirageJS",
-    "Basic routing structure",
-    "Component examples"
-  ],
-  "nextSteps": [
-    "cd /Users/dev/company/my-webapp",
-    "npm install",
-    "npm run dev",
-    "Open http://localhost:3000 in your browser"
-  ]
-}
-```
-
-#### 示例 2：创建后台项目（参考现有项目）
-
-**用户请求：** "调用 create_project 工具，参考 company-admin 项目创建一个新的后台管理系统"
-
-**AI 调用：**
-```json
-{
-  "name": "create_project",
-  "arguments": {
-    "name": "new-admin",
-    "type": "backend",
-    "path": "/Users/dev/company/new-admin",
-    "referenceProject": "company-admin"
-  }
-}
-```
+**最终对用户的回复：**
+> "我已经分析了您的项目结构，并参考了 `order-list.vue` 中的按钮图标风格。商品列表页面已经为您生成并写入到了 `app/scripts/pages/product/product-list.vue`，同时帮您在 `routes/config.js` 中注册了对应的路由。您可以直接运行预览了。"
 
 ---
 
-### analyze_project - 分析项目
+### 场景 2：基于数据结构创建完整的 CRUD 模块
 
-分析现有项目的结构和配置，提供优化建议。
+**用户请求 (User Prompt)：**
+> "新增一个用户管理模块（User），包含 name (字符串), email (字符串), role (下拉单选)。请完整搭建相关的 API、Mock、页面和路由。"
 
-#### 参数说明
+**AI 智能体的思考与操作过程 (Agent Trajectory)：**
 
-| 参数 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `path` | string | ✅ | 项目路径 |
+1.  **阶段一：读取项目约定**
+    *   *AI 调用工具：* `analyze_project_context(path: "当前项目")`
+    *   **AI 思考**："确认当前项目的源码根目录是 `src` 还是 `app`，确认接口的基础前缀是 `/api` 还是 `/v1`。"
 
-#### 示例：分析项目结构
+2.  **阶段二：搭建骨架与生成代码**
+    *   *AI 调用工具：* `scaffold_module_structure(moduleName: "user")`
+    *   **AI 思考**："根据用户提供的 name, email, role，我将逐一生成 ModelConfig、List 页面、Detail 页面、Mock API 文件的代码文本。"
 
-**用户请求：** "调用 analyze_project 工具，帮我分析一下 my-app 项目的结构"
+3.  **阶段三：多文件并发写入与 AST 注册**
+    *   *AI 调用并发写入工具：* 分别调用 `write_component` 写入 `model-config/user.js`, `user-list.vue`, `user-detail.vue` 等 4 个文件。
+    *   *AI 调用安全注册工具：*
+        *   `ast_insert_import(path: ".../apis/index.js", ...)`
+        *   `ast_insert_import(path: ".../mock-server/apis/index.js", ...)`
+        *   `ast_insert_import(path: ".../styles/pages/_index.scss", ...)`
 
-**AI 调用：**
-```json
-{
-  "name": "analyze_project",
-  "arguments": {
-    "path": "/Users/dev/company/my-app"
-  }
-}
-```
-
-**返回结果：**
-```json
-{
-  "projectPath": "/Users/dev/company/my-app",
-  "isValid": true,
-  "projectType": "backend",
-  "hasSharedProject": true,
-  "structure": {
-    "hasPackageJson": true,
-    "hasSrc": true,
-    "hasConfig": true,
-    "hasEslintConfig": true
-  },
-  "configuration": {
-    "sharedProjectIntegration": {
-      "hasDependency": true,
-      "hasAlias": true,
-      "hasImports": true
-    }
-  },
-  "recommendations": [
-    {
-      "type": "suggestion",
-      "message": "Set up testing framework",
-      "action": "Configure Jest and create test directory"
-    }
-  ]
-}
-```
+**最终对用户的回复：**
+> "用户管理模块的 CRUD 脚手架已搭建完毕。包含列表、详情页面，以及对应的 API 声明和 Mock 数据。代码严格遵循了 BalmUI Pro 的 `model-config` 和 `get-model-data-fn` 最佳实践，相关的依赖也已经通过 AST 安全地注册到了各类 `index.js` 中。"
 
 ---
 
-## 代码生成工具
+## 为何使用 Agentic 工作流？
 
-### generate_crud_module - 生成 CRUD 模块
+1.  **高度容错**：AI 在执行每一步前都会通过读取真实代码来“验证”自己的理解，而不是依赖可能会过期或冲突的硬编码模板。
+2.  **精准模仿**：通过 Few-shot 技术（提取本地模式），AI 生成的代码不仅语法正确，而且“代码品味”完全契合你的团队历史遗留习惯。
+3.  **安全可靠**：彻底摒弃了用正则表达式强行修改（如 `import` 追加）可能带来的语法树破坏问题。
 
-生成完整的增删改查业务模块，包括列表页、详情页、API 配置、Mock 数据等。
-
-#### 参数说明
-
-| 参数 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `module` | string | ✅ | 模块名称（如 `user`、`product`） |
-| `model` | string | ✅ | 数据模型名称（如 `User`、`Product`） |
-| `fields` | array | ✅ | 字段定义数组 |
-| `projectPath` | string | ✅ | 目标项目路径 |
-
-#### 字段定义格式
-
-```json
-{
-  "name": "fieldName",
-  "type": "string|number|boolean|date",
-  "component": "ui-textfield|ui-select|ui-datepicker|..."
-}
-```
-
-#### 示例：生成用户管理模块
-
-**用户请求：** "调用 generate_crud_module 工具，帮我生成一个用户管理模块，包含姓名、邮箱、角色字段"
-
-**AI 调用：**
-```json
-{
-  "name": "generate_crud_module",
-  "arguments": {
-    "module": "user",
-    "model": "User",
-    "fields": [
-      {
-        "name": "name",
-        "type": "string",
-        "component": "ui-textfield"
-      },
-      {
-        "name": "email",
-        "type": "string",
-        "component": "ui-textfield"
-      },
-      {
-        "name": "role",
-        "type": "string",
-        "component": "ui-select"
-      },
-      {
-        "name": "createdAt",
-        "type": "date",
-        "component": "ui-datepicker"
-      }
-    ],
-    "projectPath": "/Users/dev/company/my-admin"
-  }
-}
-```
-
-**返回结果：**
-```json
-{
-  "success": true,
-  "generatedFiles": [
-    "src/views/user/list.vue",
-    "src/views/user/detail.vue",
-    "src/api/user.js",
-    "src/model-config/user.js",
-    "src/router/modules/user.js",
-    "mock/user.js"
-  ],
-  "summary": {
-    "module": "user",
-    "model": "User",
-    "fieldsGenerated": 4,
-    "filesCreated": 6,
-    "timestamp": "2026-01-30T07:50:00.000Z"
-  }
-}
-```
-
----
-
-### generate_page_component - 生成页面组件
-
-生成单个页面组件（列表或详情）。
-
-#### 参数说明
-
-| 参数 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `name` | string | ✅ | 组件名称 |
-| `type` | string | ✅ | 组件类型：`list` 或 `detail` |
-| `model` | string | ✅ | 关联的数据模型 |
-| `projectPath` | string | ✅ | 目标项目路径 |
-
-#### 示例：生成产品列表页
-
-**用户请求：** "调用 generate_page_component 工具，帮我生成一个产品列表页面"
-
-**AI 调用：**
-```json
-{
-  "name": "generate_page_component",
-  "arguments": {
-    "name": "product-list",
-    "type": "list",
-    "model": "Product",
-    "projectPath": "/Users/dev/company/my-shop"
-  }
-}
-```
-
----
-
-### generate_model_config - 生成表单配置
-
-生成表单的 model-config 配置文件。
-
-#### 参数说明
-
-| 参数 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `name` | string | ✅ | 模型名称 |
-| `fields` | array | ✅ | 字段定义数组 |
-| `projectPath` | string | ✅ | 目标项目路径 |
-| `formLayout` | string | ❌ | 表单布局：`vertical` 或 `horizontal` |
-| `submitText` | string | ❌ | 提交按钮文本 |
-| `cancelText` | string | ❌ | 取消按钮文本 |
-
-#### 字段定义格式（完整）
-
-```json
-{
-  "name": "fieldName",
-  "label": "字段标签",
-  "type": "string|number|email|date",
-  "required": true,
-  "defaultValue": "",
-  "validation": {
-    "minLength": 2,
-    "maxLength": 50,
-    "pattern": "email"
-  }
-}
-```
-
-#### 示例：生成订单表单配置
-
-**用户请求：** "调用 generate_model_config 工具，帮我生成一个订单表单配置"
-
-**AI 调用：**
-```json
-{
-  "name": "generate_model_config",
-  "arguments": {
-    "name": "Order",
-    "fields": [
-      {
-        "name": "orderNo",
-        "label": "订单号",
-        "type": "string",
-        "required": true
-      },
-      {
-        "name": "customerName",
-        "label": "客户姓名",
-        "type": "string",
-        "required": true,
-        "validation": {
-          "minLength": 2,
-          "maxLength": 50
-        }
-      },
-      {
-        "name": "amount",
-        "label": "订单金额",
-        "type": "number",
-        "required": true
-      },
-      {
-        "name": "orderDate",
-        "label": "下单日期",
-        "type": "date",
-        "required": true
-      }
-    ],
-    "projectPath": "/Users/dev/company/my-shop",
-    "formLayout": "vertical",
-    "submitText": "提交订单",
-    "cancelText": "取消"
-  }
-}
-```
-
----
-
-## 资源查询工具
-
-### query_component - 查询组件
-
-查询 shared-project 中的组件信息，包括 Props、Events、使用示例。
-
-#### 参数说明
-
-| 参数 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `name` | string | ✅ | 组件名称 |
-| `category` | string | ❌ | 组件分类：`common`、`form`、`chart`、`pro-views` |
-
-#### 示例：查询列表视图组件
-
-**用户请求：** "调用 query_component 工具，查询 ui-list-view 组件怎么用？有什么参数？"
-
-**AI 调用：**
-```json
-{
-  "name": "query_component",
-  "arguments": {
-    "name": "ui-list-view",
-    "category": "pro-views"
-  }
-}
-```
-
-**返回结果：**
-```json
-{
-  "found": true,
-  "name": "ui-list-view",
-  "category": "pro-views",
-  "description": "列表视图组件，用于展示数据列表",
-  "props": [
-    {
-      "name": "data",
-      "type": "Array",
-      "required": true,
-      "description": "列表数据"
-    },
-    {
-      "name": "columns",
-      "type": "Array",
-      "required": true,
-      "description": "列定义"
-    },
-    {
-      "name": "pagination",
-      "type": "Object",
-      "required": false,
-      "description": "分页配置"
-    }
-  ],
-  "events": [
-    {
-      "name": "row-click",
-      "description": "行点击事件"
-    }
-  ],
-  "example": "<ui-list-view :data=\"listData\" :columns=\"columns\" @row-click=\"handleRowClick\" />"
-}
-```
-
----
-
-### get_best_practices - 获取最佳实践
-
-获取特定主题的最佳实践指南和代码示例。
-
-#### 参数说明
-
-| 参数 | 类型 | 必需 | 说明 |
-|------|------|------|------|
-| `topic` | string | ✅ | 主题：`project-structure`、`api-config`、`component-usage`、`routing` |
-
-#### 可用主题
-
-| 主题 | 说明 |
-|------|------|
-| `project-structure` | 项目目录结构最佳实践 |
-| `api-config` | API 接口配置最佳实践 |
-| `component-usage` | 组件使用最佳实践 |
-| `routing` | 路由配置最佳实践 |
-
-#### 示例：获取 API 配置最佳实践
-
-**用户请求：** "调用 get_best_practices 工具，告诉我 API 接口应该怎么配置"
-
-**AI 调用：**
-```json
-{
-  "name": "get_best_practices",
-  "arguments": {
-    "topic": "api-config"
-  }
-}
-```
-
-**返回结果：**
-```json
-{
-  "topic": "api-config",
-  "practices": [
-    {
-      "title": "统一 API 目录结构",
-      "description": "所有 API 请求放在 src/api 目录下，按模块分文件",
-      "example": "src/api/user.js, src/api/product.js"
-    },
-    {
-      "title": "使用 interceptor 统一处理",
-      "description": "在 request interceptor 中添加 token，在 response interceptor 中处理错误"
-    }
-  ],
-  "examples": [
-    {
-      "title": "API 文件示例",
-      "code": "import { request } from '@/utils/request';\n\nexport const getUsers = (params) => request.get('/api/users', { params });\nexport const createUser = (data) => request.post('/api/users', data);"
-    }
-  ]
-}
-```
-
----
-
-## 常见使用场景
-
-### 场景 1：从零开始创建后台管理系统
-
-1. **创建项目**
-   ```json
-   { "name": "create_project", "arguments": { "name": "admin-system", "type": "backend", "path": "/path/to/admin-system" }}
-   ```
-
-2. **查询组件用法**
-   ```json
-   { "name": "query_component", "arguments": { "name": "ui-table", "category": "common" }}
-   ```
-
-3. **生成 CRUD 模块**
-   ```json
-   { "name": "generate_crud_module", "arguments": { "module": "user", "model": "User", "fields": [...], "projectPath": "/path/to/admin-system" }}
-   ```
-
-### 场景 2：为现有项目添加新模块
-
-1. **分析项目结构**
-   ```json
-   { "name": "analyze_project", "arguments": { "path": "/path/to/existing-project" }}
-   ```
-
-2. **查看最佳实践**
-   ```json
-   { "name": "get_best_practices", "arguments": { "topic": "project-structure" }}
-   ```
-
-3. **生成新模块**
-   ```json
-   { "name": "generate_crud_module", "arguments": { "module": "order", "model": "Order", "fields": [...], "projectPath": "/path/to/existing-project" }}
-   ```
-
----
-
-*最后更新：2026-01-30*
+*最后更新：2026-05*

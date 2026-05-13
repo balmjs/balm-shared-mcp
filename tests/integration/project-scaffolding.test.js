@@ -20,7 +20,7 @@ describe('Project Scaffolding Integration Tests', () => {
   beforeEach(async () => {
     // Create a temporary test project directory
     testProjectPath = path.join(__dirname, '../../temp-scaffold-test');
-    
+
     // Clean up any existing test directory with error handling
     try {
       await fs.rm(testProjectPath, { recursive: true, force: true });
@@ -53,14 +53,14 @@ describe('Project Scaffolding Integration Tests', () => {
     // Initialize core components with comprehensive error handling
     try {
       const fileSystemHandler = new FileSystemHandler();
-      
+
       // Create a mock ResourceAnalyzer for testing
       const resourceAnalyzer = {
         async queryComponent(name, category) {
           try {
             const componentsPath = path.join(__dirname, '../fixtures/yiban-shared/components.json');
             const componentsData = JSON.parse(await fs.readFile(componentsPath, 'utf8'));
-            
+
             // Search in all categories
             for (const [categoryName, components] of Object.entries(componentsData)) {
               if (components[name]) {
@@ -71,14 +71,15 @@ describe('Project Scaffolding Integration Tests', () => {
                 };
               }
             }
-            
+
             // Return not found with suggestions
             const allComponents = Object.values(componentsData).flatMap(cat => Object.keys(cat));
-            const suggestions = allComponents.filter(comp => 
-              comp.toLowerCase().includes(name.toLowerCase()) || 
-              name.toLowerCase().includes(comp.toLowerCase())
+            const suggestions = allComponents.filter(
+              comp =>
+                comp.toLowerCase().includes(name.toLowerCase()) ||
+                name.toLowerCase().includes(comp.toLowerCase())
             );
-            
+
             return {
               name,
               category: category || 'unknown',
@@ -89,16 +90,19 @@ describe('Project Scaffolding Integration Tests', () => {
             throw new Error(`Failed to query component ${name}: ${error.message}`);
           }
         },
-        
+
         async getBestPractices(topic) {
           try {
-            const practicesPath = path.join(__dirname, '../fixtures/yiban-shared/best-practices.json');
+            const practicesPath = path.join(
+              __dirname,
+              '../fixtures/yiban-shared/best-practices.json'
+            );
             const practicesData = JSON.parse(await fs.readFile(practicesPath, 'utf8'));
-            
+
             if (practicesData[topic]) {
               return practicesData[topic];
             }
-            
+
             throw new Error(`Invalid topic: ${topic}`);
           } catch (error) {
             if (error.message.includes('Invalid topic')) {
@@ -108,7 +112,7 @@ describe('Project Scaffolding Integration Tests', () => {
           }
         }
       };
-      
+
       const projectManager = new ProjectManager(fileSystemHandler, config);
       const codeGenerator = new CodeGenerator(fileSystemHandler, config);
 
@@ -128,7 +132,7 @@ describe('Project Scaffolding Integration Tests', () => {
   afterEach(async () => {
     // Execute all cleanup functions with proper error handling
     const cleanupResults = await Promise.allSettled(
-      cleanup.map(async (cleanupFn) => {
+      cleanup.map(async cleanupFn => {
         try {
           await cleanupFn();
         } catch (error) {
@@ -136,14 +140,14 @@ describe('Project Scaffolding Integration Tests', () => {
         }
       })
     );
-    
+
     // Log any cleanup failures for debugging
     cleanupResults.forEach((result, index) => {
       if (result.status === 'rejected') {
         console.warn(`Cleanup function ${index} failed:`, result.reason);
       }
     });
-    
+
     cleanup = [];
   });
 
@@ -165,7 +169,7 @@ describe('Project Scaffolding Integration Tests', () => {
 
         // Test project creation
         const result = await mockCreateProject(projectConfig);
-        
+
         expect(result.success).toBe(true);
         expect(result.projectPath).toBe(testProjectPath);
         expect(result.files).toContain('package.json');
@@ -186,7 +190,7 @@ describe('Project Scaffolding Integration Tests', () => {
       for (const config of invalidConfigs) {
         try {
           // Mock project creation that should handle invalid configs
-          const mockCreateProject = vi.fn().mockImplementation((cfg) => {
+          const mockCreateProject = vi.fn().mockImplementation(cfg => {
             if (!cfg || !cfg.name || cfg.name.trim() === '') {
               throw new Error('Invalid project name');
             }
@@ -219,7 +223,7 @@ describe('Project Scaffolding Integration Tests', () => {
           if (!templatePath || !data) {
             throw new Error('Missing template path or data');
           }
-          
+
           // Simulate template processing
           return {
             success: true,
@@ -229,7 +233,7 @@ describe('Project Scaffolding Integration Tests', () => {
         });
 
         const result = await mockProcessTemplate('list-page.vue.template', templateData);
-        
+
         expect(result.success).toBe(true);
         expect(result.output).toContain('UserList');
       } catch (error) {
@@ -247,12 +251,18 @@ describe('Project Scaffolding Integration Tests', () => {
 
       for (const data of invalidTemplateData) {
         try {
-          const mockProcessTemplate = vi.fn().mockImplementation(async (templatePath, templateData) => {
-            if (!templateData || !templateData.componentName || templateData.componentName.trim() === '') {
-              throw new Error('Invalid template data');
-            }
-            return { success: true };
-          });
+          const mockProcessTemplate = vi
+            .fn()
+            .mockImplementation(async (templatePath, templateData) => {
+              if (
+                !templateData ||
+                !templateData.componentName ||
+                templateData.componentName.trim() === ''
+              ) {
+                throw new Error('Invalid template data');
+              }
+              return { success: true };
+            });
 
           try {
             await mockProcessTemplate('test.template', data);
@@ -263,7 +273,9 @@ describe('Project Scaffolding Integration Tests', () => {
           }
         } catch (outerError) {
           // Expected behavior for invalid template data
-          expect(outerError.message).toMatch(/Invalid template data|Expected template processing to fail/);
+          expect(outerError.message).toMatch(
+            /Invalid template data|Expected template processing to fail/
+          );
         }
       }
     });
@@ -278,15 +290,15 @@ describe('Project Scaffolding Integration Tests', () => {
 
       try {
         // Mock file creation with error handling
-        const mockCreateFiles = vi.fn().mockImplementation(async (files) => {
+        const mockCreateFiles = vi.fn().mockImplementation(async files => {
           const results = [];
-          
+
           for (const file of files) {
             try {
               if (!file.path || !file.content) {
                 throw new Error(`Invalid file data: ${JSON.stringify(file)}`);
               }
-              
+
               // Simulate file creation
               results.push({
                 path: file.path,
@@ -301,12 +313,12 @@ describe('Project Scaffolding Integration Tests', () => {
               });
             }
           }
-          
+
           return results;
         });
 
         const results = await mockCreateFiles(testFiles);
-        
+
         expect(results).toHaveLength(2);
         results.forEach(result => {
           expect(result).toHaveProperty('success');
@@ -326,15 +338,15 @@ describe('Project Scaffolding Integration Tests', () => {
       ];
 
       try {
-        const mockCreateDirectories = vi.fn().mockImplementation(async (dirs) => {
+        const mockCreateDirectories = vi.fn().mockImplementation(async dirs => {
           const results = [];
-          
+
           for (const dir of dirs) {
             try {
               if (dir.includes('/invalid/')) {
                 throw new Error('Permission denied');
               }
-              
+
               results.push({
                 path: dir,
                 success: true,
@@ -348,20 +360,20 @@ describe('Project Scaffolding Integration Tests', () => {
               });
             }
           }
-          
+
           return results;
         });
 
         const results = await mockCreateDirectories(directories);
-        
+
         expect(results).toHaveLength(4);
-        
+
         // Check that valid directories succeeded
         const validResults = results.slice(0, 3);
         validResults.forEach(result => {
           expect(result.success).toBe(true);
         });
-        
+
         // Check that invalid directory failed
         const invalidResult = results[3];
         expect(invalidResult.success).toBe(false);
@@ -382,12 +394,10 @@ describe('Project Scaffolding Integration Tests', () => {
       ];
 
       try {
-        const results = await Promise.allSettled(
-          operations.map(op => op())
-        );
-        
+        const results = await Promise.allSettled(operations.map(op => op()));
+
         expect(results).toHaveLength(4);
-        
+
         // Check successful operations
         expect(results[0].status).toBe('fulfilled');
         expect(results[0].value).toBe('operation1');
@@ -395,7 +405,7 @@ describe('Project Scaffolding Integration Tests', () => {
         expect(results[1].value).toBe('operation2');
         expect(results[3].status).toBe('fulfilled');
         expect(results[3].value).toBe('operation4');
-        
+
         // Check failed operation
         expect(results[2].status).toBe('rejected');
         expect(results[2].reason.message).toBe('operation3 failed');
@@ -405,17 +415,18 @@ describe('Project Scaffolding Integration Tests', () => {
     });
 
     it('should handle timeout scenarios in async operations', async () => {
-      const timeoutOperation = () => new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Operation timed out'));
-        }, 100);
-        
-        // Simulate long-running operation
-        setTimeout(() => {
-          clearTimeout(timeout);
-          resolve('completed');
-        }, 200);
-      });
+      const timeoutOperation = () =>
+        new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Operation timed out'));
+          }, 100);
+
+          // Simulate long-running operation
+          setTimeout(() => {
+            clearTimeout(timeout);
+            resolve('completed');
+          }, 200);
+        });
 
       try {
         await expect(timeoutOperation()).rejects.toThrow('Operation timed out');

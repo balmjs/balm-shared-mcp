@@ -145,13 +145,13 @@ describe('FileSystemHandler', () => {
       const filePath = '/test/config.json';
       const existingData = { name: 'old', version: '1.0.0' };
       const updates = { name: 'new', description: 'test' };
-      
+
       vi.mocked(existsSync).mockReturnValue(true);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(existingData));
       vi.mocked(fs.writeFile).mockResolvedValue();
 
       const result = await handler.updateJsonFile(filePath, updates);
-      
+
       expect(result).toEqual({
         name: 'new',
         version: '1.0.0',
@@ -162,13 +162,13 @@ describe('FileSystemHandler', () => {
     it('should create new JSON file if not exists', async () => {
       const filePath = '/test/new-config.json';
       const updates = { name: 'test', version: '1.0.0' };
-      
+
       vi.mocked(existsSync).mockReturnValue(false);
       vi.mocked(fs.mkdir).mockResolvedValue();
       vi.mocked(fs.writeFile).mockResolvedValue();
 
       const result = await handler.updateJsonFile(filePath, updates);
-      
+
       expect(result).toEqual(updates);
     });
   });

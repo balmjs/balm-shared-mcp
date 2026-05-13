@@ -30,6 +30,171 @@ export class ResourceAnalyzer {
   }
 
   /**
+   * Extract idiomatic patterns from existing Vue files in a project
+   */
+  async extractProjectPatterns(projectPath) {
+    logger.info(`Extracting project patterns from: ${projectPath}`);
+    const patterns = {
+      topActionConfig: null,
+      rowActionConfig: null,
+      handleAction: null
+    };
+
+    try {
+      // Detect scripts directory
+      let scriptsDir = path.join(projectPath, 'app/scripts');
+      const balmrcPath = path.join(projectPath, 'config/balmrc.js');
+
+      try {
+        await fs.access(balmrcPath);
+        const content = await fs.readFile(balmrcPath, 'utf-8');
+        const match = content.match(/source:\s*['"]([^'"]+)['"]/);
+        if (match && match[1]) {
+          scriptsDir = path.join(projectPath, match[1], 'scripts');
+        }
+      } catch {
+        // Fallback: check if app/scripts or src/scripts exists
+        try {
+          await fs.access(scriptsDir);
+        } catch {
+          scriptsDir = path.join(projectPath, 'src/scripts');
+        }
+      }
+
+      const pagesDir = path.join(scriptsDir, 'pages');
+
+      if (!(await this._exists(pagesDir))) {
+        return patterns;
+      }
+
+      // Scan for Vue files in pages directory
+      const vueFiles = await this._findVueFiles(pagesDir);
+
+      for (const filePath of vueFiles.slice(0, 5)) {
+        // Only check first few files for efficiency
+        const content = await fs.readFile(filePath, 'utf-8');
+
+        if (!patterns.topActionConfig) {
+          patterns.topActionConfig = this._extractConfigObject(content, 'topActionConfig');
+        }
+        if (!patterns.rowActionConfig) {
+          patterns.rowActionConfig = this._extractConfigObject(content, 'rowActionConfig');
+        }
+        if (!patterns.handleAction) {
+          patterns.handleAction = this._extractMethod(content, 'handleAction');
+        }
+
+        if (patterns.topActionConfig && patterns.rowActionConfig && patterns.handleAction) {
+          break;
+        }
+      }
+
+      return patterns;
+    } catch (error) {
+      logger.warn('Failed to extract project patterns:', error.message);
+      return patterns;
+    }
+  }
+
+  /**
+   * Find Vue files recursively
+   */
+  async _findVueFiles(dirPath) {
+    const results = [];
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name);
+      if (entry.isDirectory()) {
+        const subResults = await this._findVueFiles(fullPath);
+        results.push(...subResults);
+      } else if (entry.name.endsWith('.vue')) {
+        results.push(fullPath);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Extract a configuration object by name from file content
+   */
+  _extractConfigObject(content, configName) {
+    const regex = new RegExp(`${configName}:\\s*\\[`, 'm');
+    const match = content.match(regex);
+    if (!match) {
+      return null;
+    }
+
+    const startPos = match.index + match[0].length - 1; // Position of '['
+    let bracketCount = 0;
+    let endPos = -1;
+
+    for (let i = startPos; i < content.length; i++) {
+      if (content[i] === '[') {
+        bracketCount++;
+      } else if (content[i] === ']') {
+        bracketCount--;
+        if (bracketCount === 0) {
+          endPos = i;
+          break;
+        }
+      }
+    }
+
+    if (endPos !== -1) {
+      // Return the content inside []
+      return content.substring(startPos + 1, endPos).trim();
+    }
+    return null;
+  }
+
+  /**
+   * Extract a method by name from file content
+   */
+  _extractMethod(content, methodName) {
+    const regex = new RegExp(`${methodName}\\s*\\(.*?\\)\\s*\\{`, 'm');
+    const match = content.match(regex);
+    if (!match) {
+      return null;
+    }
+
+    const startPos = match.index + match[0].length - 1; // Position of '{'
+    let braceCount = 0;
+    let endPos = -1;
+
+    for (let i = startPos; i < content.length; i++) {
+      if (content[i] === '{') {
+        braceCount++;
+      } else if (content[i] === '}') {
+        braceCount--;
+        if (braceCount === 0) {
+          endPos = i;
+          break;
+        }
+      }
+    }
+
+    if (endPos !== -1) {
+      // Return the content inside {}
+      return content.substring(startPos + 1, endPos).trim();
+    }
+    return null;
+  }
+
+  /**
+   * Helper to check file existence
+   */
+  async _exists(filePath) {
+    try {
+      await fs.access(filePath);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Build comprehensive resource index for shared-project
    */
   async buildResourceIndex() {

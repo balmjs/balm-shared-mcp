@@ -31,7 +31,8 @@ export class ApiManager {
     this.validateApiOptions(options);
 
     try {
-      const apiDir = path.join(projectPath, 'src/scripts/apis');
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+      const apiDir = path.join(scriptsDir, 'apis');
       const apiFileName = `${model.toLowerCase()}.js`;
       const apiFilePath = path.join(apiDir, apiFileName);
 
@@ -69,7 +70,8 @@ export class ApiManager {
    */
   async updateApisIndex(projectPath, modelName) {
     try {
-      const indexPath = path.join(projectPath, 'src/scripts/apis/index.js');
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+      const indexPath = path.join(scriptsDir, 'apis/index.js');
       const modelKey = modelName.toLowerCase();
 
       let content = '';
@@ -500,7 +502,8 @@ export class ApiManager {
 
     try {
       // Find existing API configuration file
-      const apiDir = path.join(projectPath, 'src/scripts/apis', category);
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+      const apiDir = path.join(scriptsDir, 'apis', category);
       const apiFileName = `${this.codeGenerator.templateHelpers.get('kebabCase')(name)}.js`;
       const apiFilePath = path.join(apiDir, apiFileName);
 
@@ -569,7 +572,8 @@ export class ApiManager {
     logger.info(`Listing API configurations in project: ${projectPath}`);
 
     try {
-      const apisDir = path.join(projectPath, 'src/scripts/apis');
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+      const apisDir = path.join(scriptsDir, 'apis');
       const apisDirExists = await this.fileSystemHandler.exists(apisDir);
 
       if (!apisDirExists) {
@@ -597,7 +601,13 @@ export class ApiManager {
 
               try {
                 const content = await this.fileSystemHandler.readFile(apiPath);
-                const apiInfo = this.parseApiConfiguration(content, apiName, category);
+                const apiInfo = this.parseApiConfiguration(
+                  content,
+                  apiName,
+                  category,
+                  apiPath,
+                  projectPath
+                );
                 apis.push(apiInfo);
               } catch (error) {
                 logger.warn(`Failed to parse API configuration: ${apiPath}`, {
@@ -630,27 +640,26 @@ export class ApiManager {
   /**
    * Parse API configuration from file content
    */
-  parseApiConfiguration(content, apiName, category) {
+  parseApiConfiguration(content, apiName, category, apiPath, projectPath) {
     try {
-      // Simple regex-based parsing - in a real implementation, use AST parsing
-
-      // Extract all quoted strings from the content
+      // ... existing parsing logic ...
       const quotedStrings = content.match(/'([^']+)'/g) || [];
 
       let model = 'unknown';
       let endpoint = 'unknown';
       let operations = [];
 
-      // If we have at least 2 quoted strings, use them as model and endpoint
       if (quotedStrings.length >= 2) {
         model = quotedStrings[0].replace(/'/g, '');
         endpoint = quotedStrings[1].replace(/'/g, '');
       }
 
-      // Extract operations from the remaining quoted strings (skip first 2)
       if (quotedStrings.length > 2) {
         operations = quotedStrings.slice(2).map(op => op.replace(/'/g, ''));
       }
+
+      // Calculate relative path from project root
+      const filePath = projectPath ? path.relative(projectPath, apiPath) : apiPath;
 
       return {
         name: apiName,
@@ -659,9 +668,10 @@ export class ApiManager {
         operations,
         category,
         hasCustomActions: content.includes('crud:'),
-        filePath: `src/scripts/apis/${category}/${apiName}.js`
+        filePath
       };
     } catch (error) {
+      const filePath = projectPath ? path.relative(projectPath, apiPath) : apiPath;
       return {
         name: apiName,
         model: 'unknown',
@@ -669,7 +679,7 @@ export class ApiManager {
         operations: [],
         category,
         hasCustomActions: false,
-        filePath: `src/scripts/apis/${category}/${apiName}.js`,
+        filePath,
         parseError: error.message
       };
     }
@@ -682,7 +692,8 @@ export class ApiManager {
     logger.info(`Validating API configuration: ${apiName}`);
 
     try {
-      const apiDir = path.join(projectPath, 'src/scripts/apis', category);
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+      const apiDir = path.join(scriptsDir, 'apis', category);
       const apiFileName = `${this.codeGenerator.templateHelpers.get('kebabCase')(apiName)}.js`;
       const apiFilePath = path.join(apiDir, apiFileName);
 
@@ -726,7 +737,7 @@ export class ApiManager {
       }
 
       // Check if category is imported in main index
-      const mainIndexPath = path.join(projectPath, 'src/scripts/apis/index.js');
+      const mainIndexPath = path.join(scriptsDir, 'apis/index.js');
       const mainIndexExists = await this.fileSystemHandler.exists(mainIndexPath);
 
       if (mainIndexExists) {

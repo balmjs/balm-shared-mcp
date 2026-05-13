@@ -210,132 +210,221 @@ export class ProjectManager {
 
   /**
    * Run balm init command to create project from official template
+   *
+   * balm-cli uses inquirer for interactive prompts (project name, description, author).
+   * We use spawn with piped stdin to auto-provide values based on the prompt.
+   *
    * @param {string} templateName - Template name (e.g., 'vue-ui-front', 'vue-ui-back')
-   * @param {string} projectName - Project name
+   * @param {string} projectName - Project name (fallback/default)
    * @param {string} targetDir - Directory to create project in (parent directory)
+   * @param {Object} options - Project options containing metadata
    */
-  async runBalmInit(templateName, projectName, targetDir) {
-    const { exec } = await import('child_process');
+  async runBalmInit(templateName, projectName, targetDir, options = {}) {
+    const { spawn, exec } = await import('child_process');
     const { promisify } = await import('util');
     const execAsync = promisify(exec);
 
-    // Check if balm-cli is installed
+    // Metadata for prompts
+    const projectMetadata = {
+      name: options.name || projectName,
+      description: options.description || `A Vue.js ${options.type || 'frontend'} project`,
+      author: options.author || 'Developer'
+    };
+
+    // Augment PATH with common global npm bin directories
+    // MCP stdio subprocesses often have minimal PATH
+    const homedir = (await import('os')).homedir();
+    const extraPaths = [
+      `${homedir}/.npm-global/bin`,
+      `${homedir}/.nvm/versions/node/current/bin`,
+      '/usr/local/bin',
+      '/opt/homebrew/bin'
+    ];
+    const augmentedPath = [...extraPaths, process.env.PATH || ''].join(':');
+    const augmentedEnv = { ...process.env, PATH: augmentedPath };
+
+    // Check if balm-cli is installed and resolve full path
+    let balmBin = 'balm';
     try {
-      const { stdout: versionOutput } = await execAsync('balm --version');
-      logger.info(`balm-cli version: ${versionOutput.trim()}`);
+      const { stdout: whichOutput } = await execAsync('which balm', {
+        env: augmentedEnv,
+        shell: true
+      });
+      balmBin = whichOutput.trim();
+      const { stdout: versionOutput } = await execAsync(`${balmBin} --version`, {
+        env: augmentedEnv,
+        shell: true
+      });
+      logger.info(`balm-cli version: ${versionOutput.trim()} (at ${balmBin})`);
     } catch (error) {
       throw new BalmSharedMCPError(
         ErrorCodes.PROJECT_CREATION_FAILED,
-        'balm-cli is not installed. Please install it globally using: npm install -g balm-cli',
-        { originalError: error.message }
+        'balm-cli is not installed or not found in PATH. Please install it globally using: npm install -g balm-cli',
+        { originalError: error.message, searchedPath: augmentedPath }
       );
     }
 
-    try {
-      logger.info(`Running: balm init ${templateName} ${projectName} in ${targetDir}`);
+    // Ensure target directory exists
+    if (!this.fileSystemHandler.exists(targetDir)) {
+      await this.fileSystemHandler.ensureDirectory(targetDir);
+      logger.info(`Created target directory: ${targetDir}`);
+    }
 
-      // Ensure target directory exists
-      if (!this.fileSystemHandler.exists(targetDir)) {
-        await this.fileSystemHandler.mkdir(targetDir, { recursive: true });
-        logger.info(`Created target directory: ${targetDir}`);
-      }
+    logger.info(`Running: ${balmBin} init ${templateName} ${projectName} in ${targetDir}`);
 
-      // Run balm init command with better error handling
-      const command = `balm init ${templateName} ${projectName}`;
-      logger.info(`Executing command: ${command}`);
-
-      const { stdout, stderr } = await execAsync(command, {
+    return new Promise((resolve, reject) => {
+      const child = spawn(balmBin, ['init', templateName, projectName], {
         cwd: targetDir,
-        timeout: 120000, // 120 second timeout (increased for slow networks)
-        maxBuffer: 1024 * 1024 * 10, // 10MB buffer for large outputs
-        env: {
-          ...process.env,
-          CI: 'true',
-          // Ensure npm/yarn doesn't prompt for input
-          npm_config_yes: 'true'
+        env: augmentedEnv,
+        stdio: ['pipe', 'pipe', 'pipe']
+      });
+
+      let stdout = '';
+      let stderr = '';
+      let promptCount = 0;
+      const maxPrompts = 10; // Safety limit
+
+      // Track which prompts we've answered to handle them in order
+      const answered = {
+        name: false,
+        description: false,
+        author: false
+      };
+
+      child.stdout.on('data', data => {
+        const chunk = data.toString();
+        stdout += chunk;
+        logger.debug(`balm init stdout chunk: ${chunk.trim()}`);
+
+        // Detect inquirer prompts and provide appropriate values
+        if (chunk.includes('Project name') && !answered.name) {
+          logger.info(`Providing project name: ${projectMetadata.name}`);
+          child.stdin.write(`${projectMetadata.name}\n`);
+          answered.name = true;
+          promptCount++;
+        } else if (chunk.includes('Project description') && !answered.description) {
+          logger.info(`Providing project description: ${projectMetadata.description}`);
+          child.stdin.write(`${projectMetadata.description}\n`);
+          answered.description = true;
+          promptCount++;
+        } else if (chunk.includes('Author') && !answered.author) {
+          logger.info(`Providing author: ${projectMetadata.author}`);
+          child.stdin.write(`${projectMetadata.author}\n`);
+          answered.author = true;
+          promptCount++;
+        } else if (/[?:)]\s*$/.test(chunk) && promptCount < maxPrompts) {
+          // Generic fallback for any other prompts
+          promptCount++;
+          logger.info(`Auto-accepting unknown prompt #${promptCount}: ${chunk.trim()}`);
+          child.stdin.write('\n');
         }
       });
 
-      // Log output for debugging
-      if (stdout) {
-        logger.info(`balm init stdout: ${stdout}`);
-      }
-      if (stderr) {
-        // Only warn if stderr contains actual errors (not just npm warnings)
-        if (stderr.includes('error') || stderr.includes('Error') || stderr.includes('failed')) {
-          logger.warn(`balm init stderr: ${stderr}`);
-        } else {
-          logger.debug(`balm init stderr (non-error): ${stderr}`);
+      child.stderr.on('data', data => {
+        const chunk = data.toString();
+        stderr += chunk;
+        logger.debug(`balm init stderr chunk: ${chunk.trim()}`);
+      });
+
+      // Set timeout
+      const timeout = setTimeout(() => {
+        child.kill('SIGTERM');
+        reject(
+          new BalmSharedMCPError(
+            ErrorCodes.PROJECT_CREATION_FAILED,
+            'balm init timed out after 120 seconds. It may be stuck downloading the template or waiting for input.',
+            { templateName, projectName, targetDir, stdout, stderr }
+          )
+        );
+      }, 120000);
+
+      child.on('close', code => {
+        clearTimeout(timeout);
+
+        // Close stdin
+        if (!child.stdin.destroyed) {
+          child.stdin.end();
         }
-      }
 
-      // Verify that the project was actually created
-      const projectPath = path.join(targetDir, projectName);
-      if (!this.fileSystemHandler.exists(projectPath)) {
-        throw new BalmSharedMCPError(
-          ErrorCodes.PROJECT_CREATION_FAILED,
-          `Project directory was not created: ${projectPath}. The balm init command may have failed silently.`,
-          {
-            templateName,
-            projectName,
-            targetDir,
-            stdout: stdout || 'No output',
-            stderr: stderr || 'No errors'
+        logger.info(`balm init exited with code: ${code}`);
+        if (stdout) {
+          logger.info(`balm init stdout: ${stdout}`);
+        }
+        if (stderr) {
+          if (stderr.includes('error') || stderr.includes('Error') || stderr.includes('failed')) {
+            logger.warn(`balm init stderr: ${stderr}`);
+          } else {
+            logger.debug(`balm init stderr (non-error): ${stderr}`);
           }
-        );
-      }
+        }
 
-      // Verify package.json exists
-      const packageJsonPath = path.join(projectPath, 'package.json');
-      if (!this.fileSystemHandler.exists(packageJsonPath)) {
-        throw new BalmSharedMCPError(
-          ErrorCodes.PROJECT_CREATION_FAILED,
-          `Project was created but package.json is missing: ${packageJsonPath}`,
-          { templateName, projectName, projectPath }
-        );
-      }
+        if (code !== 0) {
+          reject(
+            new BalmSharedMCPError(
+              ErrorCodes.PROJECT_CREATION_FAILED,
+              `balm init exited with code ${code}. ${stderr || stdout || 'No output'}`,
+              { templateName, projectName, targetDir, exitCode: code, stdout, stderr }
+            )
+          );
+          return;
+        }
 
-      logger.info(`balm init completed successfully. Project created at: ${projectPath}`);
-      return {
-        success: true,
-        output: stdout,
-        projectPath
-      };
-    } catch (error) {
-      // Enhance error message if it looks like a missing command issue
-      if (error.message.includes('command not found') || error.code === 127) {
-        throw new BalmSharedMCPError(
-          ErrorCodes.PROJECT_CREATION_FAILED,
-          'Failed to run "balm init". Please ensure balm-cli is installed globally: npm install -g balm-cli',
-          { originalError: error.message }
-        );
-      }
+        // Verify that the project was actually created
+        const projectPath = path.join(targetDir, projectName);
+        if (!this.fileSystemHandler.exists(projectPath)) {
+          reject(
+            new BalmSharedMCPError(
+              ErrorCodes.PROJECT_CREATION_FAILED,
+              `Project directory was not created: ${projectPath}. The balm init command may have failed silently.`,
+              { templateName, projectName, targetDir, stdout, stderr }
+            )
+          );
+          return;
+        }
 
-      // If it's already a BalmSharedMCPError, re-throw it
-      if (error instanceof BalmSharedMCPError) {
-        throw error;
-      }
+        // Verify package.json exists
+        const packageJsonPath = path.join(projectPath, 'package.json');
+        if (!this.fileSystemHandler.exists(packageJsonPath)) {
+          reject(
+            new BalmSharedMCPError(
+              ErrorCodes.PROJECT_CREATION_FAILED,
+              `Project was created but package.json is missing: ${packageJsonPath}`,
+              { templateName, projectName, projectPath }
+            )
+          );
+          return;
+        }
 
-      // Provide detailed error information
-      const errorDetails = {
-        templateName,
-        projectName,
-        targetDir,
-        command: `balm init ${templateName} ${projectName}`,
-        errorMessage: error.message,
-        errorCode: error.code,
-        stdout: error.stdout || 'No output',
-        stderr: error.stderr || 'No errors'
-      };
+        logger.info(`balm init completed successfully. Project created at: ${projectPath}`);
+        resolve({
+          success: true,
+          output: stdout,
+          projectPath
+        });
+      });
 
-      logger.error('balm init failed with details:', errorDetails);
+      child.on('error', error => {
+        clearTimeout(timeout);
 
-      throw new BalmSharedMCPError(
-        ErrorCodes.PROJECT_CREATION_FAILED,
-        `Failed to run balm init: ${error.message}. Check that the template '${templateName}' exists and is accessible.`,
-        errorDetails
-      );
-    }
+        if (error.message.includes('ENOENT') || error.code === 'ENOENT') {
+          reject(
+            new BalmSharedMCPError(
+              ErrorCodes.PROJECT_CREATION_FAILED,
+              `balm command not found at: ${balmBin}. Please ensure balm-cli is installed globally.`,
+              { originalError: error.message }
+            )
+          );
+        } else {
+          reject(
+            new BalmSharedMCPError(
+              ErrorCodes.PROJECT_CREATION_FAILED,
+              `Failed to run balm init: ${error.message}`,
+              { templateName, projectName, targetDir, originalError: error.message }
+            )
+          );
+        }
+      });
+    });
   }
 
   /**
@@ -601,7 +690,7 @@ export class ProjectManager {
       if (templateInfo.mode === 'balm-init') {
         // Use balm init command to create project
         const targetDir = path.dirname(projectPath);
-        const initResult = await this.runBalmInit(templateInfo.command, name, targetDir);
+        const initResult = await this.runBalmInit(templateInfo.command, name, targetDir, options);
         templateName = templateInfo.command;
 
         // Verify the project was created at the expected path
@@ -663,6 +752,30 @@ export class ProjectManager {
         { options, originalError: error }
       );
     }
+  }
+
+  /**
+   * Resolve shared project path from configuration or defaults
+   */
+  async getSharedProjectPath(projectPath) {
+    try {
+      const aliasPath = path.join(projectPath, 'config', 'balm.alias.js');
+      if (this.fileSystemHandler.exists(aliasPath)) {
+        const content = await this.fileSystemHandler.readFile(aliasPath);
+        // Match path.join(localWorkspace, '...')
+        const match = content.match(/path\.join\(localWorkspace,\s*['"]([^'"]+)['"]\)/);
+        if (match && match[1]) {
+          const sharedPath = path.resolve(path.dirname(projectPath), match[1]);
+          logger.debug(`Detected shared project path from balm.alias.js: ${sharedPath}`);
+          return sharedPath;
+        }
+      }
+    } catch (error) {
+      logger.warn(`Failed to read balm.alias.js at ${projectPath}:`, error.message);
+    }
+
+    // Default fallback
+    return path.resolve(this.workspaceRoot, `../${this.sharedLibraryName}`);
   }
 
   /**

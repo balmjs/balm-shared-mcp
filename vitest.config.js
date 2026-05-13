@@ -4,10 +4,10 @@ export default defineConfig({
   test: {
     // Test environment
     environment: 'node',
-    
+
     // Global test setup
     globals: true,
-    
+
     // Coverage configuration
     coverage: {
       provider: 'v8',
@@ -29,16 +29,13 @@ export default defineConfig({
         }
       }
     },
-    
+
     // Test file patterns
-    include: [
-      'src/**/*.{test,spec}.js',
-      'tests/**/*.{test,spec}.js'
-    ],
-    
+    include: ['src/**/*.{test,spec}.js', 'tests/**/*.{test,spec}.js'],
+
     // Test timeout
     testTimeout: 10000,
-    
+
     // Setup files
     setupFiles: ['./tests/setup.js']
   }

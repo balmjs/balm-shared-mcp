@@ -11,12 +11,36 @@ describe('MCPServer', () => {
     mockServer = {
       listTools: vi.fn().mockResolvedValue({
         tools: [
-          { name: 'create_project', description: 'Create project', inputSchema: { type: 'object', properties: {} } },
-          { name: 'analyze_project', description: 'Analyze project', inputSchema: { type: 'object', properties: {} } },
-          { name: 'generate_crud_module', description: 'Generate CRUD', inputSchema: { type: 'object', properties: {} } },
-          { name: 'generate_page_component', description: 'Generate page', inputSchema: { type: 'object', properties: {} } },
-          { name: 'query_component', description: 'Query component', inputSchema: { type: 'object', properties: {} } },
-          { name: 'get_best_practices', description: 'Get practices', inputSchema: { type: 'object', properties: {} } }
+          {
+            name: 'create_project',
+            description: 'Create project',
+            inputSchema: { type: 'object', properties: {} }
+          },
+          {
+            name: 'analyze_project',
+            description: 'Analyze project',
+            inputSchema: { type: 'object', properties: {} }
+          },
+          {
+            name: 'generate_crud_module',
+            description: 'Generate CRUD',
+            inputSchema: { type: 'object', properties: {} }
+          },
+          {
+            name: 'generate_page_component',
+            description: 'Generate page',
+            inputSchema: { type: 'object', properties: {} }
+          },
+          {
+            name: 'query_component',
+            description: 'Query component',
+            inputSchema: { type: 'object', properties: {} }
+          },
+          {
+            name: 'get_best_practices',
+            description: 'Get practices',
+            inputSchema: { type: 'object', properties: {} }
+          }
         ]
       }),
       callTool: vi.fn()
@@ -26,11 +50,11 @@ describe('MCPServer', () => {
   describe('Tool Registration', () => {
     it('should register all required tools', async () => {
       const { tools } = await mockServer.listTools();
-      
+
       expect(tools).toBeDefined();
       expect(Array.isArray(tools)).toBe(true);
       expect(tools.length).toBeGreaterThan(0);
-      
+
       const toolNames = tools.map(tool => tool.name);
       expect(toolNames).toContain('create_project');
       expect(toolNames).toContain('analyze_project');
@@ -42,7 +66,7 @@ describe('MCPServer', () => {
 
     it('should provide proper tool schemas', async () => {
       const { tools } = await mockServer.listTools();
-      
+
       tools.forEach(tool => {
         expect(tool.name).toBeDefined();
         expect(tool.description).toBeDefined();
@@ -74,24 +98,28 @@ describe('MCPServer', () => {
     });
 
     it('should throw error for unknown tools', async () => {
-      mockServer.callTool.mockRejectedValue(new Error('Tool \'unknown_tool\' not found'));
+      mockServer.callTool.mockRejectedValue(new Error("Tool 'unknown_tool' not found"));
 
-      await expect(mockServer.callTool({
-        name: 'unknown_tool',
-        arguments: {}
-      })).rejects.toThrow('Tool \'unknown_tool\' not found');
+      await expect(
+        mockServer.callTool({
+          name: 'unknown_tool',
+          arguments: {}
+        })
+      ).rejects.toThrow("Tool 'unknown_tool' not found");
     });
 
     it('should validate tool arguments', async () => {
       mockServer.callTool.mockRejectedValue(new Error('Invalid arguments'));
 
-      await expect(mockServer.callTool({
-        name: 'create_project',
-        arguments: {
-          name: 'test-project'
-          // Missing required fields
-        }
-      })).rejects.toThrow();
+      await expect(
+        mockServer.callTool({
+          name: 'create_project',
+          arguments: {
+            name: 'test-project'
+            // Missing required fields
+          }
+        })
+      ).rejects.toThrow();
     });
   });
 });

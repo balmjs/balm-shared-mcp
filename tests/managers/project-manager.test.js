@@ -213,7 +213,8 @@ describe('ProjectManager', () => {
       expect(projectManager.runBalmInit).toHaveBeenCalledWith(
         'vue-ui-front',
         'test-project',
-        '/test'
+        '/test',
+        options
       );
     });
 

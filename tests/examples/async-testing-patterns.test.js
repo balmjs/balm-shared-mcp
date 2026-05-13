@@ -1,11 +1,11 @@
 /**
  * Async Testing Patterns Examples
- * 
+ *
  * This file demonstrates proper async/await testing patterns for various scenarios.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { 
+import {
   createMockLogger,
   createMockFileSystemHandler,
   mockSetups,
@@ -24,9 +24,9 @@ class AsyncFileService {
     try {
       this.logger.info(`Reading file: ${filePath}`);
       const content = await this.fileSystemHandler.readFile(filePath);
-      
+
       const processed = content.toUpperCase();
-      
+
       this.logger.info(`File processed successfully: ${filePath}`);
       return { success: true, content: processed };
     } catch (error) {
@@ -58,7 +58,7 @@ class AsyncFileService {
 
   async batchProcessFiles(filePaths) {
     const results = [];
-    
+
     for (const filePath of filePaths) {
       try {
         const result = await this.readAndProcessFile(filePath);
@@ -79,10 +79,10 @@ describe('Async Testing Patterns', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     mockLogger = createMockLogger();
     mockFileSystemHandler = createMockFileSystemHandler();
-    
+
     service = new AsyncFileService(mockFileSystemHandler, mockLogger);
   });
 
@@ -108,7 +108,7 @@ describe('Async Testing Patterns', () => {
       // Arrange
       const filePath = '/test/existing.txt';
       const content = 'new content';
-      
+
       mockFileSystemHandler.exists.mockReturnValue(true);
       mockFileSystemHandler.copyFile.mockResolvedValue();
       mockFileSystemHandler.writeFile.mockResolvedValue();
@@ -119,12 +119,12 @@ describe('Async Testing Patterns', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.path).toBe(filePath);
-      
+
       // Verify sequence of operations
       expect(mockFileSystemHandler.exists).toHaveBeenCalledWith(filePath);
       expect(mockFileSystemHandler.copyFile).toHaveBeenCalledWith(filePath, `${filePath}.backup`);
       expect(mockFileSystemHandler.writeFile).toHaveBeenCalledWith(filePath, content);
-      
+
       mockAssertions.assertLoggerCalled(mockLogger, 'info', 'Backup created');
       mockAssertions.assertLoggerCalled(mockLogger, 'info', 'File written');
     });
@@ -138,8 +138,7 @@ describe('Async Testing Patterns', () => {
       mockFileSystemHandler.readFile.mockRejectedValue(error);
 
       // Act & Assert
-      await expect(service.readAndProcessFile(filePath))
-        .rejects.toThrow('File not found');
+      await expect(service.readAndProcessFile(filePath)).rejects.toThrow('File not found');
 
       // Verify error was logged
       mockAssertions.assertLoggerCalled(mockLogger, 'error', 'Failed to process file');
@@ -149,14 +148,13 @@ describe('Async Testing Patterns', () => {
       // Arrange
       const filePath = '/test/file.txt';
       const content = 'content';
-      
+
       mockFileSystemHandler.exists.mockReturnValue(true);
       mockFileSystemHandler.copyFile.mockResolvedValue(); // Backup succeeds
       mockFileSystemHandler.writeFile.mockRejectedValue(new Error('Write failed')); // Write fails
 
       // Act & Assert
-      await expect(service.createFileWithBackup(filePath, content))
-        .rejects.toThrow('Write failed');
+      await expect(service.createFileWithBackup(filePath, content)).rejects.toThrow('Write failed');
 
       // Verify partial operations completed
       expect(mockFileSystemHandler.copyFile).toHaveBeenCalled();
@@ -167,17 +165,17 @@ describe('Async Testing Patterns', () => {
     it('should handle timeout scenarios', async () => {
       // Arrange
       const filePath = '/test/slow-file.txt';
-      
+
       // Mock a slow operation that times out
-      mockFileSystemHandler.readFile.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Operation timed out')), 100)
-        )
+      mockFileSystemHandler.readFile.mockImplementation(
+        () =>
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Operation timed out')), 100)
+          )
       );
 
       // Act & Assert
-      await expect(service.readAndProcessFile(filePath))
-        .rejects.toThrow('Operation timed out');
+      await expect(service.readAndProcessFile(filePath)).rejects.toThrow('Operation timed out');
     });
   });
 
@@ -185,26 +183,26 @@ describe('Async Testing Patterns', () => {
     it('should handle batch operations with mixed success/failure', async () => {
       // Arrange
       const filePaths = ['/test/file1.txt', '/test/file2.txt', '/test/file3.txt'];
-      
+
       mockFileSystemHandler.readFile
-        .mockResolvedValueOnce('content1')  // file1 succeeds
-        .mockRejectedValueOnce(new Error('File not found'))  // file2 fails
-        .mockResolvedValueOnce('content3');  // file3 succeeds
+        .mockResolvedValueOnce('content1') // file1 succeeds
+        .mockRejectedValueOnce(new Error('File not found')) // file2 fails
+        .mockResolvedValueOnce('content3'); // file3 succeeds
 
       // Act
       const results = await service.batchProcessFiles(filePaths);
 
       // Assert
       expect(results).toHaveLength(3);
-      
+
       // First file succeeded
       expect(results[0].success).toBe(true);
       expect(results[0].content).toBe('CONTENT1');
-      
+
       // Second file failed
       expect(results[1].success).toBe(false);
       expect(results[1].error).toBe('File not found');
-      
+
       // Third file succeeded
       expect(results[2].success).toBe(true);
       expect(results[2].content).toBe('CONTENT3');
@@ -233,7 +231,8 @@ describe('Async Testing Patterns', () => {
       mockFileSystemHandler.readFile.mockResolvedValue('original');
 
       // Act - Chain of async operations
-      const result = await service.readAndProcessFile(filePath)
+      const result = await service
+        .readAndProcessFile(filePath)
         .then(result => ({ ...result, timestamp: Date.now() }))
         .then(result => ({ ...result, processed: true }));
 
@@ -251,8 +250,7 @@ describe('Async Testing Patterns', () => {
 
       // Act & Assert
       await expect(
-        service.readAndProcessFile(filePath)
-          .then(result => ({ ...result, timestamp: Date.now() }))
+        service.readAndProcessFile(filePath).then(result => ({ ...result, timestamp: Date.now() }))
       ).rejects.toThrow('Chain failed');
     });
   });
@@ -302,7 +300,7 @@ describe('Async Testing Patterns', () => {
       // Arrange
       const filePath = '/test/cleanup.txt';
       const cleanupSpy = vi.fn();
-      
+
       // Mock service with cleanup
       const serviceWithCleanup = {
         ...service,
@@ -329,7 +327,7 @@ describe('Async Testing Patterns', () => {
       // Arrange
       const filePath = '/test/cleanup-error.txt';
       const cleanupSpy = vi.fn();
-      
+
       const serviceWithCleanup = {
         ...service,
         async processWithCleanup(path) {
@@ -344,8 +342,9 @@ describe('Async Testing Patterns', () => {
       mockFileSystemHandler.readFile.mockRejectedValue(new Error('Process failed'));
 
       // Act & Assert
-      await expect(serviceWithCleanup.processWithCleanup(filePath))
-        .rejects.toThrow('Process failed');
+      await expect(serviceWithCleanup.processWithCleanup(filePath)).rejects.toThrow(
+        'Process failed'
+      );
 
       // Cleanup should still be called
       expect(cleanupSpy).toHaveBeenCalled();

@@ -35,10 +35,12 @@ export class CodeGenerator {
   <div class="{{kebabCase name}}-list">
     <ui-list-view
       :model="model"
+      :model-config="searchConfig"
       :thead="thead"
       :tbody="tbody"
       :top-action-config="topActionConfig"
       :row-action-config="rowActionConfig"
+      :get-model-data-fn="getModelData"
       @action="handleAction"
     />
   </div>
@@ -58,6 +60,15 @@ export default {
   data() {
     return {
       model: '{{camelCase model}}',
+      searchConfig: [
+{{#each fields}}
+        {
+          field: '{{name}}',
+          label: '{{label}}',
+          component: '{{component}}'
+        },
+{{/each}}
+      ],
       thead: [
 {{#each fields}}
         {
@@ -74,36 +85,54 @@ export default {
 {{/each}}
       ],
       topActionConfig: [
+{{#if patterns.topActionConfig}}
+{{{patterns.topActionConfig}}}
+{{else}}
         {
-          type: 'primary',
           text: '新增',
-          action: 'create'
+          type: 'add',
+          attrOrProp: {
+            raised: true,
+            icon: 'add'
+          }
         }
+{{/if}}
       ],
       rowActionConfig: [
+{{#if patterns.rowActionConfig}}
+{{{patterns.rowActionConfig}}}
+{{else}}
         {
-          type: 'text',
           text: '查看',
-          action: 'view'
+          type: 'view',
+          icon: 'visibility'
         },
         {
-          type: 'text',
           text: '编辑',
-          action: 'edit'
+          type: 'edit',
+          icon: 'edit'
         },
         {
-          type: 'text',
           text: '删除',
-          action: 'delete',
-          confirm: true
+          type: 'delete',
+          icon: 'delete'
         }
+{{/if}}
       ]
     };
   },
   methods: {
+    getModelData(params) {
+      return this.$api[this.model].index(params);
+    },
     handleAction(action, data) {
-      switch (action.action) {
-        case 'create':
+{{#if patterns.handleAction}}
+{{{patterns.handleAction}}}
+{{else}}
+      const { type } = action;
+
+      switch (type) {
+        case 'add':
           this.$router.push({ name: '{{camelCase name}}-create' });
           break;
         case 'view':
@@ -128,25 +157,24 @@ export default {
           console.warn('Unknown action:', action);
           {{/if}}
       }
+{{/if}}
     },
     async handleDelete(data) {
-      try {
-        await this.$api.{{camelCase model}}.delete(data.id);
-        this.$toast('删除成功');
-        this.$refs.listView.refresh();
-      } catch (error) {
-        this.$toast('删除失败: ' + error.message);
-      }
+      this.$confirm('确定要删除吗？').then(async (confirm) => {
+        if (confirm) {
+          try {
+            await this.$api[this.model].delete({ id: data.id });
+            this.$toast('删除成功');
+            this.getModelData();
+          } catch (error) {
+            this.$toast('删除失败: ' + error.message);
+          }
+        }
+      });
     }
   }
 };
 </script>
-
-<style lang="scss" scoped>
-.{{kebabCase name}}-list {
-  padding: 20px;
-}
-</style>
 `
     });
 
@@ -157,11 +185,10 @@ export default {
   <div class="{{kebabCase name}}-detail">
     <ui-detail-view
       :model="model"
-      :model-path="modelPath"
-      :config="config"
+      :model-config="config"
+      :get-model-data-fn="getModelData"
+      :set-model-data-fn="setModelData"
       :readonly="readonly"
-      @save="handleSave"
-      @cancel="handleCancel"
     />
   </div>
 </template>
@@ -186,7 +213,6 @@ export default {
   data() {
     return {
       model: '{{camelCase model}}',
-      modelPath: this.$route.params.id ? \`{{camelCase model}}/\${this.$route.params.id}\` : '{{camelCase model}}',
       config: {{#if hasModelConfig}}{{camelCase name}}Config{{else}}{
         fields: [
 {{#each fields}}
@@ -209,32 +235,32 @@ export default {
     }
   },
   methods: {
-    async handleSave(data) {
-      try {
-        if (this.isEdit) {
-          await this.$api.{{camelCase model}}.update(this.$route.params.id, data);
-          this.$toast('更新成功');
-        } else {
-          await this.$api.{{camelCase model}}.create(data);
-          this.$toast('创建成功');
-        }
-        this.$router.push({ name: '{{camelCase name}}-list' });
-      } catch (error) {
-        this.$toast('保存失败: ' + error.message);
-      }
+    getModelData() {
+      const id = this.$route.params.id;
+      return id ? this.$api[this.model].info({ id }) : {};
     },
-    handleCancel() {
-      this.$router.push({ name: '{{camelCase name}}-list' });
+    async setModelData(result) {
+      const { detailData, action } = result;
+      
+      // Only handle submit action
+      if (action.type === 'submit') {
+        try {
+          if (this.isEdit) {
+            await this.$api[this.model].edit({ id: this.$route.params.id, ...detailData });
+            this.$toast('更新成功');
+          } else {
+            await this.$api[this.model].add(detailData);
+            this.$toast('创建成功');
+          }
+        } catch (error) {
+          this.$toast('保存失败: ' + error.message);
+          throw error;
+        }
+      }
     }
   }
 };
 </script>
-
-<style lang="scss" scoped>
-.{{kebabCase name}}-detail {
-  padding: 20px;
-}
-</style>
 `
     });
 
@@ -603,30 +629,51 @@ export const {{camelCase name}}Config = {
    * Process template string with context and helpers
    */
   processTemplate(template, context) {
-    // Handle iteration blocks first (they need to be processed before variable substitution)
-    template = this.processIterations(template, context);
+    let result = template;
+    let previousResult;
 
-    // Handle conditional blocks
-    template = this.processConditionals(template, context);
+    // Keep processing until no more tags are found or no changes made (to handle nesting)
+    // Safety limit to prevent infinite loops
+    let iterations = 0;
+    const maxIterations = 10;
 
-    // Handle helper functions {{helper variable}}
-    template = template.replace(/\{\{(\w+)\s+([^}]+)\}\}/g, (match, helper, variable) => {
-      const helperFn = this.templateHelpers.get(helper);
-      if (helperFn) {
-        const value = this.resolveVariable(variable.trim(), context);
-        return helperFn(value);
-      }
-      return match;
-    });
+    do {
+      previousResult = result;
 
-    // Handle simple variable substitution {{variable}} (do this last)
-    template = template.replace(/\{\{([^}#/]+)\}\}/g, (match, variable) => {
-      const trimmedVar = variable.trim();
-      const resolved = this.resolveVariable(trimmedVar, context);
-      return resolved !== undefined ? resolved : match;
-    });
+      // Handle iteration blocks
+      result = this.processIterations(result, context);
 
-    return template;
+      // Handle conditional blocks
+      result = this.processConditionals(result, context);
+
+      // Handle triple braces {{{variable}}} for unescaped content
+      result = result.replace(/\{\{\{([^}]+)\}\}\}/g, (match, variable) => {
+        const trimmedVar = variable.trim();
+        const resolved = this.resolveVariable(trimmedVar, context);
+        return resolved !== undefined ? resolved : match;
+      });
+
+      // Handle helper functions {{helper variable}}
+      result = result.replace(/\{\{(\w+)\s+([^}]+)\}\}/g, (match, helper, variable) => {
+        const helperFn = this.templateHelpers.get(helper);
+        if (helperFn) {
+          const value = this.resolveVariable(variable.trim(), context);
+          return helperFn(value);
+        }
+        return match;
+      });
+
+      // Handle simple variable substitution {{variable}}
+      result = result.replace(/\{\{([^}#/]+)\}\}/g, (match, variable) => {
+        const trimmedVar = variable.trim();
+        const resolved = this.resolveVariable(trimmedVar, context);
+        return resolved !== undefined ? resolved : match;
+      });
+
+      iterations++;
+    } while (result !== previousResult && iterations < maxIterations);
+
+    return result;
   }
 
   /**
@@ -656,11 +703,20 @@ export const {{camelCase name}}Config = {
    * Process conditional blocks in template
    */
   processConditionals(template, context) {
-    const conditionalRegex = /\{\{#if\s+([^}]+)\}\}([\s\S]*?)\{\{\/if\}\}/g;
+    // Match innermost if blocks first
+    const conditionalRegex = /\{\{#if\s+([^}]+)\}\}((?:(?!\{\{#if)[\s\S])*?)\{\{\/if\}\}/g;
 
     return template.replace(conditionalRegex, (match, condition, content) => {
       const conditionValue = this.resolveVariable(condition.trim(), context);
-      return conditionValue ? content : '';
+
+      // Handle {{else}} block
+      const elseSplit = content.split(/\{\{\s*else\s*\}\}/);
+
+      if (conditionValue) {
+        return elseSplit[0];
+      } else {
+        return elseSplit.length > 1 ? elseSplit[1] : '';
+      }
     });
   }
 
@@ -668,7 +724,8 @@ export const {{camelCase name}}Config = {
    * Process iteration blocks in template
    */
   processIterations(template, context) {
-    const iterationRegex = /\{\{#each\s+([^}]+)\}\}([\s\S]*?)\{\{\/each\}\}/g;
+    // Match innermost each blocks first
+    const iterationRegex = /\{\{#each\s+([^}]+)\}\}((?:(?!\{\{#each)[\s\S])*?)\{\{\/each\}\}/g;
 
     return template.replace(iterationRegex, (match, arrayVar, content) => {
       const array = this.resolveVariable(arrayVar.trim(), context);
@@ -693,8 +750,7 @@ export const {{camelCase name}}Config = {
             processedContent = processedContent.replace(regex, item[key]);
           });
 
-          // Process remaining template with original context
-          return this.processTemplate(processedContent, context);
+          return processedContent;
         })
         .join('');
     });
@@ -819,6 +875,7 @@ export const {{camelCase name}}Config = {
       endpoint,
       requiresAuth = true,
       permissions = [],
+      patterns = {},
       ...otherOptions
     } = options;
 
@@ -867,6 +924,7 @@ export const {{camelCase name}}Config = {
         fields,
         title: moduleTitle,
         hasModelConfig: true,
+        patterns,
         ...otherOptions
       });
       generatedFiles.push(...pageModuleResult.generatedFiles);
@@ -1014,10 +1072,30 @@ export const {{camelCase name}}Config = {
   }
 
   /**
+   * Get styles directory for a project
+   * Detects source root from config/balmrc.js or defaults to app/src
+   */
+  async _getStylesDir(projectPath) {
+    const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+    // If scripts is in app/scripts, styles is in app/styles
+    const sourceRoot = path.dirname(scriptsDir);
+    return path.join(sourceRoot, 'styles');
+  }
+
+  /**
    * Generate a page component
    */
   async generatePageComponent(options) {
-    const { name, type, model, projectPath, fields = [], title, ...otherOptions } = options;
+    const {
+      name,
+      type,
+      model,
+      projectPath,
+      fields = [],
+      title,
+      patterns = {},
+      ...otherOptions
+    } = options;
 
     logger.info(`Generating ${type} page component: ${name}`);
 
@@ -1059,15 +1137,17 @@ export const {{camelCase name}}Config = {
         title: title || name,
         hasCustomActions: otherOptions.hasCustomActions || false,
         hasModelConfig: otherOptions.hasModelConfig || false,
+        patterns: patterns || {},
         ...otherOptions
       };
 
       // Determine template name and output path
       const templateName = type === 'list' ? 'vue-list-page' : 'vue-detail-page';
       const componentFileName = `${this.templateHelpers.get('kebabCase')(name)}-${type}.vue`;
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
       const componentDir = path.join(
-        projectPath,
-        'src/scripts/pages',
+        scriptsDir,
+        'pages',
         this.templateHelpers.get('kebabCase')(name)
       );
       const componentPath = path.join(componentDir, componentFileName);
@@ -1081,6 +1161,22 @@ export const {{camelCase name}}Config = {
       // Format the generated code
       generatedFile.content = this.formatCode(generatedFile.content, 'vue');
       await this.fileSystemHandler.writeFile(componentPath, generatedFile.content);
+
+      // Generate style file
+      const stylesDir = await this._getStylesDir(projectPath);
+      const kebabName = this.templateHelpers.get('kebabCase')(name);
+      const styleFileName = `_${kebabName}.scss`;
+      const styleDir = path.join(stylesDir, 'pages');
+      const stylePath = path.join(styleDir, styleFileName);
+
+      if (!(await this.fileSystemHandler.exists(stylePath))) {
+        await this.fileSystemHandler.ensureDirectory(styleDir);
+        const styleContent = `.${kebabName}-${type} {\n  padding: 20px;\n}\n`;
+        await this.fileSystemHandler.writeFile(stylePath, styleContent);
+
+        // Update pages style index
+        await this.updateStyleIndex(styleDir, kebabName);
+      }
 
       logger.info(`Generated ${type} page component: ${componentPath}`);
 
@@ -1096,6 +1192,11 @@ export const {{camelCase name}}Config = {
             path: componentPath,
             type: 'vue-component',
             content: generatedFile.content
+          },
+          {
+            path: stylePath,
+            type: 'scss',
+            content: `.${this.templateHelpers.get('kebabCase')(name)}-${type} { padding: 20px; }`
           }
         ]
       };
@@ -1118,7 +1219,15 @@ export const {{camelCase name}}Config = {
    * Generate both list and detail page components for a module
    */
   async generatePageModule(options) {
-    const { name, model, projectPath, fields = [], title, ...otherOptions } = options;
+    const {
+      name,
+      model,
+      projectPath,
+      fields = [],
+      title,
+      patterns = {},
+      ...otherOptions
+    } = options;
 
     logger.info(`Generating page module: ${name}`);
 
@@ -1133,6 +1242,7 @@ export const {{camelCase name}}Config = {
         projectPath,
         fields,
         title,
+        patterns,
         ...otherOptions
       });
       results.push(listResult);
@@ -1145,16 +1255,14 @@ export const {{camelCase name}}Config = {
         projectPath,
         fields,
         title,
+        patterns,
         ...otherOptions
       });
       results.push(detailResult);
 
       // Create index file for the module
-      const moduleDir = path.join(
-        projectPath,
-        'src/scripts/pages',
-        this.templateHelpers.get('kebabCase')(name)
-      );
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+      const moduleDir = path.join(scriptsDir, 'pages', this.templateHelpers.get('kebabCase')(name));
       const indexPath = path.join(moduleDir, 'index.js');
 
       const indexContent = this.generateModuleIndex(name, ['list', 'detail']);
@@ -1219,12 +1327,46 @@ ${exports}
   }
 
   /**
+   * Update style index file (_index.scss)
+   */
+  async updateStyleIndex(styleDir, kebabName) {
+    const indexPath = path.join(styleDir, '_index.scss');
+    const importStatement = `@import '${kebabName}';`;
+
+    try {
+      let content = '';
+      if (await this.fileSystemHandler.exists(indexPath)) {
+        content = await this.fileSystemHandler.readFile(indexPath);
+
+        // Check if already imported
+        if (
+          content.includes(`@import '${kebabName}'`) ||
+          content.includes(`@import "${kebabName}"`)
+        ) {
+          return;
+        }
+      }
+
+      // Add to index
+      const updatedContent = content.trim()
+        ? `${content.trim()}\n${importStatement}\n`
+        : `${importStatement}\n`;
+      await this.fileSystemHandler.writeFile(indexPath, updatedContent);
+      logger.debug(`Updated style index: ${indexPath}`);
+    } catch (error) {
+      logger.warn(`Failed to update style index: ${error.message}`);
+    }
+  }
+
+  /**
    * Update project structure after component generation
    */
   async updateProjectStructure(projectPath, moduleName, componentType) {
     try {
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+
       // Update pages index file if it exists
-      const pagesIndexPath = path.join(projectPath, 'src/scripts/pages/index.js');
+      const pagesIndexPath = path.join(scriptsDir, 'pages/index.js');
       const pagesIndexExists = await this.fileSystemHandler.exists(pagesIndexPath);
 
       if (pagesIndexExists) {
@@ -1232,7 +1374,7 @@ ${exports}
       }
 
       // Update routes if routes directory exists
-      const routesDir = path.join(projectPath, 'src/scripts/routes');
+      const routesDir = path.join(scriptsDir, 'routes');
       const routesDirExists = await this.fileSystemHandler.exists(routesDir);
 
       if (routesDirExists) {
@@ -1316,7 +1458,8 @@ ${exports}
       };
 
       // Determine output path
-      const routesDir = path.join(projectPath, 'src/scripts/routes');
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+      const routesDir = path.join(scriptsDir, 'routes');
       const routePath = path.join(routesDir, `${this.templateHelpers.get('kebabCase')(name)}.js`);
 
       // Generate the route config file
@@ -1457,7 +1600,7 @@ ${exports}
 
       // Update routes index if routes were generated
       if (hasRoutes) {
-        await this.updateRoutesIndex(projectPath, moduleName);
+        await this.updateRoutesConfig(projectPath, moduleName);
       }
 
       // Update mock server index if mock data was generated
@@ -1466,7 +1609,8 @@ ${exports}
       }
 
       // Update pages index (already handled in generatePageModule)
-      await this.updatePagesIndex(path.join(projectPath, 'src/scripts/pages/index.js'), moduleName);
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+      await this.updatePagesIndex(path.join(scriptsDir, 'pages/index.js'), moduleName);
 
       logger.info(`Updated project structure for module: ${moduleName}`);
     } catch (error) {
@@ -1480,14 +1624,16 @@ ${exports}
    */
   async updateApiIndex(projectPath, moduleName) {
     try {
-      const apiIndexPath = path.join(projectPath, 'src/scripts/config/api/index.js');
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+      const apiIndexPath = path.join(scriptsDir, 'apis/index.js');
       const kebabName = this.templateHelpers.get('kebabCase')(moduleName);
+      const camelName = this.templateHelpers.get('camelCase')(moduleName);
 
       // Check if index file exists
       const indexExists = await this.fileSystemHandler.exists(apiIndexPath);
       if (!indexExists) {
-        // Create new index file
-        const indexContent = `export { default as ${this.templateHelpers.get('camelCase')(moduleName)} } from './${kebabName}.js';\n`;
+        // Create new index file if it doesn't exist
+        const indexContent = `import { isDev } from '@/config';\n\nconst debug = isDev ? '${camelName}' : false;\n\nimport ${camelName} from './${kebabName}.js';\n\nexport default {\n  apis: [\n    ${camelName}\n  ],\n  debug\n};\n`;
         await this.fileSystemHandler.writeFile(apiIndexPath, indexContent);
         return;
       }
@@ -1501,8 +1647,32 @@ ${exports}
       }
 
       // Add import statement
-      const importStatement = `export { default as ${this.templateHelpers.get('camelCase')(moduleName)} } from './${kebabName}.js';`;
-      const updatedContent = `${content}\n${importStatement}`;
+      const importStatement = `import ${camelName} from './${kebabName}.js';`;
+
+      // Split by lines to find insertion points
+      const lines = content.split('\n');
+      let lastImportIndex = -1;
+
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith('import ')) {
+          lastImportIndex = i;
+        }
+      }
+
+      // Insert import after the last import or at the top
+      lines.splice(lastImportIndex + 1, 0, importStatement);
+      let updatedContent = lines.join('\n');
+
+      // Expand the apis array
+      const apisRegex = /apis:\s*\[([\s\S]*?)\]/;
+      const match = updatedContent.match(apisRegex);
+
+      if (match) {
+        const apisContent = match[1].trim();
+        const separator = apisContent ? ',\n    ' : '';
+        const newApisContent = apisContent ? `${apisContent}${separator}${camelName}` : camelName;
+        updatedContent = updatedContent.replace(apisRegex, `apis: [\n    ${newApisContent}\n  ]`);
+      }
 
       await this.fileSystemHandler.writeFile(apiIndexPath, updatedContent);
       logger.debug(`Updated API index: ${apiIndexPath}`);
@@ -1512,58 +1682,69 @@ ${exports}
   }
 
   /**
-   * Update routes index file
+   * Update routes configuration file (config.js)
    */
-  async updateRoutesIndex(projectPath, moduleName) {
+  async updateRoutesConfig(projectPath, moduleName) {
     try {
-      const routesIndexPath = path.join(projectPath, 'src/scripts/routes/index.js');
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+      const routesConfigPath = path.join(scriptsDir, 'routes/config.js');
       const kebabName = this.templateHelpers.get('kebabCase')(moduleName);
       const camelName = this.templateHelpers.get('camelCase')(moduleName);
 
-      // Check if index file exists
-      const indexExists = await this.fileSystemHandler.exists(routesIndexPath);
-      if (!indexExists) {
-        // Create new index file
-        const indexContent = `import { ${camelName}Routes } from './${kebabName}.js';\n\nexport const routes = [\n  ...${camelName}Routes\n];\n`;
-        await this.fileSystemHandler.writeFile(routesIndexPath, indexContent);
+      // Check if config file exists
+      const configExists = await this.fileSystemHandler.exists(routesConfigPath);
+      if (!configExists) {
+        // Create new config file if it doesn't exist
+        const configContent = `import { ${camelName}Routes } from './${kebabName}';\n\nexport const routes = [\n  ...${camelName}Routes\n];\n`;
+        await this.fileSystemHandler.writeFile(routesConfigPath, configContent);
         return;
       }
 
       // Read existing content
-      const content = await this.fileSystemHandler.readFile(routesIndexPath);
+      const content = await this.fileSystemHandler.readFile(routesConfigPath);
 
       // Check if module is already imported
-      if (content.includes(`from './${kebabName}.js'`)) {
+      if (content.includes(`from './${kebabName}'`)) {
         return; // Already exists
       }
 
       // Add import statement
-      const importStatement = `import { ${camelName}Routes } from './${kebabName}.js';`;
+      const importStatement = `import { ${camelName}Routes } from './${kebabName}';`;
 
-      // Add to routes array
-      let updatedContent = content;
+      // Split by lines to find insertion points
+      const lines = content.split('\n');
+      let lastImportIndex = -1;
 
-      // Add import at the top
-      if (content.includes('import')) {
-        updatedContent = content.replace(/(import.*\n)/, `$1${importStatement}\n`);
-      } else {
-        updatedContent = `${importStatement}\n\n${content}`;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith('import ')) {
+          lastImportIndex = i;
+        }
       }
 
-      // Add to routes array
-      if (content.includes('export const routes = [')) {
+      // Insert import after the last import or at the top
+      lines.splice(lastImportIndex + 1, 0, importStatement);
+      let updatedContent = lines.join('\n');
+
+      // Expand the routes array
+      const routesRegex = /const\s+routes\s*=\s*\[([\s\S]*?)\]/;
+      const match = updatedContent.match(routesRegex);
+
+      if (match) {
+        const routesContent = match[1].trim();
+        const separator = routesContent ? ',\n  ' : '';
+        const newRoutesContent = routesContent
+          ? `${routesContent}${separator}...${camelName}Routes`
+          : `...${camelName}Routes`;
         updatedContent = updatedContent.replace(
-          /export const routes = \[/,
-          `export const routes = [\n  ...${camelName}Routes,`
+          routesRegex,
+          `const routes = [\n  ${newRoutesContent}\n]`
         );
-      } else {
-        updatedContent += `\nexport const routes = [\n  ...${camelName}Routes\n];\n`;
       }
 
-      await this.fileSystemHandler.writeFile(routesIndexPath, updatedContent);
-      logger.debug(`Updated routes index: ${routesIndexPath}`);
+      await this.fileSystemHandler.writeFile(routesConfigPath, updatedContent);
+      logger.debug(`Updated routes config: ${routesConfigPath}`);
     } catch (error) {
-      logger.warn(`Failed to update routes index: ${error.message}`);
+      logger.warn(`Failed to update routes config: ${error.message}`);
     }
   }
 
@@ -1572,15 +1753,15 @@ ${exports}
    */
   async updateMockIndex(projectPath, moduleName) {
     try {
-      const mockIndexPath = path.join(projectPath, 'mock-server/index.js');
+      const mockIndexPath = path.join(projectPath, 'mock-server/apis/index.js');
       const kebabName = this.templateHelpers.get('kebabCase')(moduleName);
       const pascalName = this.templateHelpers.get('pascalCase')(moduleName);
 
       // Check if index file exists
       const indexExists = await this.fileSystemHandler.exists(mockIndexPath);
       if (!indexExists) {
-        // Create new index file
-        const indexContent = `import { get${pascalName}Apis } from './apis/${kebabName}.js';\n\nexport function setupMockServer(server) {\n  get${pascalName}Apis(server);\n}\n`;
+        // Create new index file if it doesn't exist
+        const indexContent = `import { get${pascalName}Apis } from './${kebabName}';\n\nexport function setupMockServer(server) {\n  get${pascalName}Apis(server);\n}\n`;
         await this.fileSystemHandler.writeFile(mockIndexPath, indexContent);
         return;
       }
@@ -1589,30 +1770,41 @@ ${exports}
       const content = await this.fileSystemHandler.readFile(mockIndexPath);
 
       // Check if module is already imported
-      if (content.includes(`from './apis/${kebabName}.js'`)) {
+      if (content.includes(`from './${kebabName}'`)) {
         return; // Already exists
       }
 
       // Add import statement
-      const importStatement = `import { get${pascalName}Apis } from './apis/${kebabName}.js';`;
+      const importStatement = `import { get${pascalName}Apis } from './${kebabName}';`;
 
-      let updatedContent = content;
+      // Split by lines to find insertion points
+      const lines = content.split('\n');
+      let lastImportIndex = -1;
 
-      // Add import at the top
-      if (content.includes('import')) {
-        updatedContent = content.replace(/(import.*\n)/, `$1${importStatement}\n`);
-      } else {
-        updatedContent = `${importStatement}\n\n${content}`;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith('import ')) {
+          lastImportIndex = i;
+        }
       }
 
-      // Add to setupMockServer function
-      if (content.includes('export function setupMockServer(server) {')) {
+      // Insert import after the last import or at the top
+      lines.splice(lastImportIndex + 1, 0, importStatement);
+      let updatedContent = lines.join('\n');
+
+      // Expand the setupMockServer function
+      const setupRegex = /export\s+function\s+setupMockServer\s*\(server\)\s*\{([\s\S]*?)\}/;
+      const match = updatedContent.match(setupRegex);
+
+      if (match) {
+        const bodyContent = match[1].trim();
+        const separator = bodyContent ? '\n  ' : '';
+        const newBodyContent = bodyContent
+          ? `${bodyContent}${separator}get${pascalName}Apis(server);`
+          : `get${pascalName}Apis(server);`;
         updatedContent = updatedContent.replace(
-          /export function setupMockServer\(server\) \{/,
-          `export function setupMockServer(server) {\n  get${pascalName}Apis(server);`
+          setupRegex,
+          `export function setupMockServer(server) {\n  ${newBodyContent}\n}`
         );
-      } else {
-        updatedContent += `\nexport function setupMockServer(server) {\n  get${pascalName}Apis(server);\n}\n`;
       }
 
       await this.fileSystemHandler.writeFile(mockIndexPath, updatedContent);
@@ -1693,7 +1885,8 @@ ${exports}
       };
 
       // Determine output paths
-      const apiDir = path.join(projectPath, 'src/scripts/config/api');
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+      const apiDir = path.join(scriptsDir, 'apis');
       const apiFileName = `${this.templateHelpers.get('kebabCase')(name)}.js`;
       const apiFilePath = path.join(apiDir, apiFileName);
 
@@ -1809,7 +2002,8 @@ ${exports}
    */
   async updateMainApiIndex(projectPath, category) {
     try {
-      const mainIndexPath = path.join(projectPath, 'src/scripts/apis/index.js');
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+      const mainIndexPath = path.join(scriptsDir, 'apis/index.js');
       const mainIndexExists = await this.fileSystemHandler.exists(mainIndexPath);
 
       if (!mainIndexExists) {
@@ -1919,7 +2113,8 @@ export default {
 
       // Generate route file
       const routeFileName = `${this.templateHelpers.get('kebabCase')(name)}.js`;
-      const routeDir = path.join(projectPath, 'src/scripts/routes');
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+      const routeDir = path.join(scriptsDir, 'routes');
       const routeFilePath = path.join(routeDir, routeFileName);
 
       // Validate template context
@@ -2037,7 +2232,8 @@ export default {{camelCase name}}Navigation;
 
       // Generate navigation file
       const navFileName = `${this.templateHelpers.get('kebabCase')(name)}.js`;
-      const navDir = path.join(projectPath, 'src/scripts/navigation');
+      const scriptsDir = await this.fileSystemHandler.getScriptsDir(projectPath);
+      const navDir = path.join(scriptsDir, 'navigation');
       const navFilePath = path.join(navDir, navFileName);
 
       // Generate the navigation file

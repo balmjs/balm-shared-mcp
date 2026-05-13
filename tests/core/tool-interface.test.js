@@ -17,8 +17,8 @@ describe('ToolInterface', () => {
         name: { type: 'string', description: '名称' },
         age: { type: 'number', minimum: 0, maximum: 150 },
         email: { type: 'string', pattern: '^[^@]+@[^@]+\\.[^@]+$' },
-        tags: { 
-          type: 'array', 
+        tags: {
+          type: 'array',
           items: { type: 'string' },
           minItems: 1,
           maxItems: 5
@@ -28,7 +28,7 @@ describe('ToolInterface', () => {
       required: ['name', 'email']
     };
 
-    mockHandler = async (args) => {
+    mockHandler = async args => {
       return { success: true, data: args };
     };
   });
@@ -180,7 +180,7 @@ describe('ToolInterface', () => {
       };
 
       const result = await tool.execute(args, { requestId: 'test-123' });
-      
+
       expect(result).toBeDefined();
       expect(result.content).toBeDefined();
       expect(Array.isArray(result.content)).toBe(true);
@@ -192,12 +192,7 @@ describe('ToolInterface', () => {
         throw new Error('Tool execution failed');
       };
 
-      const errorTool = new ToolInterface(
-        'error_tool',
-        'Error tool',
-        validSchema,
-        errorHandler
-      );
+      const errorTool = new ToolInterface('error_tool', 'Error tool', validSchema, errorHandler);
 
       const args = {
         name: 'Test User',
@@ -217,7 +212,7 @@ describe('ToolInterface', () => {
 
     it('should format string response', () => {
       const result = tool.formatResponse('Simple string response', 'test-123');
-      
+
       expect(result.content).toBeDefined();
       expect(result.content[0].type).toBe('text');
       expect(result.content[0].text).toBe('Simple string response');
@@ -226,7 +221,7 @@ describe('ToolInterface', () => {
     it('should format object response', () => {
       const objectResponse = { status: 'success', data: { id: 1 } };
       const result = tool.formatResponse(objectResponse, 'test-123');
-      
+
       expect(result.content).toBeDefined();
       expect(result.content[0].type).toBe('text');
       expect(result.content[0].text).toBe(JSON.stringify(objectResponse, null, 2));
@@ -234,7 +229,7 @@ describe('ToolInterface', () => {
 
     it('should handle null/undefined response', () => {
       const result = tool.formatResponse(null, 'test-123');
-      
+
       expect(result.content).toBeDefined();
       expect(result.content[0].type).toBe('text');
       expect(result.content[0].text).toBe('Operation completed successfully');
@@ -242,11 +237,9 @@ describe('ToolInterface', () => {
 
     it('should preserve MCP format response', () => {
       const mcpResponse = {
-        content: [
-          { type: 'text', text: 'Already formatted' }
-        ]
+        content: [{ type: 'text', text: 'Already formatted' }]
       };
-      
+
       const result = tool.formatResponse(mcpResponse, 'test-123');
       expect(result).toEqual(mcpResponse);
     });
@@ -262,13 +255,13 @@ describe('ToolInterface', () => {
     it('should create Zod schema from JSON schema', () => {
       const zodSchema = tool.createZodSchema(validSchema);
       expect(zodSchema).toBeDefined();
-      
+
       // Test valid data
       const validData = {
         name: 'Test',
         email: 'test@example.com'
       };
-      
+
       expect(() => zodSchema.parse(validData)).not.toThrow();
     });
 
@@ -302,7 +295,7 @@ describe('ToolInterface', () => {
       );
 
       const zodSchema = complexTool.createZodSchema(complexSchema);
-      
+
       const validComplexData = {
         user: {
           name: 'John',

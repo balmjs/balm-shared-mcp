@@ -4,16 +4,13 @@ export default defineConfig({
   test: {
     // Test environment
     environment: 'node',
-    
+
     // Global test setup
     globals: true,
-    
+
     // Test file patterns - exclude problematic tests
-    include: [
-      'src/**/*.{test,spec}.js',
-      'tests/**/*.{test,spec}.js'
-    ],
-    
+    include: ['src/**/*.{test,spec}.js', 'tests/**/*.{test,spec}.js'],
+
     // Exclude problematic test files
     exclude: [
       'node_modules/',
@@ -29,10 +26,10 @@ export default defineConfig({
       'tests/integration/crud-workflow.test.js',
       'src/managers/__tests__/api-manager.test.js'
     ],
-    
+
     // Test timeout
     testTimeout: 10000,
-    
+
     // Setup files
     setupFiles: ['./tests/setup.js']
   }

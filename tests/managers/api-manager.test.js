@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import path from 'path';
 import { ApiManager } from '../../src/managers/api-manager.js';
 import { BalmSharedMCPError, ErrorCodes } from '../../src/utils/errors.js';
 
@@ -19,19 +20,32 @@ describe('ApiManager', () => {
       writeFile: vi.fn(),
       readDirectory: vi.fn(),
       isDirectory: vi.fn(),
-      ensureDirectory: vi.fn()
+      ensureDirectory: vi.fn(),
+      getScriptsDir: vi
+        .fn()
+        .mockImplementation(projectPath => Promise.resolve(path.join(projectPath, 'src/scripts')))
     };
 
     mockCodeGenerator = {
       generateApiConfig: vi.fn(),
       generateMockData: vi.fn(),
       templateHelpers: new Map([
-        ['kebabCase', (str) => str.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '')],
-        ['camelCase', (str) => str.replace(/-([a-z])/g, (g) => g[1].toUpperCase())],
-        ['pascalCase', (str) => {
-          const camelCase = str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-          return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
-        }]
+        [
+          'kebabCase',
+          str =>
+            str
+              .replace(/([A-Z])/g, '-$1')
+              .toLowerCase()
+              .replace(/^-/, '')
+        ],
+        ['camelCase', str => str.replace(/-([a-z])/g, g => g[1].toUpperCase())],
+        [
+          'pascalCase',
+          str => {
+            const camelCase = str.replace(/-([a-z])/g, g => g[1].toUpperCase());
+            return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
+          }
+        ]
       ])
     };
 
@@ -128,8 +142,7 @@ describe('ApiManager', () => {
         // missing model, endpoint, projectPath
       };
 
-      await expect(apiManager.generateApiModule(options))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(apiManager.generateApiModule(options)).rejects.toThrow(BalmSharedMCPError);
     });
   });
 
@@ -270,8 +283,12 @@ describe('ApiManager', () => {
       const result = await apiManager.updateApiConfig(options);
 
       expect(result.success).toBe(true);
-      expect(mockFileSystemHandler.exists).toHaveBeenCalledWith('/test/project/src/scripts/apis/content/user.js');
-      expect(mockFileSystemHandler.readFile).toHaveBeenCalledWith('/test/project/src/scripts/apis/content/user.js');
+      expect(mockFileSystemHandler.exists).toHaveBeenCalledWith(
+        '/test/project/src/scripts/apis/content/user.js'
+      );
+      expect(mockFileSystemHandler.readFile).toHaveBeenCalledWith(
+        '/test/project/src/scripts/apis/content/user.js'
+      );
       expect(mockFileSystemHandler.writeFile).toHaveBeenCalled();
     });
 
@@ -284,8 +301,7 @@ describe('ApiManager', () => {
 
       mockFileSystemHandler.exists.mockResolvedValue(false);
 
-      await expect(apiManager.updateApiConfig(options))
-        .rejects.toThrow(BalmSharedMCPError);
+      await expect(apiManager.updateApiConfig(options)).rejects.toThrow(BalmSharedMCPError);
     });
   });
 
@@ -338,7 +354,7 @@ describe('ApiManager', () => {
 
       expect(result.success).toBe(true);
       expect(result.apis).toHaveLength(3);
-      
+
       const authApi = result.apis.find(api => api.name === 'auth');
       expect(authApi).toEqual({
         name: 'auth',
@@ -383,7 +399,15 @@ describe('ApiManager', () => {
   ]
 ];`;
 
-      const result = apiManager.parseApiConfiguration(content, 'user', 'content');
+      const projectPath = '/test/project';
+      const apiPath = '/test/project/src/scripts/apis/content/user.js';
+      const result = apiManager.parseApiConfiguration(
+        content,
+        'user',
+        'content',
+        apiPath,
+        projectPath
+      );
 
       expect(result).toEqual({
         name: 'user',
@@ -411,7 +435,15 @@ describe('ApiManager', () => {
   ]
 ];`;
 
-      const result = apiManager.parseApiConfiguration(content, 'auth', 'common');
+      const projectPath = '/test/project';
+      const apiPath = '/test/project/src/scripts/apis/common/auth.js';
+      const result = apiManager.parseApiConfiguration(
+        content,
+        'auth',
+        'common',
+        apiPath,
+        projectPath
+      );
 
       expect(result).toEqual({
         name: 'auth',
@@ -476,7 +508,9 @@ export default {
       const result = await apiManager.validateApiConfiguration('/test/project', 'nonexistent');
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('API configuration file not found: /test/project/src/scripts/apis/content/nonexistent.js');
+      expect(result.errors).toContain(
+        'API configuration file not found: /test/project/src/scripts/apis/content/nonexistent.js'
+      );
     });
 
     it('should detect invalid API configuration format', async () => {
@@ -491,7 +525,9 @@ export default {
       const result = await apiManager.validateApiConfiguration('/test/project', 'user');
 
       expect(result.valid).toBe(false);
-      expect(result.errors).toContain('Invalid API configuration format - should be [model, endpoint, operations, options?]');
+      expect(result.errors).toContain(
+        'Invalid API configuration format - should be [model, endpoint, operations, options?]'
+      );
     });
 
     it('should warn about missing imports', async () => {
@@ -503,8 +539,8 @@ export default {
   ]
 ];`;
 
-      const categoryIndexContent = `export default [];`; // missing import
-      const mainIndexContent = `export default { apis: [] };`; // missing category import
+      const categoryIndexContent = 'export default [];'; // missing import
+      const mainIndexContent = 'export default { apis: [] };'; // missing category import
 
       mockFileSystemHandler.exists.mockResolvedValue(true);
       mockFileSystemHandler.readFile

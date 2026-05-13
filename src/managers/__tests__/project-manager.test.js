@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import path from 'path';
 import { ProjectManager } from '../project-manager.js';
 import { BalmSharedMCPError } from '../../utils/errors.js';
 
@@ -12,7 +13,10 @@ const mockFileSystemHandler = {
   readFile: vi.fn(),
   writeFile: vi.fn(),
   copyDirectory: vi.fn(),
-  updateJsonFile: vi.fn()
+  updateJsonFile: vi.fn(),
+  getScriptsDir: vi
+    .fn()
+    .mockImplementation(projectPath => Promise.resolve(path.join(projectPath, 'src/scripts')))
 };
 
 const mockConfig = {
@@ -91,7 +95,8 @@ describe('ProjectManager', () => {
       expect(projectManager.runBalmInit).toHaveBeenCalledWith(
         'vue-ui-front',
         'test-project',
-        '/test'
+        '/test',
+        validOptions
       );
     });
 

@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import path from 'path';
 import { ModelConfigManager } from '../../src/managers/model-config-manager.js';
 
 describe('ModelConfigManager', () => {
@@ -14,7 +15,10 @@ describe('ModelConfigManager', () => {
     mockFileSystemHandler = {
       ensureDirectory: vi.fn(),
       writeFile: vi.fn(),
-      exists: vi.fn().mockResolvedValue(true)
+      exists: vi.fn().mockResolvedValue(true),
+      getScriptsDir: vi
+        .fn()
+        .mockImplementation(projectPath => Promise.resolve(path.join(projectPath, 'src/scripts')))
     };
 
     mockConfig = {
@@ -115,10 +119,12 @@ describe('ModelConfigManager', () => {
         validation: { email: true }
       };
       const validation = modelConfigManager.generateValidationConfig(field);
-      expect(validation).toEqual([{
-        pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-        message: '请输入有效的邮箱地址'
-      }]);
+      expect(validation).toEqual([
+        {
+          pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+          message: '请输入有效的邮箱地址'
+        }
+      ]);
     });
 
     it('should generate multiple validation rules', () => {
@@ -156,7 +162,7 @@ describe('ModelConfigManager', () => {
       };
 
       const result = await modelConfigManager.generateModelConfig(options);
-      
+
       expect(result.success).toBe(true);
       expect(result.config.fields).toHaveLength(2);
       expect(result.config.fields[0]).toEqual({
@@ -204,7 +210,7 @@ describe('ModelConfigManager', () => {
       };
 
       const result = await modelConfigManager.generateModelConfig(options);
-      
+
       expect(result.success).toBe(true);
       expect(result.config.layout).toBe('horizontal');
       expect(result.config.submitText).toBe('保存产品');
@@ -235,12 +241,12 @@ describe('ModelConfigManager', () => {
       };
 
       const result = await modelConfigManager.generateModelConfigFile(options);
-      
+
       expect(result.success).toBe(true);
       expect(result.filePath).toContain('user.js');
       expect(mockFileSystemHandler.ensureDirectory).toHaveBeenCalled();
       expect(mockFileSystemHandler.writeFile).toHaveBeenCalled();
-      
+
       const writeCall = mockFileSystemHandler.writeFile.mock.calls[0];
       expect(writeCall[1]).toContain('export default () => [');
       expect(writeCall[1]).toContain("label: '用户名'");
@@ -275,7 +281,7 @@ describe('ModelConfigManager', () => {
     it('should allow adding custom validation rule', () => {
       const customRule = { pattern: /^test/, message: 'Must start with test' };
       modelConfigManager.addValidationRule('custom', customRule);
-      
+
       const field = { validation: { custom: true } };
       const validation = modelConfigManager.generateValidationConfig(field);
       expect(validation).toContain(customRule);

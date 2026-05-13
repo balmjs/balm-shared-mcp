@@ -71,7 +71,10 @@ describe('MCPServer Code Generation Tools', () => {
       expect(result.summary.model).toBe('User');
       expect(result.summary.fieldsGenerated).toBe(2);
       expect(result.summary.filesCreated).toBe(2);
-      expect(mockCodeGenerator.generateCrudModule).toHaveBeenCalledWith(validArgs);
+      expect(mockCodeGenerator.generateCrudModule).toHaveBeenCalledWith({
+        ...validArgs,
+        patterns: expect.any(Object)
+      });
     });
 
     it('should throw error for missing required parameters', async () => {
@@ -155,7 +158,10 @@ describe('MCPServer Code Generation Tools', () => {
       expect(result.summary.type).toBe('list');
       expect(result.summary.model).toBe('User');
       expect(result.summary.filesCreated).toBe(1);
-      expect(mockCodeGenerator.generatePageComponent).toHaveBeenCalledWith(validArgs);
+      expect(mockCodeGenerator.generatePageComponent).toHaveBeenCalledWith({
+        ...validArgs,
+        patterns: expect.any(Object)
+      });
     });
 
     it('should generate detail page component', async () => {

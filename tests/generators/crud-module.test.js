@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import path from 'path';
 import { CodeGenerator } from '../../src/generators/code-generator.js';
 
 describe('CodeGenerator - CRUD Module', () => {
@@ -15,7 +16,10 @@ describe('CodeGenerator - CRUD Module', () => {
       ensureDirectory: vi.fn(),
       writeFile: vi.fn(),
       readFile: vi.fn().mockResolvedValue(''),
-      exists: vi.fn().mockResolvedValue(true)
+      exists: vi.fn().mockResolvedValue(true),
+      getScriptsDir: vi
+        .fn()
+        .mockImplementation(projectPath => Promise.resolve(path.join(projectPath, 'src/scripts')))
     };
 
     mockConfig = {
@@ -84,12 +88,13 @@ describe('CodeGenerator - CRUD Module', () => {
 
     it('should handle missing required parameters', async () => {
       const options = {
-        module: 'user',
+        module: 'user'
         // missing model, fields, projectPath
       };
 
-      await expect(codeGenerator.generateCrudModule(options))
-        .rejects.toThrow('Missing required parameters');
+      await expect(codeGenerator.generateCrudModule(options)).rejects.toThrow(
+        'Missing required parameters'
+      );
     });
 
     it('should handle non-existent project path', async () => {
@@ -102,8 +107,9 @@ describe('CodeGenerator - CRUD Module', () => {
         projectPath: '/non/existent/path'
       };
 
-      await expect(codeGenerator.generateCrudModule(options))
-        .rejects.toThrow('Project path does not exist');
+      await expect(codeGenerator.generateCrudModule(options)).rejects.toThrow(
+        'Project path does not exist'
+      );
     });
   });
 
@@ -143,9 +149,9 @@ describe('CodeGenerator - CRUD Module', () => {
 
       expect(result.success).toBe(true);
       expect(mockFileSystemHandler.writeFile).toHaveBeenCalled();
-      
-      const writeCall = mockFileSystemHandler.writeFile.mock.calls.find(
-        call => call[0].includes('user.js')
+
+      const writeCall = mockFileSystemHandler.writeFile.mock.calls.find(call =>
+        call[0].includes('user.js')
       );
       expect(writeCall[1]).toContain('activate');
       expect(writeCall[1]).toContain('deactivate');
@@ -166,12 +172,7 @@ describe('CodeGenerator - CRUD Module', () => {
 
       expect(result.success).toBe(true);
       expect(result.filePath).toContain('user.js');
-      expect(result.routes).toEqual([
-        'user-list',
-        'user-create',
-        'user-detail',
-        'user-edit'
-      ]);
+      expect(result.routes).toEqual(['user-list', 'user-create', 'user-detail', 'user-edit']);
       expect(result.generatedFiles).toHaveLength(1);
       expect(result.generatedFiles[0].type).toBe('route-config');
     });
@@ -254,35 +255,52 @@ describe('CodeGenerator - CRUD Module', () => {
 
   describe('index file updates', () => {
     it('should update API index', async () => {
-      mockFileSystemHandler.readFile.mockResolvedValue('// existing content\n');
+      mockFileSystemHandler.exists.mockResolvedValue(true);
+      mockFileSystemHandler.readFile.mockResolvedValue('export default {\n  apis: []\n};');
 
       await codeGenerator.updateApiIndex('/test/project', 'user');
 
       expect(mockFileSystemHandler.writeFile).toHaveBeenCalledWith(
-        expect.stringContaining('api/index.js'),
-        expect.stringContaining('export { default as user }')
+        expect.stringContaining('apis/index.js'),
+        expect.stringContaining("import user from './user.js'")
+      );
+      expect(mockFileSystemHandler.writeFile).toHaveBeenCalledWith(
+        expect.stringContaining('apis/index.js'),
+        expect.stringContaining('apis: [')
       );
     });
 
-    it('should update routes index', async () => {
-      mockFileSystemHandler.readFile.mockResolvedValue('// existing content\n');
+    it('should update routes config', async () => {
+      mockFileSystemHandler.exists.mockResolvedValue(true);
+      mockFileSystemHandler.readFile.mockResolvedValue('export const routes = [];');
 
-      await codeGenerator.updateRoutesIndex('/test/project', 'user');
+      await codeGenerator.updateRoutesConfig('/test/project', 'user');
 
       expect(mockFileSystemHandler.writeFile).toHaveBeenCalledWith(
-        expect.stringContaining('routes/index.js'),
-        expect.stringContaining('userRoutes')
+        expect.stringContaining('routes/config.js'),
+        expect.stringContaining("import { userRoutes } from './user'")
+      );
+      expect(mockFileSystemHandler.writeFile).toHaveBeenCalledWith(
+        expect.stringContaining('routes/config.js'),
+        expect.stringContaining('routes = [')
       );
     });
 
     it('should update mock index', async () => {
-      mockFileSystemHandler.readFile.mockResolvedValue('// existing content\n');
+      mockFileSystemHandler.exists.mockResolvedValue(true);
+      mockFileSystemHandler.readFile.mockResolvedValue(
+        'export function setupMockServer(server) {}'
+      );
 
       await codeGenerator.updateMockIndex('/test/project', 'user');
 
       expect(mockFileSystemHandler.writeFile).toHaveBeenCalledWith(
-        expect.stringContaining('mock-server/index.js'),
-        expect.stringContaining('getUserApis')
+        expect.stringContaining('mock-server/apis/index.js'),
+        expect.stringContaining("import { getUserApis } from './user'")
+      );
+      expect(mockFileSystemHandler.writeFile).toHaveBeenCalledWith(
+        expect.stringContaining('mock-server/apis/index.js'),
+        expect.stringContaining('getUserApis(server)')
       );
     });
 
@@ -290,7 +308,7 @@ describe('CodeGenerator - CRUD Module', () => {
       mockFileSystemHandler.exists.mockResolvedValue(false);
 
       await codeGenerator.updateApiIndex('/test/project', 'user');
-      await codeGenerator.updateRoutesIndex('/test/project', 'user');
+      await codeGenerator.updateRoutesConfig('/test/project', 'user');
       await codeGenerator.updateMockIndex('/test/project', 'user');
 
       expect(mockFileSystemHandler.writeFile).toHaveBeenCalledTimes(3);

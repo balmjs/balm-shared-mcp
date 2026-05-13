@@ -13,7 +13,7 @@ describe('ToolRegistry', () => {
 
   beforeEach(() => {
     registry = new ToolRegistry();
-    
+
     validSchema = {
       type: 'object',
       properties: {
@@ -23,7 +23,7 @@ describe('ToolRegistry', () => {
       required: ['name']
     };
 
-    mockHandler = async (args) => {
+    mockHandler = async args => {
       return { success: true, input: args };
     };
   });
@@ -40,7 +40,7 @@ describe('ToolRegistry', () => {
 
       expect(toolInterface).toBeDefined();
       expect(registry.has('test_tool')).toBe(true);
-      
+
       const stats = registry.getStatistics();
       expect(stats.totalTools).toBe(1);
       expect(stats.categories).toBe(1);
@@ -48,7 +48,7 @@ describe('ToolRegistry', () => {
 
     it('should prevent duplicate tool registration by default', () => {
       registry.register('duplicate_tool', 'First registration', validSchema, mockHandler);
-      
+
       expect(() => {
         registry.register('duplicate_tool', 'Second registration', validSchema, mockHandler);
       }).toThrow(BalmSharedMCPError);
@@ -56,15 +56,11 @@ describe('ToolRegistry', () => {
 
     it('should allow tool override when specified', () => {
       registry.register('override_tool', 'First registration', validSchema, mockHandler);
-      
+
       expect(() => {
-        registry.register(
-          'override_tool', 
-          'Second registration', 
-          validSchema, 
-          mockHandler,
-          { allowOverride: true }
-        );
+        registry.register('override_tool', 'Second registration', validSchema, mockHandler, {
+          allowOverride: true
+        });
       }).not.toThrow();
     });
 
@@ -75,7 +71,7 @@ describe('ToolRegistry', () => {
 
       const categories = registry.getCategories();
       expect(categories).toHaveLength(2);
-      
+
       const cat1 = categories.find(c => c.name === 'cat1');
       expect(cat1.toolCount).toBe(2);
       expect(cat1.tools).toContain('tool1');
@@ -83,13 +79,9 @@ describe('ToolRegistry', () => {
     });
 
     it('should handle tags correctly', () => {
-      registry.register(
-        'tagged_tool',
-        'Tagged tool',
-        validSchema,
-        mockHandler,
-        { tags: ['tag1', 'tag2', 'common'] }
-      );
+      registry.register('tagged_tool', 'Tagged tool', validSchema, mockHandler, {
+        tags: ['tag1', 'tag2', 'common']
+      });
 
       const tools = registry.list({ tags: ['tag1'] });
       expect(tools).toHaveLength(1);
@@ -121,7 +113,7 @@ describe('ToolRegistry', () => {
     it('should list all tools', () => {
       const tools = registry.list();
       expect(tools).toHaveLength(3);
-      
+
       const toolNames = tools.map(t => t.name);
       expect(toolNames).toContain('tool1');
       expect(toolNames).toContain('tool2');
@@ -131,7 +123,7 @@ describe('ToolRegistry', () => {
     it('should filter tools by category', () => {
       const cat1Tools = registry.list({ category: 'cat1' });
       expect(cat1Tools).toHaveLength(2);
-      
+
       const toolNames = cat1Tools.map(t => t.name);
       expect(toolNames).toContain('tool1');
       expect(toolNames).toContain('tool3');
@@ -156,7 +148,7 @@ describe('ToolRegistry', () => {
     it('should execute tool successfully', async () => {
       const args = { name: 'test', value: 42 };
       const result = await registry.execute('exec_tool', args, { requestId: 'test-123' });
-      
+
       expect(result).toBeDefined();
       expect(result.content).toBeDefined();
       expect(Array.isArray(result.content)).toBe(true);
@@ -164,10 +156,10 @@ describe('ToolRegistry', () => {
 
     it('should update usage statistics on execution', async () => {
       const args = { name: 'test' };
-      
+
       await registry.execute('exec_tool', args);
       await registry.execute('exec_tool', args);
-      
+
       const tool = registry.get('exec_tool');
       expect(tool.usage.callCount).toBe(2);
       expect(tool.usage.lastCalled).toBeDefined();
@@ -180,11 +172,11 @@ describe('ToolRegistry', () => {
       };
 
       registry.register('error_tool', 'Error tool', validSchema, errorHandler);
-      
+
       const args = { name: 'test' };
-      
+
       await expect(registry.execute('error_tool', args)).rejects.toThrow();
-      
+
       const tool = registry.get('error_tool');
       expect(tool.usage.errorCount).toBe(1);
     });
@@ -201,9 +193,9 @@ describe('ToolRegistry', () => {
 
     it('should unregister tool successfully', () => {
       expect(registry.has('temp_tool')).toBe(true);
-      
+
       registry.unregister('temp_tool');
-      
+
       expect(registry.has('temp_tool')).toBe(false);
     });
 
@@ -216,11 +208,11 @@ describe('ToolRegistry', () => {
     it('should clear all tools', () => {
       registry.register('tool1', 'Tool 1', validSchema, mockHandler);
       registry.register('tool2', 'Tool 2', validSchema, mockHandler);
-      
+
       expect(registry.getStatistics().totalTools).toBe(3); // Including temp_tool
-      
+
       registry.clear();
-      
+
       expect(registry.getStatistics().totalTools).toBe(0);
     });
   });
@@ -233,7 +225,7 @@ describe('ToolRegistry', () => {
 
     it('should provide accurate statistics', () => {
       const stats = registry.getStatistics();
-      
+
       expect(stats.totalTools).toBe(2);
       expect(stats.categories).toBe(1); // Both use default 'general' category
       expect(stats.metadata).toBeDefined();
@@ -243,7 +235,7 @@ describe('ToolRegistry', () => {
 
     it('should validate all tools', () => {
       const results = registry.validateAll();
-      
+
       expect(results).toHaveLength(2);
       expect(results[0].valid).toBe(true);
       expect(results[1].valid).toBe(true);
@@ -253,10 +245,10 @@ describe('ToolRegistry', () => {
       // Manually corrupt a tool to test validation
       const tool = registry.get('stat_tool1');
       tool.interface.name = null; // Make it invalid
-      
+
       const results = registry.validateAll();
       const invalidTool = results.find(r => r.name === 'stat_tool1');
-      
+
       expect(invalidTool.valid).toBe(false);
       expect(invalidTool.error).toBeDefined();
     });
@@ -267,11 +259,11 @@ describe('ToolRegistry', () => {
     let slowHandler;
 
     beforeEach(() => {
-      fastHandler = async (args) => {
+      fastHandler = async args => {
         return { result: 'fast', args };
       };
 
-      slowHandler = async (args) => {
+      slowHandler = async args => {
         await new Promise(resolve => setTimeout(resolve, 10));
         return { result: 'slow', args };
       };
@@ -285,10 +277,10 @@ describe('ToolRegistry', () => {
       await registry.execute('fast_tool', { name: 'test1' });
       await registry.execute('fast_tool', { name: 'test2' });
       await registry.execute('fast_tool', { name: 'test3' });
-      
+
       // Execute slow_tool once
       await registry.execute('slow_tool', { name: 'test1' });
-      
+
       const stats = registry.getStatistics();
       expect(stats.usage.mostUsedTool).toBe('fast_tool');
       expect(stats.usage.leastUsedTool).toBe('slow_tool');
@@ -298,10 +290,10 @@ describe('ToolRegistry', () => {
     it('should track execution times', async () => {
       await registry.execute('fast_tool', { name: 'test' });
       await registry.execute('slow_tool', { name: 'test' });
-      
+
       const fastTool = registry.get('fast_tool');
       const slowTool = registry.get('slow_tool');
-      
+
       expect(fastTool.usage.totalExecutionTime).toBeGreaterThanOrEqual(0);
       expect(slowTool.usage.totalExecutionTime).toBeGreaterThanOrEqual(10);
     });

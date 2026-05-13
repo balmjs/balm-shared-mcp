@@ -61,13 +61,10 @@ describe('MCPServer Resource Query Tools', () => {
     it('should query component successfully with valid parameters', async () => {
       const result = await mcpServer.queryComponent(validArgs);
 
-      expect(result.found).toBe(true);
-      expect(result.name).toBe('yb-avatar');
-      expect(result.category).toBe('common');
-      expect(result.query).toBeDefined();
-      expect(result.query.name).toBe('yb-avatar');
-      expect(result.query.category).toBe('common');
-      expect(result.query.timestamp).toBeDefined();
+      expect(typeof result).toBe('string');
+      expect(result).toContain('# Component Query: yb-avatar');
+      expect(result).toContain('Found');
+      expect(result).toContain('common');
       expect(mockResourceAnalyzer.queryComponent).toHaveBeenCalledWith('yb-avatar', 'common');
     });
 
@@ -76,7 +73,8 @@ describe('MCPServer Resource Query Tools', () => {
 
       const result = await mcpServer.queryComponent(argsWithoutCategory);
 
-      expect(result.query.category).toBeNull();
+      expect(typeof result).toBe('string');
+      expect(result).toContain('# Component Query: yb-button');
       expect(mockResourceAnalyzer.queryComponent).toHaveBeenCalledWith('yb-button', undefined);
     });
 
@@ -171,12 +169,9 @@ describe('MCPServer Resource Query Tools', () => {
     it('should get best practices successfully with valid parameters', async () => {
       const result = await mcpServer.getBestPractices(validArgs);
 
-      expect(result.topic).toBe('component-usage');
-      expect(result.practices).toBeDefined();
-      expect(Array.isArray(result.practices)).toBe(true);
-      expect(result.query).toBeDefined();
-      expect(result.query.topic).toBe('component-usage');
-      expect(result.query.timestamp).toBeDefined();
+      expect(typeof result).toBe('string');
+      expect(result).toContain('# Best Practices: component-usage');
+      expect(result).toContain('Use size prop');
       expect(mockResourceAnalyzer.getBestPractices).toHaveBeenCalledWith('component-usage');
     });
 
@@ -288,54 +283,6 @@ describe('MCPServer Resource Query Tools', () => {
       await mcpServer.getBestPractices(validArgs);
 
       expect(mockResourceAnalyzer.getBestPractices).toHaveBeenCalled();
-    });
-  });
-
-  describe('result formatting', () => {
-    it('should add query metadata to component query results', async () => {
-      const args = { name: 'yb-avatar', category: 'common' };
-
-      mockResourceAnalyzer.queryComponent.mockResolvedValue({
-        found: true,
-        name: 'yb-avatar'
-      });
-
-      const result = await mcpServer.queryComponent(args);
-
-      expect(result.query).toEqual({
-        name: 'yb-avatar',
-        category: 'common',
-        timestamp: expect.any(String)
-      });
-    });
-
-    it('should add query metadata to best practices results', async () => {
-      const args = { topic: 'component-usage' };
-
-      mockResourceAnalyzer.getBestPractices.mockResolvedValue({
-        topic: 'component-usage',
-        practices: []
-      });
-
-      const result = await mcpServer.getBestPractices(args);
-
-      expect(result.query).toEqual({
-        topic: 'component-usage',
-        timestamp: expect.any(String)
-      });
-    });
-
-    it('should handle null category in query metadata', async () => {
-      const args = { name: 'yb-avatar' }; // No category
-
-      mockResourceAnalyzer.queryComponent.mockResolvedValue({
-        found: true,
-        name: 'yb-avatar'
-      });
-
-      const result = await mcpServer.queryComponent(args);
-
-      expect(result.query.category).toBeNull();
     });
   });
 });

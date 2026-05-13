@@ -426,19 +426,35 @@ macOS 上 GUI 应用（如 IDE）可能无法继承终端的 PATH。解决方案
 
 ---
 
-## 📝 可用工具列表
+## 📝 可用工具列表 (12 Tools)
 
-| 工具 | 功能 |
+MCP 服务器目前提供 12 个细粒度的工具，分为三大类，以支持最新的 Agentic 工作流和传统的生成模式：
+
+### 📖 上下文获取工具 (Context Gathering - 推荐)
+| 工具 | 功能说明 |
 |------|------|
-| `create_project` | 创建 frontend/backend 项目 |
-| `analyze_project` | 分析项目结构 |
-| `generate_crud_module` | 生成完整 CRUD 模块 |
-| `generate_page_component` | 生成页面组件 |
-| `generate_model_config` | 生成表单配置 |
-| `query_component` | 查询共享库组件 |
-| `get_best_practices` | 获取最佳实践 |
+| `analyze_project_context` | 智能分析当前项目的元数据，识别源码根目录结构、别名映射等。 |
+| `extract_local_pattern` | 提取项目中已有的高质量代码范例（Few-shot prompting），辅助 AI 学习本地编码风格。 |
+| `query_component` | 查询 Shared 项目中存在的通用组件、Pro-views 等详细信息与 Props 规范。 |
+| `get_best_practices` | 获取官方组件规范与最佳实践指南，避免生成过时的代码模式。 |
 
-详细使用示例请参阅 [AI-EXAMPLES.md](./AI-EXAMPLES.md)
+### 🛠️ 安全执行工具 (Action Execution - 推荐)
+| 工具 | 功能说明 |
+|------|------|
+| `scaffold_module_structure` | 安全创建模块的基础空目录结构 (如 apis/, pages/, routes/)。 |
+| `write_component` | 将 AI 生成的代码纯文本写入指定的组件文件，并进行基础的格式检查。 |
+| `ast_insert_import` | 安全地向目标文件 (如 `index.js`, `config.js`) 中插入 `import` 语句或扩展数组，避免正则替换导致的语法错误。 |
+
+### ⚠️ 传统生成工具 (Legacy Generators - 维护中)
+| 工具 | 功能说明 |
+|------|------|
+| `create_project` | 创建基于 balm-shared 的全新 frontend/backend 项目。 |
+| `analyze_project` | 分析遗留项目的整体结构和依赖健康度。 |
+| `generate_crud_module` | 黑盒模式：一键生成包含 API、路由、页面的完整 CRUD 模块。 |
+| `generate_page_component` | 黑盒模式：一键生成单一页面组件（列表页/详情页）。 |
+| `generate_model_config` | 自动生成用于详情表单的 `model-config` 配置文件。 |
+
+详细使用示例和 Agent 工作流编排请参阅 [AI-EXAMPLES.md](./AI-EXAMPLES.md)。
 
 ---
 
@@ -462,7 +478,7 @@ AI 将生成：
 - `pages/user/user-list.vue`
 - `pages/user/user-detail.vue`
 - `routes/user.js`
-- `apis/user.js` 或 `config/api/user.js`
+- `apis/user.js`
 - `mock-server/apis/user.js`
 - `config/model-config/user.js`
 
